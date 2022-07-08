@@ -18,7 +18,7 @@
     "lodash": "4.17.21",
     "npm": "8.13.2",
     "seedrandom": "3.0.5",
-    "vue": "2.7.4",
+    "vue": "3.2.37",
     "vue-toasted": "1.1.28",
     "vuedraggable": "2.24.3",
     "vuetify": "1.5.24"
