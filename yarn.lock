@@ -43,7 +43,7 @@ __metadata:
     eslint: 8.19.0
     eslint-plugin-promise: 6.0.0
     eslint-plugin-vue: 9.2.0
-    eslint-plugin-vuetify: ^1.1.0
+    eslint-plugin-vuetify: 1.1.0
     firebase: 9.9.0
     i: 0.3.7
     lodash: 4.17.21
@@ -5285,7 +5285,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint-plugin-vuetify@npm:^1.1.0":
+"eslint-plugin-vuetify@npm:1.1.0":
   version: 1.1.0
   resolution: "eslint-plugin-vuetify@npm:1.1.0"
   dependencies:
