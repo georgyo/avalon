@@ -53,7 +53,7 @@ __metadata:
     vue-template-compiler: 2.7.8
     vue-toasted: 1.1.28
     vuedraggable: 2.24.3
-    vuetify: 2.6.7
+    vuetify: 2.6.8
   languageName: unknown
   linkType: soft
 
@@ -11205,12 +11205,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vuetify@npm:2.6.7":
-  version: 2.6.7
-  resolution: "vuetify@npm:2.6.7"
+"vuetify@npm:2.6.8":
+  version: 2.6.8
+  resolution: "vuetify@npm:2.6.8"
   peerDependencies:
     vue: ^2.6.4
-  checksum: 1514c31738dd15970ee7fc9824b2ee6e83da581bd5a99f912561c820ec14f922cc3ca914afa102d4a56bbfc16f78722cfe69d1e5c3ab75f46a32bb3b6623745a
+  checksum: 202f865319164e9f339a1911354200029b059d198ebdc3caa5b34a25dd6c982430ace7669416b2d180342eb6e4cc08c860be36ed4bc787ee3d6e649623889826
   languageName: node
   linkType: hard
 
