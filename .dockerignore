@@ -1,0 +1,11 @@
+.yarn
+!.yarn/releases
+!.yarn/plugins
+
+*/node_modules
+node_modules
+
+Dockerfile
+.dockerignore
+
+server/firebase-key.json
