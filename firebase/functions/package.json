@@ -20,7 +20,7 @@
     "eslint": "8.21.0",
     "eslint-plugin-promise": "6.0.0",
     "firebase-functions-test": "2.2.0",
-    "firebase-tools": "11.4.2"
+    "firebase-tools": "11.8.1"
   },
   "private": true
 }
