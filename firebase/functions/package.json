@@ -18,7 +18,7 @@
   },
   "devDependencies": {
     "eslint": "8.21.0",
-    "eslint-plugin-promise": "6.0.0",
+    "eslint-plugin-promise": "6.0.1",
     "firebase-functions-test": "2.2.0",
     "firebase-tools": "11.8.1"
   },
