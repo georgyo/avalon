@@ -13,7 +13,7 @@
     "@fortawesome/free-solid-svg-icons": "6.2.0",
     "@fortawesome/vue-fontawesome": "2.0.8",
     "axios": "0.27.2",
-    "firebase": "9.9.4",
+    "firebase": "9.10.0",
     "i": "0.3.7",
     "lodash": "4.17.21",
     "npm": "8.19.1",
