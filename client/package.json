@@ -21,7 +21,7 @@
     "vue": "2.7.10",
     "vue-toasted": "1.1.28",
     "vuedraggable": "2.24.3",
-    "vuetify": "2.6.9"
+    "vuetify": "2.6.10"
   },
   "devDependencies": {
     "@babel/eslint-parser": "7.18.9",
