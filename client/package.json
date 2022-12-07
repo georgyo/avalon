@@ -18,7 +18,7 @@
     "lodash": "4.17.21",
     "npm": "8.19.2",
     "seedrandom": "3.0.5",
-    "vue": "2.7.13",
+    "vue": "2.7.14",
     "vue-toasted": "1.1.28",
     "vuedraggable": "2.24.3",
     "vuetify": "2.6.11"
@@ -33,11 +33,11 @@
     "@vue/cli-plugin-babel": "5.0.8",
     "@vue/cli-plugin-eslint": "5.0.8",
     "@vue/cli-service": "5.0.8",
-    "@vue/compiler-sfc": "3.2.41",
+    "@vue/compiler-sfc": "3.2.45",
     "eslint": "8.25.0",
     "eslint-plugin-promise": "6.1.0",
     "eslint-plugin-vue": "9.6.0",
     "eslint-plugin-vuetify": "1.1.0",
-    "vue-template-compiler": "2.7.13"
+    "vue-template-compiler": "2.7.14"
   }
 }
