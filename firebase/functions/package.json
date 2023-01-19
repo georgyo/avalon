@@ -13,14 +13,14 @@
     "node": "18"
   },
   "dependencies": {
-    "firebase-admin": "11.2.0",
+    "firebase-admin": "11.4.1",
     "firebase-functions": "4.1.0"
   },
   "devDependencies": {
     "eslint": "8.29.0",
     "eslint-plugin-promise": "6.1.1",
     "firebase-functions-test": "3.0.0",
-    "firebase-tools": "11.17.0"
+    "firebase-tools": "11.21.0"
   },
   "private": true
 }
