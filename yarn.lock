@@ -3197,12 +3197,16 @@ __metadata:
   linkType: hard
 
 "@volar-plugins/prettyhtml@npm:^1.0.3":
-  version: 1.0.3
-  resolution: "@volar-plugins/prettyhtml@npm:1.0.3"
+  version: 1.1.0
+  resolution: "@volar-plugins/prettyhtml@npm:1.1.0"
   dependencies:
     "@starptech/prettyhtml": ^0.10.0
-    "@volar/vue-language-service-types": ^0.34.0
-  checksum: d7373fdd87bef1691dc8b674f3272221aed105e70cdea6c47322b3c9d4333cd0ae090568be9764e4cb51caba2ef809329bb0199b7291fa8605ae1c90ea933358
+  peerDependencies:
+    "@volar/language-service": "*"
+  peerDependenciesMeta:
+    "@volar/language-service":
+      optional: true
+  checksum: 0e15dbb6786541b71de0ac3bf419607c2e889001f5242811c383faeb1792a0c7549faa69a8e50064c13ad3ae4da47f8e0b9e89c8b8a0dab38cadb46d7eabb462
   languageName: node
   linkType: hard
 
