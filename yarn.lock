@@ -3187,12 +3187,15 @@ __metadata:
   linkType: hard
 
 "@volar-plugins/prettier@npm:^1.1.4":
-  version: 1.1.4
-  resolution: "@volar-plugins/prettier@npm:1.1.4"
-  dependencies:
-    prettier: ^2.6.2
-    vscode-uri: ^3.0.3
-  checksum: 1a92cd9b6a92f58b12642669ed9de679d7a2e5d9460aa771cb7870dd5943b3d6977d514e75d14a6bd71f7fc5ef05649cb3c557cfe4f81b52ac2038a62782c3b0
+  version: 1.2.0
+  resolution: "@volar-plugins/prettier@npm:1.2.0"
+  peerDependencies:
+    "@volar/language-service": "*"
+    prettier: "*"
+  peerDependenciesMeta:
+    "@volar/language-service":
+      optional: true
+  checksum: e88c10d0394bfc29a2c58bb8dd959a574be81b28f4cdfae0e593358bdfac13528e82a0822a2ec04bb4e95d8c87bbe8775227d3d38f7a30c91d386f974993da83
   languageName: node
   linkType: hard
 
@@ -11160,7 +11163,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"prettier@npm:^1.18.2 || ^2.0.0, prettier@npm:^2.4.1, prettier@npm:^2.6.2":
+"prettier@npm:^1.18.2 || ^2.0.0, prettier@npm:^2.4.1":
   version: 2.7.1
   resolution: "prettier@npm:2.7.1"
   bin:
