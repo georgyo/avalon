@@ -44,7 +44,7 @@ __metadata:
     "@fortawesome/free-solid-svg-icons": 6.4.2
     "@fortawesome/vue-fontawesome": 2.0.10
     "@mdi/font": 7.3.67
-    "@volar-plugins/prettier": ^1.1.4
+    "@volar-plugins/prettier": ^2.0.0
     "@volar-plugins/prettyhtml": ^1.0.3
     "@volar-plugins/vetur": ^0.1.0
     "@vue/cli-plugin-babel": 5.0.8
@@ -3309,16 +3309,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@volar-plugins/prettier@npm:^1.1.4":
-  version: 1.2.0
-  resolution: "@volar-plugins/prettier@npm:1.2.0"
+"@volar-plugins/prettier@npm:^2.0.0":
+  version: 2.0.0
+  resolution: "@volar-plugins/prettier@npm:2.0.0"
   peerDependencies:
     "@volar/language-service": "*"
     prettier: "*"
   peerDependenciesMeta:
     "@volar/language-service":
       optional: true
-  checksum: e88c10d0394bfc29a2c58bb8dd959a574be81b28f4cdfae0e593358bdfac13528e82a0822a2ec04bb4e95d8c87bbe8775227d3d38f7a30c91d386f974993da83
+  checksum: 6e4212b138eca6a35d94af8740184450fdba9fd85aad75be92dfffaf44b94c771b3230bea71585fc8c1b1babf88ac8cc634f30ce2090159fd456c00e68734419
   languageName: node
   linkType: hard
 
