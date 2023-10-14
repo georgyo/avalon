@@ -45,7 +45,7 @@ __metadata:
     "@fortawesome/vue-fontawesome": 2.0.10
     "@mdi/font": 7.3.67
     "@volar-plugins/prettier": ^1.1.4
-    "@volar-plugins/prettyhtml": ^1.0.3
+    "@volar-plugins/prettyhtml": ^2.0.0
     "@volar-plugins/vetur": ^0.1.0
     "@vue/cli-plugin-babel": 5.0.8
     "@vue/cli-plugin-eslint": 5.0.8
@@ -3322,9 +3322,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@volar-plugins/prettyhtml@npm:^1.0.3":
-  version: 1.1.0
-  resolution: "@volar-plugins/prettyhtml@npm:1.1.0"
+"@volar-plugins/prettyhtml@npm:^2.0.0":
+  version: 2.0.0
+  resolution: "@volar-plugins/prettyhtml@npm:2.0.0"
   dependencies:
     "@starptech/prettyhtml": ^0.10.0
   peerDependencies:
@@ -3332,7 +3332,7 @@ __metadata:
   peerDependenciesMeta:
     "@volar/language-service":
       optional: true
-  checksum: 0e15dbb6786541b71de0ac3bf419607c2e889001f5242811c383faeb1792a0c7549faa69a8e50064c13ad3ae4da47f8e0b9e89c8b8a0dab38cadb46d7eabb462
+  checksum: 89d7b6b9008ae15a6020bd59d1b16acf39d1ebb67f07f82a959bc38bc27bfb555c8a93de10351c5d6a1621b323d5a3f125f0a81b80d57504245a422f3ecb7a1e
   languageName: node
   linkType: hard
 
