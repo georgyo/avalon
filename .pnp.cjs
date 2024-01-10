@@ -9164,7 +9164,7 @@ const RAW_RUNTIME_STATE =
         "packageLocation": "./.yarn/cache/axios-npm-1.5.1-6bc68e7d25-67633db586.zip/node_modules/axios/",\
         "packageDependencies": [\
           ["axios", "npm:1.5.1"],\
-          ["follow-redirects", "virtual:6bc68e7d25b7055a51c269c1fa5648c8246286db1b7949168396e2ffbde7ed58cf742783c99b4e376ba9a3e96fcc4d029f96bd1b532b606b5055545461060ec6#npm:1.15.2"],\
+          ["follow-redirects", "virtual:6bc68e7d25b7055a51c269c1fa5648c8246286db1b7949168396e2ffbde7ed58cf742783c99b4e376ba9a3e96fcc4d029f96bd1b532b606b5055545461060ec6#npm:1.15.4"],\
           ["form-data", "npm:4.0.0"],\
           ["proxy-from-env", "npm:1.1.0"]\
         ],\
@@ -13547,37 +13547,17 @@ const RAW_RUNTIME_STATE =
       }]\
     ]],\
     ["follow-redirects", [\
-      ["npm:1.15.1", {\
-        "packageLocation": "./.yarn/cache/follow-redirects-npm-1.15.1-6b191885cd-a57f93ce56.zip/node_modules/follow-redirects/",\
+      ["npm:1.15.4", {\
+        "packageLocation": "./.yarn/cache/follow-redirects-npm-1.15.4-3384d6a415-2e8f5f259a.zip/node_modules/follow-redirects/",\
         "packageDependencies": [\
-          ["follow-redirects", "npm:1.15.1"]\
+          ["follow-redirects", "npm:1.15.4"]\
         ],\
         "linkType": "SOFT"\
       }],\
-      ["npm:1.15.2", {\
-        "packageLocation": "./.yarn/cache/follow-redirects-npm-1.15.2-1ec1dd82be-8be0d39919.zip/node_modules/follow-redirects/",\
+      ["virtual:6bc68e7d25b7055a51c269c1fa5648c8246286db1b7949168396e2ffbde7ed58cf742783c99b4e376ba9a3e96fcc4d029f96bd1b532b606b5055545461060ec6#npm:1.15.4", {\
+        "packageLocation": "./.yarn/__virtual__/follow-redirects-virtual-9feb0cce12/0/cache/follow-redirects-npm-1.15.4-3384d6a415-2e8f5f259a.zip/node_modules/follow-redirects/",\
         "packageDependencies": [\
-          ["follow-redirects", "npm:1.15.2"]\
-        ],\
-        "linkType": "SOFT"\
-      }],\
-      ["virtual:6bc68e7d25b7055a51c269c1fa5648c8246286db1b7949168396e2ffbde7ed58cf742783c99b4e376ba9a3e96fcc4d029f96bd1b532b606b5055545461060ec6#npm:1.15.2", {\
-        "packageLocation": "./.yarn/__virtual__/follow-redirects-virtual-ec65af1aae/0/cache/follow-redirects-npm-1.15.2-1ec1dd82be-8be0d39919.zip/node_modules/follow-redirects/",\
-        "packageDependencies": [\
-          ["follow-redirects", "virtual:6bc68e7d25b7055a51c269c1fa5648c8246286db1b7949168396e2ffbde7ed58cf742783c99b4e376ba9a3e96fcc4d029f96bd1b532b606b5055545461060ec6#npm:1.15.2"],\
-          ["@types/debug", null],\
-          ["debug", null]\
-        ],\
-        "packagePeers": [\
-          "@types/debug",\
-          "debug"\
-        ],\
-        "linkType": "HARD"\
-      }],\
-      ["virtual:a313c479c5c7e54d9ec8fbeeea69ff640f56b8989ea2dff42351a3fa5c4061fb80a52d8ede0f0826a181a216820c2d2c3f15da881e7fdf31cef1c446e42f0c45#npm:1.15.1", {\
-        "packageLocation": "./.yarn/__virtual__/follow-redirects-virtual-fd06796427/0/cache/follow-redirects-npm-1.15.1-6b191885cd-a57f93ce56.zip/node_modules/follow-redirects/",\
-        "packageDependencies": [\
-          ["follow-redirects", "virtual:a313c479c5c7e54d9ec8fbeeea69ff640f56b8989ea2dff42351a3fa5c4061fb80a52d8ede0f0826a181a216820c2d2c3f15da881e7fdf31cef1c446e42f0c45#npm:1.15.1"],\
+          ["follow-redirects", "virtual:6bc68e7d25b7055a51c269c1fa5648c8246286db1b7949168396e2ffbde7ed58cf742783c99b4e376ba9a3e96fcc4d029f96bd1b532b606b5055545461060ec6#npm:1.15.4"],\
           ["@types/debug", null],\
           ["debug", null]\
         ],\
@@ -14741,7 +14721,7 @@ const RAW_RUNTIME_STATE =
         "packageDependencies": [\
           ["http-proxy", "npm:1.18.1"],\
           ["eventemitter3", "npm:4.0.7"],\
-          ["follow-redirects", "virtual:a313c479c5c7e54d9ec8fbeeea69ff640f56b8989ea2dff42351a3fa5c4061fb80a52d8ede0f0826a181a216820c2d2c3f15da881e7fdf31cef1c446e42f0c45#npm:1.15.1"],\
+          ["follow-redirects", "virtual:6bc68e7d25b7055a51c269c1fa5648c8246286db1b7949168396e2ffbde7ed58cf742783c99b4e376ba9a3e96fcc4d029f96bd1b532b606b5055545461060ec6#npm:1.15.4"],\
           ["requires-port", "npm:1.0.0"]\
         ],\
         "linkType": "HARD"\
