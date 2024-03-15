@@ -153,7 +153,7 @@ const RAW_RUNTIME_STATE =
           ["@avalon/server", "workspace:server"],\
           ["@firebase/app-types", "npm:0.9.0"],\
           ["eslint", "npm:8.52.0"],\
-          ["express", "npm:4.18.2"],\
+          ["express", "npm:4.18.3"],\
           ["express-promise-router", "virtual:1cbebe8a36d487ff03fd5e0d9ea4db39ddd47d4fca1722ebd0509c9358ad156a39346a45dab140fabcc5e45c1757f9fe716ff56e644771abd4ce5b8b91f00806#npm:4.1.1"],\
           ["firebase-admin", "virtual:1c48d6fc54bd63a4a7a92b825c3188ce017de7b96310c12c0672c1faf971fb61632a4b939610bf601aced2f901d0649c6fb175a44219174f74f248e1599d043d#npm:11.11.0"],\
           ["lodash", "npm:4.17.21"],\
@@ -12993,6 +12993,44 @@ const RAW_RUNTIME_STATE =
           ["vary", "npm:1.1.2"]\
         ],\
         "linkType": "HARD"\
+      }],\
+      ["npm:4.18.3", {\
+        "packageLocation": "./.yarn/cache/express-npm-4.18.3-05dacc6333-0bf4656d00.zip/node_modules/express/",\
+        "packageDependencies": [\
+          ["express", "npm:4.18.3"],\
+          ["accepts", "npm:1.3.8"],\
+          ["array-flatten", "npm:1.1.1"],\
+          ["body-parser", "npm:1.20.2"],\
+          ["content-disposition", "npm:0.5.4"],\
+          ["content-type", "npm:1.0.4"],\
+          ["cookie", "npm:0.5.0"],\
+          ["cookie-signature", "npm:1.0.6"],\
+          ["debug", "virtual:e0cd6afa69db469de21c754be1546e018ea723a8653bf7c1fdbb52b3d67b9c4065461f2d7632852c8644c3b36b5304269483ba2eb51ad39f9eae03847036d7a9#npm:2.6.9"],\
+          ["depd", "npm:2.0.0"],\
+          ["encodeurl", "npm:1.0.2"],\
+          ["escape-html", "npm:1.0.3"],\
+          ["etag", "npm:1.8.1"],\
+          ["finalhandler", "npm:1.2.0"],\
+          ["fresh", "npm:0.5.2"],\
+          ["http-errors", "npm:2.0.0"],\
+          ["merge-descriptors", "npm:1.0.1"],\
+          ["methods", "npm:1.1.2"],\
+          ["on-finished", "npm:2.4.1"],\
+          ["parseurl", "npm:1.3.3"],\
+          ["path-to-regexp", "npm:0.1.7"],\
+          ["proxy-addr", "npm:2.0.7"],\
+          ["qs", "npm:6.11.0"],\
+          ["range-parser", "npm:1.2.1"],\
+          ["safe-buffer", "npm:5.2.1"],\
+          ["send", "npm:0.18.0"],\
+          ["serve-static", "npm:1.15.0"],\
+          ["setprototypeof", "npm:1.2.0"],\
+          ["statuses", "npm:2.0.1"],\
+          ["type-is", "npm:1.6.18"],\
+          ["utils-merge", "npm:1.0.1"],\
+          ["vary", "npm:1.1.2"]\
+        ],\
+        "linkType": "HARD"\
       }]\
     ]],\
     ["express-promise-router", [\
@@ -13008,7 +13046,7 @@ const RAW_RUNTIME_STATE =
         "packageDependencies": [\
           ["express-promise-router", "virtual:1cbebe8a36d487ff03fd5e0d9ea4db39ddd47d4fca1722ebd0509c9358ad156a39346a45dab140fabcc5e45c1757f9fe716ff56e644771abd4ce5b8b91f00806#npm:4.1.1"],\
           ["@types/express", null],\
-          ["express", "npm:4.18.2"],\
+          ["express", "npm:4.18.3"],\
           ["is-promise", "npm:4.0.0"],\
           ["lodash.flattendeep", "npm:4.4.0"],\
           ["methods", "npm:1.1.2"]\
