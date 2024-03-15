@@ -136,7 +136,7 @@ const RAW_RUNTIME_STATE =
           ["seedrandom", "npm:3.0.5"],\
           ["volar-service-prettier", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:0.0.14"],\
           ["volar-service-prettyhtml", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:0.0.14"],\
-          ["volar-service-vetur", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:0.0.14"],\
+          ["volar-service-vetur", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:0.0.34"],\
           ["vue", "npm:2.7.16"],\
           ["vue-template-compiler", "npm:2.7.16"],\
           ["vue-toasted", "npm:1.1.28"],\
@@ -23979,17 +23979,17 @@ const RAW_RUNTIME_STATE =
       }]\
     ]],\
     ["volar-service-vetur", [\
-      ["npm:0.0.14", {\
-        "packageLocation": "./.yarn/cache/volar-service-vetur-npm-0.0.14-582e460f8c-ace50cb58d.zip/node_modules/volar-service-vetur/",\
+      ["npm:0.0.34", {\
+        "packageLocation": "./.yarn/cache/volar-service-vetur-npm-0.0.34-efa98393a8-e30f8227a6.zip/node_modules/volar-service-vetur/",\
         "packageDependencies": [\
-          ["volar-service-vetur", "npm:0.0.14"]\
+          ["volar-service-vetur", "npm:0.0.34"]\
         ],\
         "linkType": "SOFT"\
       }],\
-      ["virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:0.0.14", {\
-        "packageLocation": "./.yarn/__virtual__/volar-service-vetur-virtual-16534bf11b/0/cache/volar-service-vetur-npm-0.0.14-582e460f8c-ace50cb58d.zip/node_modules/volar-service-vetur/",\
+      ["virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:0.0.34", {\
+        "packageLocation": "./.yarn/__virtual__/volar-service-vetur-virtual-b2a03d29e4/0/cache/volar-service-vetur-npm-0.0.34-efa98393a8-e30f8227a6.zip/node_modules/volar-service-vetur/",\
         "packageDependencies": [\
-          ["volar-service-vetur", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:0.0.14"],\
+          ["volar-service-vetur", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:0.0.34"],\
           ["@types/volar__language-service", null],\
           ["@volar/language-service", null],\
           ["vls", "npm:0.8.5"],\

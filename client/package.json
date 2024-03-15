@@ -40,7 +40,7 @@
     "postcss": "^8.4.31",
     "volar-service-prettier": "^0.0.14",
     "volar-service-prettyhtml": "^0.0.14",
-    "volar-service-vetur": "^0.0.14",
+    "volar-service-vetur": "^0.0.34",
     "vue-template-compiler": "2.7.16"
   }
 }
