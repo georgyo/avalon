@@ -8737,9 +8737,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"firebase-functions@npm:4.4.1":
-  version: 4.4.1
-  resolution: "firebase-functions@npm:4.4.1"
+"firebase-functions@npm:4.8.0":
+  version: 4.8.0
+  resolution: "firebase-functions@npm:4.8.0"
   dependencies:
     "@types/cors": "npm:^2.8.5"
     "@types/express": "npm:4.17.3"
@@ -8748,10 +8748,10 @@ __metadata:
     node-fetch: "npm:^2.6.7"
     protobufjs: "npm:^7.2.2"
   peerDependencies:
-    firebase-admin: ^10.0.0 || ^11.0.0
+    firebase-admin: ^10.0.0 || ^11.0.0 || ^12.0.0
   bin:
     firebase-functions: lib/bin/firebase-functions.js
-  checksum: 10/b96113382a0cbe5b11178814b6e8a3f4e526a4d8d8f2974e0e4c65d1c1a91afd228cb989d9f3248ad5293cf793dd27e4af481f5114b116648d91daab284c2b5b
+  checksum: 10/476e3b979824c4ee52c6dce8b2616a08103ac88ed78e9a551b461b430cf5d31cdf343419d3c8ec85c03f7cf5f60261c6cdf7ca2bbe7c05853d6045cad23787cb
   languageName: node
   linkType: hard
 
@@ -9134,7 +9134,7 @@ __metadata:
     eslint: "npm:8.52.0"
     eslint-plugin-promise: "npm:6.1.1"
     firebase-admin: "npm:11.11.0"
-    firebase-functions: "npm:4.4.1"
+    firebase-functions: "npm:4.8.0"
     firebase-functions-test: "npm:3.1.0"
     firebase-tools: "npm:11.30.0"
     jest: "npm:^29.7.0"
