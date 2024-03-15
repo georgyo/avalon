@@ -74,7 +74,7 @@ __metadata:
     postcss: "npm:^8.4.31"
     seedrandom: "npm:3.0.5"
     volar-service-prettier: "npm:^0.0.34"
-    volar-service-prettyhtml: "npm:^0.0.14"
+    volar-service-prettyhtml: "npm:^0.0.34"
     volar-service-vetur: "npm:^0.0.34"
     vue: "npm:2.7.16"
     vue-template-compiler: "npm:2.7.16"
@@ -18151,17 +18151,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"volar-service-prettyhtml@npm:^0.0.14":
-  version: 0.0.14
-  resolution: "volar-service-prettyhtml@npm:0.0.14"
+"volar-service-prettyhtml@npm:^0.0.34":
+  version: 0.0.34
+  resolution: "volar-service-prettyhtml@npm:0.0.34"
   dependencies:
     "@starptech/prettyhtml": "npm:^0.10.0"
   peerDependencies:
-    "@volar/language-service": ~1.10.0
+    "@volar/language-service": ~2.1.0
   peerDependenciesMeta:
     "@volar/language-service":
       optional: true
-  checksum: 10/937697e48f47d9bdb93ee212494cff38cdd77d0d23d4b1e2bed65a05969f1c09001e41eebc1711847004efd4342901fd045bd7b22a6a5dafd5b283c3a676888f
+  checksum: 10/a28438a1ee26dbc8255d7b4342f11f7f2592cf0f5d722377c1bcc5852495824d1c92471e6f82989175f17161f36b43e251e49b8d769d31e75faf038e68a42c93
   languageName: node
   linkType: hard
 

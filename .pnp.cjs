@@ -126,7 +126,7 @@ const RAW_RUNTIME_STATE =
           ["postcss", "npm:8.4.35"],\
           ["seedrandom", "npm:3.0.5"],\
           ["volar-service-prettier", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:0.0.34"],\
-          ["volar-service-prettyhtml", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:0.0.14"],\
+          ["volar-service-prettyhtml", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:0.0.34"],\
           ["volar-service-vetur", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:0.0.34"],\
           ["vue", "npm:2.7.16"],\
           ["vue-template-compiler", "npm:2.7.16"],\
@@ -22729,17 +22729,17 @@ const RAW_RUNTIME_STATE =
       }]\
     ]],\
     ["volar-service-prettyhtml", [\
-      ["npm:0.0.14", {\
-        "packageLocation": "./.yarn/cache/volar-service-prettyhtml-npm-0.0.14-50fe5a6776-937697e48f.zip/node_modules/volar-service-prettyhtml/",\
+      ["npm:0.0.34", {\
+        "packageLocation": "./.yarn/cache/volar-service-prettyhtml-npm-0.0.34-e1581ff32e-a28438a1ee.zip/node_modules/volar-service-prettyhtml/",\
         "packageDependencies": [\
-          ["volar-service-prettyhtml", "npm:0.0.14"]\
+          ["volar-service-prettyhtml", "npm:0.0.34"]\
         ],\
         "linkType": "SOFT"\
       }],\
-      ["virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:0.0.14", {\
-        "packageLocation": "./.yarn/__virtual__/volar-service-prettyhtml-virtual-a201869beb/0/cache/volar-service-prettyhtml-npm-0.0.14-50fe5a6776-937697e48f.zip/node_modules/volar-service-prettyhtml/",\
+      ["virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:0.0.34", {\
+        "packageLocation": "./.yarn/__virtual__/volar-service-prettyhtml-virtual-990d1fd516/0/cache/volar-service-prettyhtml-npm-0.0.34-e1581ff32e-a28438a1ee.zip/node_modules/volar-service-prettyhtml/",\
         "packageDependencies": [\
-          ["volar-service-prettyhtml", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:0.0.14"],\
+          ["volar-service-prettyhtml", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:0.0.34"],\
           ["@starptech/prettyhtml", "npm:0.10.0"],\
           ["@types/volar__language-service", null],\
           ["@volar/language-service", null]\
