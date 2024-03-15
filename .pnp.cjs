@@ -272,16 +272,6 @@ const RAW_RUNTIME_STATE =
       }]\
     ]],\
     ["@babel/generator", [\
-      ["npm:7.18.7", {\
-        "packageLocation": "./.yarn/cache/@babel-generator-npm-7.18.7-14509012bd-02feab45d5.zip/node_modules/@babel/generator/",\
-        "packageDependencies": [\
-          ["@babel/generator", "npm:7.18.7"],\
-          ["@babel/types", "npm:7.18.8"],\
-          ["@jridgewell/gen-mapping", "npm:0.3.2"],\
-          ["jsesc", "npm:2.5.2"]\
-        ],\
-        "linkType": "HARD"\
-      }],\
       ["npm:7.23.0", {\
         "packageLocation": "./.yarn/cache/@babel-generator-npm-7.23.0-08841c5369-bd1598bd35.zip/node_modules/@babel/generator/",\
         "packageDependencies": [\
@@ -433,7 +423,7 @@ const RAW_RUNTIME_STATE =
           ["@babel/helper-compilation-targets", "virtual:8933c9ae24aaf8fec8cedcd4e583035bab879934596710197fb98efe78cb5b4cd382a2a94511ad61fb0979e927c9ba2f9f3ffed0e6e40fa514ec95c121192b23#npm:7.18.6"],\
           ["@babel/helper-module-imports", "npm:7.18.6"],\
           ["@babel/helper-plugin-utils", "npm:7.18.6"],\
-          ["@babel/traverse", "npm:7.18.8"],\
+          ["@babel/traverse", "npm:7.24.0"],\
           ["@types/babel__core", null],\
           ["debug", "virtual:52cc1f08fdfa0ce0882bedf10264a24f906e33f7892b3412b78b3e749d6e4b50a5c4d47e46903c21fe956663d3ab6f4d2b4677d28abd53464b00761501f37601#npm:4.3.4"],\
           ["lodash.debounce", "npm:4.0.8"],\
@@ -550,7 +540,7 @@ const RAW_RUNTIME_STATE =
           ["@babel/helper-split-export-declaration", "npm:7.18.6"],\
           ["@babel/helper-validator-identifier", "npm:7.18.6"],\
           ["@babel/template", "npm:7.18.6"],\
-          ["@babel/traverse", "npm:7.18.8"],\
+          ["@babel/traverse", "npm:7.24.0"],\
           ["@babel/types", "npm:7.18.8"]\
         ],\
         "linkType": "HARD"\
@@ -641,7 +631,7 @@ const RAW_RUNTIME_STATE =
           ["@babel/helper-environment-visitor", "npm:7.18.6"],\
           ["@babel/helper-member-expression-to-functions", "npm:7.18.6"],\
           ["@babel/helper-optimise-call-expression", "npm:7.18.6"],\
-          ["@babel/traverse", "npm:7.18.8"],\
+          ["@babel/traverse", "npm:7.24.0"],\
           ["@babel/types", "npm:7.18.8"]\
         ],\
         "linkType": "HARD"\
@@ -748,7 +738,7 @@ const RAW_RUNTIME_STATE =
           ["@babel/helper-wrap-function", "npm:7.18.6"],\
           ["@babel/helper-function-name", "npm:7.18.6"],\
           ["@babel/template", "npm:7.18.6"],\
-          ["@babel/traverse", "npm:7.18.8"],\
+          ["@babel/traverse", "npm:7.24.0"],\
           ["@babel/types", "npm:7.18.8"]\
         ],\
         "linkType": "HARD"\
@@ -2876,23 +2866,6 @@ const RAW_RUNTIME_STATE =
       }]\
     ]],\
     ["@babel/traverse", [\
-      ["npm:7.18.8", {\
-        "packageLocation": "./.yarn/cache/@babel-traverse-npm-7.18.8-b256cabc08-3dc393d2c7.zip/node_modules/@babel/traverse/",\
-        "packageDependencies": [\
-          ["@babel/traverse", "npm:7.18.8"],\
-          ["@babel/code-frame", "npm:7.18.6"],\
-          ["@babel/generator", "npm:7.18.7"],\
-          ["@babel/helper-environment-visitor", "npm:7.18.6"],\
-          ["@babel/helper-function-name", "npm:7.18.6"],\
-          ["@babel/helper-hoist-variables", "npm:7.18.6"],\
-          ["@babel/helper-split-export-declaration", "npm:7.18.6"],\
-          ["@babel/parser", "npm:7.18.8"],\
-          ["@babel/types", "npm:7.18.8"],\
-          ["debug", "virtual:52cc1f08fdfa0ce0882bedf10264a24f906e33f7892b3412b78b3e749d6e4b50a5c4d47e46903c21fe956663d3ab6f4d2b4677d28abd53464b00761501f37601#npm:4.3.4"],\
-          ["globals", "npm:11.12.0"]\
-        ],\
-        "linkType": "HARD"\
-      }],\
       ["npm:7.24.0", {\
         "packageLocation": "./.yarn/cache/@babel-traverse-npm-7.24.0-52cc1f08fd-5cc482248e.zip/node_modules/@babel/traverse/",\
         "packageDependencies": [\
@@ -6281,7 +6254,7 @@ const RAW_RUNTIME_STATE =
           ["@babel/helper-module-imports", "npm:7.18.6"],\
           ["@babel/plugin-syntax-jsx", "virtual:8933c9ae24aaf8fec8cedcd4e583035bab879934596710197fb98efe78cb5b4cd382a2a94511ad61fb0979e927c9ba2f9f3ffed0e6e40fa514ec95c121192b23#npm:7.18.6"],\
           ["@babel/template", "npm:7.18.6"],\
-          ["@babel/traverse", "npm:7.18.8"],\
+          ["@babel/traverse", "npm:7.24.0"],\
           ["@babel/types", "npm:7.18.8"],\
           ["@types/babel__core", null],\
           ["@vue/babel-helper-vue-transform-on", "npm:1.0.2"],\
