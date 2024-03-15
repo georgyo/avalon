@@ -83,7 +83,7 @@ __metadata:
     npm: "npm:10.2.1"
     postcss: "npm:^8.4.31"
     seedrandom: "npm:3.0.5"
-    volar-service-prettier: "npm:^0.0.14"
+    volar-service-prettier: "npm:^0.0.34"
     volar-service-prettyhtml: "npm:^0.0.14"
     volar-service-vetur: "npm:^0.0.14"
     vue: "npm:2.7.14"
@@ -17935,18 +17935,20 @@ __metadata:
   languageName: node
   linkType: hard
 
-"volar-service-prettier@npm:^0.0.14":
-  version: 0.0.14
-  resolution: "volar-service-prettier@npm:0.0.14"
+"volar-service-prettier@npm:^0.0.34":
+  version: 0.0.34
+  resolution: "volar-service-prettier@npm:0.0.34"
+  dependencies:
+    vscode-uri: "npm:^3.0.8"
   peerDependencies:
-    "@volar/language-service": ~1.10.0
+    "@volar/language-service": ~2.1.0
     prettier: ^2.2 || ^3.0
   peerDependenciesMeta:
     "@volar/language-service":
       optional: true
     prettier:
       optional: true
-  checksum: 10/7af55200ca87cdbc60ca22bfafe73ab04f3206fb4b71c95bcf2b4375e37a66b4c5f766ebc84fe1a11090f8c225c7034c3a2fef0069d20a22382ed19b4c4cd498
+  checksum: 10/0c046d6d1c72449c25a4655936381c76737e910ee9ad73e7c2f6c82870f8c0eb3d6fd993091faf62f45e7df1cf988928abc9b6d27b8a6155bdc5458841f45dd7
   languageName: node
   linkType: hard
 
@@ -18005,7 +18007,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vscode-uri@npm:^3.0.7":
+"vscode-uri@npm:^3.0.7, vscode-uri@npm:^3.0.8":
   version: 3.0.8
   resolution: "vscode-uri@npm:3.0.8"
   checksum: 10/e882d6b679e0d053cbc042893c0951a135d899a192b62cd07f0a8924f11ae722067a8d6b1b5b147034becf57faf9fff9fb543b17b749fd0f17db1f54f783f07c

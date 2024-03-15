@@ -134,7 +134,7 @@ const RAW_RUNTIME_STATE =
           ["npm", "npm:10.2.1"],\
           ["postcss", "npm:8.4.31"],\
           ["seedrandom", "npm:3.0.5"],\
-          ["volar-service-prettier", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:0.0.14"],\
+          ["volar-service-prettier", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:0.0.34"],\
           ["volar-service-prettyhtml", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:0.0.14"],\
           ["volar-service-vetur", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:0.0.14"],\
           ["vue", "npm:2.7.14"],\
@@ -23928,21 +23928,22 @@ const RAW_RUNTIME_STATE =
       }]\
     ]],\
     ["volar-service-prettier", [\
-      ["npm:0.0.14", {\
-        "packageLocation": "./.yarn/cache/volar-service-prettier-npm-0.0.14-db380fad98-7af55200ca.zip/node_modules/volar-service-prettier/",\
+      ["npm:0.0.34", {\
+        "packageLocation": "./.yarn/cache/volar-service-prettier-npm-0.0.34-3ced73c581-0c046d6d1c.zip/node_modules/volar-service-prettier/",\
         "packageDependencies": [\
-          ["volar-service-prettier", "npm:0.0.14"]\
+          ["volar-service-prettier", "npm:0.0.34"]\
         ],\
         "linkType": "SOFT"\
       }],\
-      ["virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:0.0.14", {\
-        "packageLocation": "./.yarn/__virtual__/volar-service-prettier-virtual-903884bf37/0/cache/volar-service-prettier-npm-0.0.14-db380fad98-7af55200ca.zip/node_modules/volar-service-prettier/",\
+      ["virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:0.0.34", {\
+        "packageLocation": "./.yarn/__virtual__/volar-service-prettier-virtual-075e4e043e/0/cache/volar-service-prettier-npm-0.0.34-3ced73c581-0c046d6d1c.zip/node_modules/volar-service-prettier/",\
         "packageDependencies": [\
-          ["volar-service-prettier", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:0.0.14"],\
+          ["volar-service-prettier", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:0.0.34"],\
           ["@types/prettier", null],\
           ["@types/volar__language-service", null],\
           ["@volar/language-service", null],\
-          ["prettier", null]\
+          ["prettier", null],\
+          ["vscode-uri", "npm:3.0.8"]\
         ],\
         "packagePeers": [\
           "@types/prettier",\
