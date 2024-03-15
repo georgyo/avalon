@@ -66,7 +66,7 @@ __metadata:
     "@fortawesome/free-regular-svg-icons": "npm:6.5.1"
     "@fortawesome/free-solid-svg-icons": "npm:6.5.1"
     "@fortawesome/vue-fontawesome": "npm:2.0.10"
-    "@mdi/font": "npm:7.3.67"
+    "@mdi/font": "npm:7.4.47"
     "@vue/babel-preset-app": "npm:^5.0.8"
     "@vue/cli-plugin-babel": "npm:5.0.8"
     "@vue/cli-plugin-eslint": "npm:5.0.8"
@@ -2932,10 +2932,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@mdi/font@npm:7.3.67":
-  version: 7.3.67
-  resolution: "@mdi/font@npm:7.3.67"
-  checksum: 10/fc7a2a78677740c3493372d5f1a8d29bf19581a24748f0be2d21c70a6007ace6971fee569800a55a28c766b6f03753e71d4ee9f832baf8065e921480c21149c3
+"@mdi/font@npm:7.4.47":
+  version: 7.4.47
+  resolution: "@mdi/font@npm:7.4.47"
+  checksum: 10/ecef7fd514f1970bb257272283dc609800c9e2f86c8388aa10d9e900a29c57a4146f766c7a0775603714799ed715a0a4515aaec6b2c7d28610bea2e95c1fc1a2
   languageName: node
   linkType: hard
 

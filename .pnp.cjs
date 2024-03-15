@@ -117,7 +117,7 @@ const RAW_RUNTIME_STATE =
           ["@fortawesome/free-regular-svg-icons", "npm:6.5.1"],\
           ["@fortawesome/free-solid-svg-icons", "npm:6.5.1"],\
           ["@fortawesome/vue-fontawesome", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:2.0.10"],\
-          ["@mdi/font", "npm:7.3.67"],\
+          ["@mdi/font", "npm:7.4.47"],\
           ["@vue/babel-preset-app", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:5.0.8"],\
           ["@vue/cli-plugin-babel", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:5.0.8"],\
           ["@vue/cli-plugin-eslint", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:5.0.8"],\
@@ -5885,10 +5885,10 @@ const RAW_RUNTIME_STATE =
       }]\
     ]],\
     ["@mdi/font", [\
-      ["npm:7.3.67", {\
-        "packageLocation": "./.yarn/cache/@mdi-font-npm-7.3.67-d705f72913-fc7a2a7867.zip/node_modules/@mdi/font/",\
+      ["npm:7.4.47", {\
+        "packageLocation": "./.yarn/cache/@mdi-font-npm-7.4.47-4b1c2f0954-ecef7fd514.zip/node_modules/@mdi/font/",\
         "packageDependencies": [\
-          ["@mdi/font", "npm:7.3.67"]\
+          ["@mdi/font", "npm:7.4.47"]\
         ],\
         "linkType": "HARD"\
       }]\
