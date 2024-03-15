@@ -15229,10 +15229,10 @@ const RAW_RUNTIME_STATE =
       }]\
     ]],\
     ["jose", [\
-      ["npm:4.15.4", {\
-        "packageLocation": "./.yarn/cache/jose-npm-4.15.4-c518ec3da8-20fa941597.zip/node_modules/jose/",\
+      ["npm:4.15.5", {\
+        "packageLocation": "./.yarn/cache/jose-npm-4.15.5-15e487a3a1-17944fcc0d.zip/node_modules/jose/",\
         "packageDependencies": [\
-          ["jose", "npm:4.15.4"]\
+          ["jose", "npm:4.15.5"]\
         ],\
         "linkType": "HARD"\
       }]\
@@ -15594,7 +15594,7 @@ const RAW_RUNTIME_STATE =
           ["@types/express", "npm:4.17.19"],\
           ["@types/jsonwebtoken", "npm:9.0.3"],\
           ["debug", "virtual:52cc1f08fdfa0ce0882bedf10264a24f906e33f7892b3412b78b3e749d6e4b50a5c4d47e46903c21fe956663d3ab6f4d2b4677d28abd53464b00761501f37601#npm:4.3.4"],\
-          ["jose", "npm:4.15.4"],\
+          ["jose", "npm:4.15.5"],\
           ["limiter", "npm:1.1.5"],\
           ["lru-memoizer", "npm:2.2.0"]\
         ],\
