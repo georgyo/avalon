@@ -24,6 +24,6 @@
     "postcss": "^8.4.31"
   },
   "resolutions": {
-    "postcss": "8.4.35"
+    "postcss": "8.4.38"
   }
 }
