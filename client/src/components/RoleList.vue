@@ -13,7 +13,7 @@
       <v-flex xs10>
         <!-- setting 'right' property if we allow select to give space between checkbox at the left -->
         <v-icon :right='allowSelect' v-if='role.team == "good"'>fab fa-old-republic</v-icon>
-        <v-icon :right='allowSelect' v-else color="red">fas fa-khanda</v-icon>
+        <v-icon :right='allowSelect' v-else color="red">fas fa-empire</v-icon>
         {{role.name}}
       </v-flex>
     <v-flex xs2>
@@ -26,7 +26,7 @@
     <v-card class="cyan lighten-4">
         <v-card-title class="cyan lighten-2">
           <v-icon left v-if='selectedRole.team == "good"'>fab fa-old-republic</v-icon>
-          <v-icon left v-else color="red">fas fa-khanda</v-icon>          
+          <v-icon left v-else color="red">fas fa-empire</v-icon>
           <h3>{{ selectedRole.name }}</h3>
         </v-card-title>
         <v-card-text>
