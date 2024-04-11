@@ -7829,7 +7829,7 @@ const RAW_RUNTIME_STATE =
           ["minipass-pipeline", "npm:1.2.4"],\
           ["p-map", "npm:4.0.0"],\
           ["ssri", "npm:10.0.5"],\
-          ["tar", "npm:6.2.0"],\
+          ["tar", "npm:6.2.1"],\
           ["unique-filename", "npm:3.0.0"]\
         ],\
         "linkType": "HARD"\
@@ -11011,7 +11011,7 @@ const RAW_RUNTIME_STATE =
           ["stream-json", "npm:1.8.0"],\
           ["strip-ansi", "npm:6.0.1"],\
           ["superstatic", "npm:9.0.3"],\
-          ["tar", "npm:6.2.0"],\
+          ["tar", "npm:6.2.1"],\
           ["tcp-port-used", "npm:1.0.2"],\
           ["tmp", "npm:0.2.3"],\
           ["triple-beam", "npm:1.4.1"],\
@@ -13912,7 +13912,7 @@ const RAW_RUNTIME_STATE =
           ["minimatch", "npm:9.0.3"],\
           ["npm-package-arg", "npm:11.0.1"],\
           ["pacote", "npm:17.0.6"],\
-          ["tar", "npm:6.2.0"]\
+          ["tar", "npm:6.2.1"]\
         ],\
         "linkType": "HARD"\
       }]\
@@ -15210,7 +15210,7 @@ const RAW_RUNTIME_STATE =
           ["nopt", "npm:7.2.0"],\
           ["proc-log", "npm:3.0.0"],\
           ["semver", "npm:7.6.0"],\
-          ["tar", "npm:6.2.0"],\
+          ["tar", "npm:6.2.1"],\
           ["which", "npm:4.0.0"]\
         ],\
         "linkType": "HARD"\
@@ -15397,7 +15397,7 @@ const RAW_RUNTIME_STATE =
           ["spdx-expression-parse", "npm:3.0.1"],\
           ["ssri", "npm:10.0.5"],\
           ["supports-color", "npm:9.4.0"],\
-          ["tar", "npm:6.2.0"],\
+          ["tar", "npm:6.2.1"],\
           ["text-table", "npm:0.2.0"],\
           ["tiny-relative-date", "npm:1.3.0"],\
           ["treeverse", "npm:3.0.0"],\
@@ -15910,7 +15910,7 @@ const RAW_RUNTIME_STATE =
           ["read-package-json-fast", "npm:3.0.2"],\
           ["sigstore", "npm:2.2.2"],\
           ["ssri", "npm:10.0.5"],\
-          ["tar", "npm:6.2.0"]\
+          ["tar", "npm:6.2.1"]\
         ],\
         "linkType": "HARD"\
       }]\
@@ -18843,10 +18843,10 @@ const RAW_RUNTIME_STATE =
       }]\
     ]],\
     ["tar", [\
-      ["npm:6.2.0", {\
-        "packageLocation": "./.yarn/cache/tar-npm-6.2.0-3eb25205a7-2042bbb148.zip/node_modules/tar/",\
+      ["npm:6.2.1", {\
+        "packageLocation": "./.yarn/cache/tar-npm-6.2.1-237800bb20-bfbfbb2861.zip/node_modules/tar/",\
         "packageDependencies": [\
-          ["tar", "npm:6.2.0"],\
+          ["tar", "npm:6.2.1"],\
           ["chownr", "npm:2.0.0"],\
           ["fs-minipass", "npm:2.1.0"],\
           ["minipass", "npm:5.0.0"],\
