@@ -10955,10 +10955,10 @@ const RAW_RUNTIME_STATE =
       }]\
     ]],\
     ["firebase-tools", [\
-      ["npm:13.5.1", {\
-        "packageLocation": "./.yarn/cache/firebase-tools-npm-13.5.1-f53b133e30-c03b72545c.zip/node_modules/firebase-tools/",\
+      ["npm:13.6.0", {\
+        "packageLocation": "./.yarn/cache/firebase-tools-npm-13.6.0-9ba5d2cab9-d2046197fc.zip/node_modules/firebase-tools/",\
         "packageDependencies": [\
-          ["firebase-tools", "npm:13.5.1"],\
+          ["firebase-tools", "npm:13.6.0"],\
           ["@google-cloud/pubsub", "npm:3.7.5"],\
           ["abort-controller", "npm:3.0.0"],\
           ["ajv", "npm:6.12.6"],\
@@ -10986,14 +10986,14 @@ const RAW_RUNTIME_STATE =
           ["glob", "npm:7.2.3"],\
           ["google-auth-library", "npm:7.14.1"],\
           ["inquirer", "npm:8.2.6"],\
-          ["inquirer-autocomplete-prompt", "virtual:f53b133e30c41aa5442c16e7d25ccb386090e84f4af89706e47021e1ae92921fbab9fe81dcdde05c13c5dfc76215e1298d68704b59a01c080250c891539d4b5f#npm:2.0.1"],\
+          ["inquirer-autocomplete-prompt", "virtual:9ba5d2cab95e03086ac8f4346ee281cc7e4748bf682b0e4ba0c2ac8886407e6b43279fce4608dfa6edf16b3b4424ff594a1e96a8ee957a674d300c4831d2a604#npm:2.0.1"],\
           ["js-yaml", "npm:3.14.1"],\
           ["jsonwebtoken", "npm:9.0.2"],\
           ["leven", "npm:3.1.0"],\
           ["libsodium-wrappers", "npm:0.7.13"],\
           ["lodash", "npm:4.17.21"],\
           ["marked", "npm:4.3.0"],\
-          ["marked-terminal", "virtual:f53b133e30c41aa5442c16e7d25ccb386090e84f4af89706e47021e1ae92921fbab9fe81dcdde05c13c5dfc76215e1298d68704b59a01c080250c891539d4b5f#npm:5.2.0"],\
+          ["marked-terminal", "virtual:9ba5d2cab95e03086ac8f4346ee281cc7e4748bf682b0e4ba0c2ac8886407e6b43279fce4608dfa6edf16b3b4424ff594a1e96a8ee957a674d300c4831d2a604#npm:5.2.0"],\
           ["mime", "npm:2.6.0"],\
           ["minimatch", "npm:3.1.2"],\
           ["morgan", "npm:1.10.0"],\
@@ -11253,7 +11253,7 @@ const RAW_RUNTIME_STATE =
           ["firebase-admin", "virtual:1c48d6fc54bd63a4a7a92b825c3188ce017de7b96310c12c0672c1faf971fb61632a4b939610bf601aced2f901d0649c6fb175a44219174f74f248e1599d043d#npm:11.11.1"],\
           ["firebase-functions", "virtual:1c48d6fc54bd63a4a7a92b825c3188ce017de7b96310c12c0672c1faf971fb61632a4b939610bf601aced2f901d0649c6fb175a44219174f74f248e1599d043d#npm:4.8.0"],\
           ["firebase-functions-test", "virtual:1c48d6fc54bd63a4a7a92b825c3188ce017de7b96310c12c0672c1faf971fb61632a4b939610bf601aced2f901d0649c6fb175a44219174f74f248e1599d043d#npm:3.1.1"],\
-          ["firebase-tools", "npm:13.5.1"],\
+          ["firebase-tools", "npm:13.6.0"],\
           ["jest", "virtual:1c48d6fc54bd63a4a7a92b825c3188ce017de7b96310c12c0672c1faf971fb61632a4b939610bf601aced2f901d0649c6fb175a44219174f74f248e1599d043d#npm:29.7.0"]\
         ],\
         "linkType": "SOFT"\
@@ -12316,10 +12316,10 @@ const RAW_RUNTIME_STATE =
         ],\
         "linkType": "SOFT"\
       }],\
-      ["virtual:f53b133e30c41aa5442c16e7d25ccb386090e84f4af89706e47021e1ae92921fbab9fe81dcdde05c13c5dfc76215e1298d68704b59a01c080250c891539d4b5f#npm:2.0.1", {\
-        "packageLocation": "./.yarn/__virtual__/inquirer-autocomplete-prompt-virtual-c79de22320/0/cache/inquirer-autocomplete-prompt-npm-2.0.1-87af1eea71-1c17ca6181.zip/node_modules/inquirer-autocomplete-prompt/",\
+      ["virtual:9ba5d2cab95e03086ac8f4346ee281cc7e4748bf682b0e4ba0c2ac8886407e6b43279fce4608dfa6edf16b3b4424ff594a1e96a8ee957a674d300c4831d2a604#npm:2.0.1", {\
+        "packageLocation": "./.yarn/__virtual__/inquirer-autocomplete-prompt-virtual-48c1271900/0/cache/inquirer-autocomplete-prompt-npm-2.0.1-87af1eea71-1c17ca6181.zip/node_modules/inquirer-autocomplete-prompt/",\
         "packageDependencies": [\
-          ["inquirer-autocomplete-prompt", "virtual:f53b133e30c41aa5442c16e7d25ccb386090e84f4af89706e47021e1ae92921fbab9fe81dcdde05c13c5dfc76215e1298d68704b59a01c080250c891539d4b5f#npm:2.0.1"],\
+          ["inquirer-autocomplete-prompt", "virtual:9ba5d2cab95e03086ac8f4346ee281cc7e4748bf682b0e4ba0c2ac8886407e6b43279fce4608dfa6edf16b3b4424ff594a1e96a8ee957a674d300c4831d2a604#npm:2.0.1"],\
           ["@types/inquirer", null],\
           ["ansi-escapes", "npm:4.3.2"],\
           ["figures", "npm:3.2.0"],\
@@ -14601,10 +14601,10 @@ const RAW_RUNTIME_STATE =
         ],\
         "linkType": "SOFT"\
       }],\
-      ["virtual:f53b133e30c41aa5442c16e7d25ccb386090e84f4af89706e47021e1ae92921fbab9fe81dcdde05c13c5dfc76215e1298d68704b59a01c080250c891539d4b5f#npm:5.2.0", {\
-        "packageLocation": "./.yarn/__virtual__/marked-terminal-virtual-d4809fb2c6/0/cache/marked-terminal-npm-5.2.0-564c3af8a6-81dc91485f.zip/node_modules/marked-terminal/",\
+      ["virtual:9ba5d2cab95e03086ac8f4346ee281cc7e4748bf682b0e4ba0c2ac8886407e6b43279fce4608dfa6edf16b3b4424ff594a1e96a8ee957a674d300c4831d2a604#npm:5.2.0", {\
+        "packageLocation": "./.yarn/__virtual__/marked-terminal-virtual-10320ffd00/0/cache/marked-terminal-npm-5.2.0-564c3af8a6-81dc91485f.zip/node_modules/marked-terminal/",\
         "packageDependencies": [\
-          ["marked-terminal", "virtual:f53b133e30c41aa5442c16e7d25ccb386090e84f4af89706e47021e1ae92921fbab9fe81dcdde05c13c5dfc76215e1298d68704b59a01c080250c891539d4b5f#npm:5.2.0"],\
+          ["marked-terminal", "virtual:9ba5d2cab95e03086ac8f4346ee281cc7e4748bf682b0e4ba0c2ac8886407e6b43279fce4608dfa6edf16b3b4424ff594a1e96a8ee957a674d300c4831d2a604#npm:5.2.0"],\
           ["@types/marked", null],\
           ["ansi-escapes", "npm:6.2.0"],\
           ["cardinal", "npm:2.1.1"],\
