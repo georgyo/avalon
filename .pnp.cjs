@@ -143,7 +143,7 @@ const RAW_RUNTIME_STATE =
         "packageLocation": "./server/",\
         "packageDependencies": [\
           ["@avalon/server", "workspace:server"],\
-          ["@firebase/app-types", "npm:0.9.0"],\
+          ["@firebase/app-types", "npm:0.9.1"],\
           ["eslint", "npm:8.57.0"],\
           ["express", "npm:4.18.3"],\
           ["express-promise-router", "virtual:1cbebe8a36d487ff03fd5e0d9ea4db39ddd47d4fca1722ebd0509c9358ad156a39346a45dab140fabcc5e45c1757f9fe716ff56e644771abd4ce5b8b91f00806#npm:4.1.1"],\
@@ -3116,6 +3116,13 @@ const RAW_RUNTIME_STATE =
           ["@firebase/app-types", "npm:0.9.0"]\
         ],\
         "linkType": "HARD"\
+      }],\
+      ["npm:0.9.1", {\
+        "packageLocation": "./.yarn/cache/@firebase-app-types-npm-0.9.1-0b2794fee3-98f5396711.zip/node_modules/@firebase/app-types/",\
+        "packageDependencies": [\
+          ["@firebase/app-types", "npm:0.9.1"]\
+        ],\
+        "linkType": "HARD"\
       }]\
     ]],\
     ["@firebase/auth", [\
@@ -3235,6 +3242,25 @@ const RAW_RUNTIME_STATE =
         ],\
         "linkType": "SOFT"\
       }],\
+      ["virtual:7b704c9466a375001ea786debeaa429025de1e9d88bd72a6cf8012cd38401e3c00a3c4c985feea1a1afb3d3a3c6efe8277070c651069381bf1c4dc5746010daf#npm:0.14.4", {\
+        "packageLocation": "./.yarn/__virtual__/@firebase-database-virtual-fbc1db1ff6/0/cache/@firebase-database-npm-0.14.4-89bc84f6f2-3c34c3ae48.zip/node_modules/@firebase/database/",\
+        "packageDependencies": [\
+          ["@firebase/database", "virtual:7b704c9466a375001ea786debeaa429025de1e9d88bd72a6cf8012cd38401e3c00a3c4c985feea1a1afb3d3a3c6efe8277070c651069381bf1c4dc5746010daf#npm:0.14.4"],\
+          ["@firebase/app-types", "npm:0.9.1"],\
+          ["@firebase/auth-interop-types", "npm:0.2.1"],\
+          ["@firebase/component", "npm:0.6.4"],\
+          ["@firebase/logger", "npm:0.4.0"],\
+          ["@firebase/util", "npm:1.9.3"],\
+          ["@types/firebase__app-types", null],\
+          ["faye-websocket", "npm:0.11.4"],\
+          ["tslib", "npm:2.6.2"]\
+        ],\
+        "packagePeers": [\
+          "@firebase/app-types",\
+          "@types/firebase__app-types"\
+        ],\
+        "linkType": "HARD"\
+      }],\
       ["virtual:d44828dbfd8bde8fecae9067caeeb70800942aab8042773cc1c8dbaf7c457ea7188efbebfc6d963fa99e815dd0f1dcd79e47ac575780a91863a5beece7ba3ad2#npm:0.14.4", {\
         "packageLocation": "./.yarn/__virtual__/@firebase-database-virtual-7422bd3a7c/0/cache/@firebase-database-npm-0.14.4-89bc84f6f2-3c34c3ae48.zip/node_modules/@firebase/database/",\
         "packageDependencies": [\
@@ -3270,6 +3296,25 @@ const RAW_RUNTIME_STATE =
           ["@firebase/app-types", "npm:0.9.0"],\
           ["@firebase/component", "npm:0.6.4"],\
           ["@firebase/database", "virtual:d44828dbfd8bde8fecae9067caeeb70800942aab8042773cc1c8dbaf7c457ea7188efbebfc6d963fa99e815dd0f1dcd79e47ac575780a91863a5beece7ba3ad2#npm:0.14.4"],\
+          ["@firebase/database-types", "npm:0.10.4"],\
+          ["@firebase/logger", "npm:0.4.0"],\
+          ["@firebase/util", "npm:1.9.3"],\
+          ["@types/firebase__app-types", null],\
+          ["tslib", "npm:2.6.2"]\
+        ],\
+        "packagePeers": [\
+          "@firebase/app-types",\
+          "@types/firebase__app-types"\
+        ],\
+        "linkType": "HARD"\
+      }],\
+      ["virtual:e0fef79e921509ac58c6bf141d7b22ecce9b7bb722aeb615cd33755c477a45da9620ddf2ab12e1b3b817f36e39bc47eca73d44c78c7ac89d5c38aac7d7c5a9f5#npm:0.3.4", {\
+        "packageLocation": "./.yarn/__virtual__/@firebase-database-compat-virtual-7b704c9466/0/cache/@firebase-database-compat-npm-0.3.4-7afd930d14-c90d8d970c.zip/node_modules/@firebase/database-compat/",\
+        "packageDependencies": [\
+          ["@firebase/database-compat", "virtual:e0fef79e921509ac58c6bf141d7b22ecce9b7bb722aeb615cd33755c477a45da9620ddf2ab12e1b3b817f36e39bc47eca73d44c78c7ac89d5c38aac7d7c5a9f5#npm:0.3.4"],\
+          ["@firebase/app-types", "npm:0.9.1"],\
+          ["@firebase/component", "npm:0.6.4"],\
+          ["@firebase/database", "virtual:7b704c9466a375001ea786debeaa429025de1e9d88bd72a6cf8012cd38401e3c00a3c4c985feea1a1afb3d3a3c6efe8277070c651069381bf1c4dc5746010daf#npm:0.14.4"],\
           ["@firebase/database-types", "npm:0.10.4"],\
           ["@firebase/logger", "npm:0.4.0"],\
           ["@firebase/util", "npm:1.9.3"],\
@@ -10874,8 +10919,8 @@ const RAW_RUNTIME_STATE =
         "packageDependencies": [\
           ["firebase-admin", "virtual:1c48d6fc54bd63a4a7a92b825c3188ce017de7b96310c12c0672c1faf971fb61632a4b939610bf601aced2f901d0649c6fb175a44219174f74f248e1599d043d#npm:11.11.1"],\
           ["@fastify/busboy", "npm:1.2.1"],\
-          ["@firebase/app-types", "npm:0.9.0"],\
-          ["@firebase/database-compat", "virtual:d44828dbfd8bde8fecae9067caeeb70800942aab8042773cc1c8dbaf7c457ea7188efbebfc6d963fa99e815dd0f1dcd79e47ac575780a91863a5beece7ba3ad2#npm:0.3.4"],\
+          ["@firebase/app-types", "npm:0.9.1"],\
+          ["@firebase/database-compat", "virtual:e0fef79e921509ac58c6bf141d7b22ecce9b7bb722aeb615cd33755c477a45da9620ddf2ab12e1b3b817f36e39bc47eca73d44c78c7ac89d5c38aac7d7c5a9f5#npm:0.3.4"],\
           ["@firebase/database-types", "npm:0.10.4"],\
           ["@google-cloud/firestore", "npm:6.8.0"],\
           ["@google-cloud/storage", "npm:6.12.0"],\
@@ -11247,7 +11292,7 @@ const RAW_RUNTIME_STATE =
         "packageLocation": "./firebase/functions/",\
         "packageDependencies": [\
           ["functions", "workspace:firebase/functions"],\
-          ["@firebase/app-types", "npm:0.9.0"],\
+          ["@firebase/app-types", "npm:0.9.1"],\
           ["eslint", "npm:8.57.0"],\
           ["eslint-plugin-promise", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:6.1.1"],\
           ["firebase-admin", "virtual:1c48d6fc54bd63a4a7a92b825c3188ce017de7b96310c12c0672c1faf971fb61632a4b939610bf601aced2f901d0649c6fb175a44219174f74f248e1599d043d#npm:11.11.1"],\
