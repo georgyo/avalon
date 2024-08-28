@@ -43,7 +43,7 @@ const RAW_RUNTIME_STATE =
         "packageDependencies": [\
           ["@babel/core", "npm:7.25.2"],\
           ["@babel/eslint-parser", "virtual:307f0f0a0f6bbe419b2892b2adbeb625075054c34bce101c7493ba00895524625ed865e532e293b325047e347afc45f9c2b2b1217a78ed253b0c25afd92ce307#npm:7.25.1"],\
-          ["autoprefixer", "virtual:6bc1848fffc55f7471d823f0a548676883f15c6d9abeba0699f9b6f6b988e6bccad0065ac45263e098b49a8188c54f603443a7b7560ea65bad7b580bc61594de#npm:10.4.18"],\
+          ["autoprefixer", "virtual:6bc1848fffc55f7471d823f0a548676883f15c6d9abeba0699f9b6f6b988e6bccad0065ac45263e098b49a8188c54f603443a7b7560ea65bad7b580bc61594de#npm:10.4.20"],\
           ["eslint", "npm:8.57.0"],\
           ["eslint-plugin-vue", "virtual:307f0f0a0f6bbe419b2892b2adbeb625075054c34bce101c7493ba00895524625ed865e532e293b325047e347afc45f9c2b2b1217a78ed253b0c25afd92ce307#npm:9.23.0"],\
           ["postcss", "npm:8.4.35"]\
@@ -6424,7 +6424,7 @@ const RAW_RUNTIME_STATE =
           ["acorn", "npm:8.11.3"],\
           ["acorn-walk", "npm:8.3.2"],\
           ["address", "npm:1.2.2"],\
-          ["autoprefixer", "virtual:6bc1848fffc55f7471d823f0a548676883f15c6d9abeba0699f9b6f6b988e6bccad0065ac45263e098b49a8188c54f603443a7b7560ea65bad7b580bc61594de#npm:10.4.18"],\
+          ["autoprefixer", "virtual:6bc1848fffc55f7471d823f0a548676883f15c6d9abeba0699f9b6f6b988e6bccad0065ac45263e098b49a8188c54f603443a7b7560ea65bad7b580bc61594de#npm:10.4.20"],\
           ["browserslist", "npm:4.23.0"],\
           ["cache-loader", null],\
           ["case-sensitive-paths-webpack-plugin", "npm:2.4.0"],\
@@ -7375,23 +7375,23 @@ const RAW_RUNTIME_STATE =
       }]\
     ]],\
     ["autoprefixer", [\
-      ["npm:10.4.18", {\
-        "packageLocation": "./.yarn/cache/autoprefixer-npm-10.4.18-98c236b887-c5bc0b5394.zip/node_modules/autoprefixer/",\
+      ["npm:10.4.20", {\
+        "packageLocation": "./.yarn/cache/autoprefixer-npm-10.4.20-dd5fd05d27-d3c4b562fc.zip/node_modules/autoprefixer/",\
         "packageDependencies": [\
-          ["autoprefixer", "npm:10.4.18"]\
+          ["autoprefixer", "npm:10.4.20"]\
         ],\
         "linkType": "SOFT"\
       }],\
-      ["virtual:6bc1848fffc55f7471d823f0a548676883f15c6d9abeba0699f9b6f6b988e6bccad0065ac45263e098b49a8188c54f603443a7b7560ea65bad7b580bc61594de#npm:10.4.18", {\
-        "packageLocation": "./.yarn/__virtual__/autoprefixer-virtual-076f38581b/0/cache/autoprefixer-npm-10.4.18-98c236b887-c5bc0b5394.zip/node_modules/autoprefixer/",\
+      ["virtual:6bc1848fffc55f7471d823f0a548676883f15c6d9abeba0699f9b6f6b988e6bccad0065ac45263e098b49a8188c54f603443a7b7560ea65bad7b580bc61594de#npm:10.4.20", {\
+        "packageLocation": "./.yarn/__virtual__/autoprefixer-virtual-4f5a8fe1ad/0/cache/autoprefixer-npm-10.4.20-dd5fd05d27-d3c4b562fc.zip/node_modules/autoprefixer/",\
         "packageDependencies": [\
-          ["autoprefixer", "virtual:6bc1848fffc55f7471d823f0a548676883f15c6d9abeba0699f9b6f6b988e6bccad0065ac45263e098b49a8188c54f603443a7b7560ea65bad7b580bc61594de#npm:10.4.18"],\
+          ["autoprefixer", "virtual:6bc1848fffc55f7471d823f0a548676883f15c6d9abeba0699f9b6f6b988e6bccad0065ac45263e098b49a8188c54f603443a7b7560ea65bad7b580bc61594de#npm:10.4.20"],\
           ["@types/postcss", null],\
-          ["browserslist", "npm:4.23.0"],\
-          ["caniuse-lite", "npm:1.0.30001597"],\
+          ["browserslist", "npm:4.23.3"],\
+          ["caniuse-lite", "npm:1.0.30001653"],\
           ["fraction.js", "npm:4.3.7"],\
           ["normalize-range", "npm:0.1.2"],\
-          ["picocolors", "npm:1.0.0"],\
+          ["picocolors", "npm:1.0.1"],\
           ["postcss", "npm:8.4.35"],\
           ["postcss-value-parser", "npm:4.2.0"]\
         ],\
@@ -7409,7 +7409,7 @@ const RAW_RUNTIME_STATE =
           ["avalon-workspace", "workspace:."],\
           ["@babel/core", "npm:7.25.2"],\
           ["@babel/eslint-parser", "virtual:307f0f0a0f6bbe419b2892b2adbeb625075054c34bce101c7493ba00895524625ed865e532e293b325047e347afc45f9c2b2b1217a78ed253b0c25afd92ce307#npm:7.25.1"],\
-          ["autoprefixer", "virtual:6bc1848fffc55f7471d823f0a548676883f15c6d9abeba0699f9b6f6b988e6bccad0065ac45263e098b49a8188c54f603443a7b7560ea65bad7b580bc61594de#npm:10.4.18"],\
+          ["autoprefixer", "virtual:6bc1848fffc55f7471d823f0a548676883f15c6d9abeba0699f9b6f6b988e6bccad0065ac45263e098b49a8188c54f603443a7b7560ea65bad7b580bc61594de#npm:10.4.20"],\
           ["eslint", "npm:8.57.0"],\
           ["eslint-plugin-vue", "virtual:307f0f0a0f6bbe419b2892b2adbeb625075054c34bce101c7493ba00895524625ed865e532e293b325047e347afc45f9c2b2b1217a78ed253b0c25afd92ce307#npm:9.23.0"],\
           ["postcss", "npm:8.4.35"]\
@@ -16334,7 +16334,7 @@ const RAW_RUNTIME_STATE =
         "packageLocation": "./.yarn/cache/postcss-npm-8.4.35-6bc1848fff-93a7ce50cd.zip/node_modules/postcss/",\
         "packageDependencies": [\
           ["postcss", "npm:8.4.35"],\
-          ["autoprefixer", "virtual:6bc1848fffc55f7471d823f0a548676883f15c6d9abeba0699f9b6f6b988e6bccad0065ac45263e098b49a8188c54f603443a7b7560ea65bad7b580bc61594de#npm:10.4.18"],\
+          ["autoprefixer", "virtual:6bc1848fffc55f7471d823f0a548676883f15c6d9abeba0699f9b6f6b988e6bccad0065ac45263e098b49a8188c54f603443a7b7560ea65bad7b580bc61594de#npm:10.4.20"],\
           ["nanoid", "npm:3.3.7"],\
           ["picocolors", "npm:1.0.0"],\
           ["source-map-js", "npm:1.0.2"]\
@@ -16518,7 +16518,7 @@ const RAW_RUNTIME_STATE =
           ["postcss-loader", "virtual:ad1be895c900b379aa0bf1a7574cf9dceee836b8dd7793233dd4ffed12f6e34041fab4ee33810b836269a1d0a73f6052d88a680b03e51bc07335f94736ce6282#npm:6.2.1"],\
           ["@types/postcss", null],\
           ["@types/webpack", null],\
-          ["autoprefixer", "virtual:6bc1848fffc55f7471d823f0a548676883f15c6d9abeba0699f9b6f6b988e6bccad0065ac45263e098b49a8188c54f603443a7b7560ea65bad7b580bc61594de#npm:10.4.18"],\
+          ["autoprefixer", "virtual:6bc1848fffc55f7471d823f0a548676883f15c6d9abeba0699f9b6f6b988e6bccad0065ac45263e098b49a8188c54f603443a7b7560ea65bad7b580bc61594de#npm:10.4.20"],\
           ["cosmiconfig", "npm:7.1.0"],\
           ["klona", "npm:2.0.6"],\
           ["postcss", "npm:8.4.35"],\
