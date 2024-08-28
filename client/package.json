@@ -40,7 +40,7 @@
     "volar-service-css": "^0.0.61",
     "volar-service-html": "^0.0.61",
     "volar-service-json": "^0.0.61",
-    "volar-service-prettier": "^0.0.61",
+    "volar-service-prettier": "^0.0.62",
     "vue-template-compiler": "2.7.16"
   }
 }
