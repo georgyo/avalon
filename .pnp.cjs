@@ -11451,17 +11451,17 @@ const RAW_RUNTIME_STATE =
       }]\
     ]],\
     ["firebase-functions-test", [\
-      ["npm:3.1.1", {\
-        "packageLocation": "./.yarn/cache/firebase-functions-test-npm-3.1.1-615c6fe08c-ec672cca1f.zip/node_modules/firebase-functions-test/",\
+      ["npm:3.3.0", {\
+        "packageLocation": "./.yarn/cache/firebase-functions-test-npm-3.3.0-bfee33dcfd-ba39de79cb.zip/node_modules/firebase-functions-test/",\
         "packageDependencies": [\
-          ["firebase-functions-test", "npm:3.1.1"]\
+          ["firebase-functions-test", "npm:3.3.0"]\
         ],\
         "linkType": "SOFT"\
       }],\
-      ["virtual:1c48d6fc54bd63a4a7a92b825c3188ce017de7b96310c12c0672c1faf971fb61632a4b939610bf601aced2f901d0649c6fb175a44219174f74f248e1599d043d#npm:3.1.1", {\
-        "packageLocation": "./.yarn/__virtual__/firebase-functions-test-virtual-f60a8c85fb/0/cache/firebase-functions-test-npm-3.1.1-615c6fe08c-ec672cca1f.zip/node_modules/firebase-functions-test/",\
+      ["virtual:1c48d6fc54bd63a4a7a92b825c3188ce017de7b96310c12c0672c1faf971fb61632a4b939610bf601aced2f901d0649c6fb175a44219174f74f248e1599d043d#npm:3.3.0", {\
+        "packageLocation": "./.yarn/__virtual__/firebase-functions-test-virtual-8a4faf0647/0/cache/firebase-functions-test-npm-3.3.0-bfee33dcfd-ba39de79cb.zip/node_modules/firebase-functions-test/",\
         "packageDependencies": [\
-          ["firebase-functions-test", "virtual:1c48d6fc54bd63a4a7a92b825c3188ce017de7b96310c12c0672c1faf971fb61632a4b939610bf601aced2f901d0649c6fb175a44219174f74f248e1599d043d#npm:3.1.1"],\
+          ["firebase-functions-test", "virtual:1c48d6fc54bd63a4a7a92b825c3188ce017de7b96310c12c0672c1faf971fb61632a4b939610bf601aced2f901d0649c6fb175a44219174f74f248e1599d043d#npm:3.3.0"],\
           ["@types/firebase-admin", null],\
           ["@types/firebase-functions", null],\
           ["@types/jest", null],\
@@ -11786,7 +11786,7 @@ const RAW_RUNTIME_STATE =
           ["eslint-plugin-promise", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:6.6.0"],\
           ["firebase-admin", "virtual:1c48d6fc54bd63a4a7a92b825c3188ce017de7b96310c12c0672c1faf971fb61632a4b939610bf601aced2f901d0649c6fb175a44219174f74f248e1599d043d#npm:11.11.1"],\
           ["firebase-functions", "virtual:1c48d6fc54bd63a4a7a92b825c3188ce017de7b96310c12c0672c1faf971fb61632a4b939610bf601aced2f901d0649c6fb175a44219174f74f248e1599d043d#npm:4.9.0"],\
-          ["firebase-functions-test", "virtual:1c48d6fc54bd63a4a7a92b825c3188ce017de7b96310c12c0672c1faf971fb61632a4b939610bf601aced2f901d0649c6fb175a44219174f74f248e1599d043d#npm:3.1.1"],\
+          ["firebase-functions-test", "virtual:1c48d6fc54bd63a4a7a92b825c3188ce017de7b96310c12c0672c1faf971fb61632a4b939610bf601aced2f901d0649c6fb175a44219174f74f248e1599d043d#npm:3.3.0"],\
           ["firebase-tools", "npm:13.16.0"],\
           ["jest", "virtual:1c48d6fc54bd63a4a7a92b825c3188ce017de7b96310c12c0672c1faf971fb61632a4b939610bf601aced2f901d0649c6fb175a44219174f74f248e1599d043d#npm:29.7.0"]\
         ],\
