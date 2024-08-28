@@ -4190,7 +4190,7 @@ const RAW_RUNTIME_STATE =
           ["duplexify", "npm:4.1.3"],\
           ["ent", "npm:2.2.0"],\
           ["extend", "npm:3.0.2"],\
-          ["fast-xml-parser", "npm:4.3.5"],\
+          ["fast-xml-parser", "npm:4.4.1"],\
           ["gaxios", "npm:5.1.3"],\
           ["google-auth-library", "npm:8.9.0"],\
           ["mime", "npm:3.0.0"],\
@@ -10884,10 +10884,10 @@ const RAW_RUNTIME_STATE =
       }]\
     ]],\
     ["fast-xml-parser", [\
-      ["npm:4.3.5", {\
-        "packageLocation": "./.yarn/cache/fast-xml-parser-npm-4.3.5-3cd12e5b84-ccfd943e4e.zip/node_modules/fast-xml-parser/",\
+      ["npm:4.4.1", {\
+        "packageLocation": "./.yarn/cache/fast-xml-parser-npm-4.4.1-b48f31eba7-0c05ab8703.zip/node_modules/fast-xml-parser/",\
         "packageDependencies": [\
-          ["fast-xml-parser", "npm:4.3.5"],\
+          ["fast-xml-parser", "npm:4.4.1"],\
           ["strnum", "npm:1.0.5"]\
         ],\
         "linkType": "HARD"\
