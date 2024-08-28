@@ -125,7 +125,7 @@ const RAW_RUNTIME_STATE =
           ["npm", "npm:10.8.2"],\
           ["postcss", "npm:8.4.41"],\
           ["seedrandom", "npm:3.0.5"],\
-          ["volar-service-css", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:0.0.61"],\
+          ["volar-service-css", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:0.0.62"],\
           ["volar-service-html", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:0.0.61"],\
           ["volar-service-json", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:0.0.61"],\
           ["volar-service-prettier", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:0.0.61"],\
@@ -20632,17 +20632,17 @@ const RAW_RUNTIME_STATE =
       }]\
     ]],\
     ["volar-service-css", [\
-      ["npm:0.0.61", {\
-        "packageLocation": "./.yarn/cache/volar-service-css-npm-0.0.61-a2400b5645-d26c395fc7.zip/node_modules/volar-service-css/",\
+      ["npm:0.0.62", {\
+        "packageLocation": "./.yarn/cache/volar-service-css-npm-0.0.62-71559e7bdd-f27e9e8d1e.zip/node_modules/volar-service-css/",\
         "packageDependencies": [\
-          ["volar-service-css", "npm:0.0.61"]\
+          ["volar-service-css", "npm:0.0.62"]\
         ],\
         "linkType": "SOFT"\
       }],\
-      ["virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:0.0.61", {\
-        "packageLocation": "./.yarn/__virtual__/volar-service-css-virtual-5668bcce26/0/cache/volar-service-css-npm-0.0.61-a2400b5645-d26c395fc7.zip/node_modules/volar-service-css/",\
+      ["virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:0.0.62", {\
+        "packageLocation": "./.yarn/__virtual__/volar-service-css-virtual-5bc0d0272e/0/cache/volar-service-css-npm-0.0.62-71559e7bdd-f27e9e8d1e.zip/node_modules/volar-service-css/",\
         "packageDependencies": [\
-          ["volar-service-css", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:0.0.61"],\
+          ["volar-service-css", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:0.0.62"],\
           ["@types/volar__language-service", null],\
           ["@volar/language-service", null],\
           ["vscode-css-languageservice", "npm:6.3.1"],\
