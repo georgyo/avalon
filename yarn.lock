@@ -1866,9 +1866,9 @@ __metadata:
   linkType: hard
 
 "@firebase/app-types@npm:^0.9.0":
-  version: 0.9.1
-  resolution: "@firebase/app-types@npm:0.9.1"
-  checksum: 10/98f53967113b8d442030da7904056ee344e1e0ac273889e985d6cbff0122632e7e6f02a5736aedfbf4563b4d2f60e4c930c0e3328c895d6a62983b2b4e7c81f8
+  version: 0.9.2
+  resolution: "@firebase/app-types@npm:0.9.2"
+  checksum: 10/566b3714a4d7e8180514258e4b1549bf5b28ae0383b4ff53d3532a45e114048afdd27c1fef8688d871dd9e5ad5307e749776e23f094122655ac6b0fb550eb11a
   languageName: node
   linkType: hard
 
