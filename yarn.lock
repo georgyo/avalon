@@ -75,7 +75,7 @@ __metadata:
     volar-service-css: "npm:^0.0.61"
     volar-service-html: "npm:^0.0.61"
     volar-service-json: "npm:^0.0.61"
-    volar-service-prettier: "npm:^0.0.61"
+    volar-service-prettier: "npm:^0.0.62"
     vue: "npm:2.7.16"
     vue-template-compiler: "npm:2.7.16"
     vue-toasted: "npm:1.1.28"
@@ -16095,9 +16095,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"volar-service-prettier@npm:^0.0.61":
-  version: 0.0.61
-  resolution: "volar-service-prettier@npm:0.0.61"
+"volar-service-prettier@npm:^0.0.62":
+  version: 0.0.62
+  resolution: "volar-service-prettier@npm:0.0.62"
   dependencies:
     vscode-uri: "npm:^3.0.8"
   peerDependencies:
@@ -16108,7 +16108,7 @@ __metadata:
       optional: true
     prettier:
       optional: true
-  checksum: 10/12b11897355481de8d4544baf97634a66c4a8f2c773255f2833c074bc8a357407c0103702a64030c760a5ae653cb2dbfbe74f32f58fce40ae9efcf9920c4d629
+  checksum: 10/9e543de266c0891931219794058b75b1877974442f9a675614a534c68a5fd0319e05a9811b8c1fdaf0333a93ebb8d6d4d6bb14d2f7662bbdd2628a176b4f11a1
   languageName: node
   linkType: hard
 
