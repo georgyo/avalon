@@ -126,7 +126,7 @@ const RAW_RUNTIME_STATE =
           ["npm", "npm:10.5.0"],\
           ["postcss", "npm:8.4.41"],\
           ["seedrandom", "npm:3.0.5"],\
-          ["volar-service-css", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:0.0.34"],\
+          ["volar-service-css", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:0.0.61"],\
           ["volar-service-html", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:0.0.34"],\
           ["volar-service-json", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:0.0.34"],\
           ["volar-service-prettier", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:0.0.34"],\
@@ -19961,20 +19961,20 @@ const RAW_RUNTIME_STATE =
       }]\
     ]],\
     ["volar-service-css", [\
-      ["npm:0.0.34", {\
-        "packageLocation": "./.yarn/cache/volar-service-css-npm-0.0.34-503f2af019-c87e7f48e3.zip/node_modules/volar-service-css/",\
+      ["npm:0.0.61", {\
+        "packageLocation": "./.yarn/cache/volar-service-css-npm-0.0.61-a2400b5645-d26c395fc7.zip/node_modules/volar-service-css/",\
         "packageDependencies": [\
-          ["volar-service-css", "npm:0.0.34"]\
+          ["volar-service-css", "npm:0.0.61"]\
         ],\
         "linkType": "SOFT"\
       }],\
-      ["virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:0.0.34", {\
-        "packageLocation": "./.yarn/__virtual__/volar-service-css-virtual-f3e88a65f2/0/cache/volar-service-css-npm-0.0.34-503f2af019-c87e7f48e3.zip/node_modules/volar-service-css/",\
+      ["virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:0.0.61", {\
+        "packageLocation": "./.yarn/__virtual__/volar-service-css-virtual-5668bcce26/0/cache/volar-service-css-npm-0.0.61-a2400b5645-d26c395fc7.zip/node_modules/volar-service-css/",\
         "packageDependencies": [\
-          ["volar-service-css", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:0.0.34"],\
+          ["volar-service-css", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:0.0.61"],\
           ["@types/volar__language-service", null],\
           ["@volar/language-service", null],\
-          ["vscode-css-languageservice", "npm:6.2.12"],\
+          ["vscode-css-languageservice", "npm:6.3.1"],\
           ["vscode-languageserver-textdocument", "npm:1.0.11"],\
           ["vscode-uri", "npm:3.0.8"]\
         ],\
@@ -20062,12 +20062,12 @@ const RAW_RUNTIME_STATE =
       }]\
     ]],\
     ["vscode-css-languageservice", [\
-      ["npm:6.2.12", {\
-        "packageLocation": "./.yarn/cache/vscode-css-languageservice-npm-6.2.12-c63a5b3238-154ca25553.zip/node_modules/vscode-css-languageservice/",\
+      ["npm:6.3.1", {\
+        "packageLocation": "./.yarn/cache/vscode-css-languageservice-npm-6.3.1-f684ae2c4d-f0f2dc84ae.zip/node_modules/vscode-css-languageservice/",\
         "packageDependencies": [\
-          ["vscode-css-languageservice", "npm:6.2.12"],\
+          ["vscode-css-languageservice", "npm:6.3.1"],\
           ["@vscode/l10n", "npm:0.0.18"],\
-          ["vscode-languageserver-textdocument", "npm:1.0.11"],\
+          ["vscode-languageserver-textdocument", "npm:1.0.12"],\
           ["vscode-languageserver-types", "npm:3.17.5"],\
           ["vscode-uri", "npm:3.0.8"]\
         ],\
@@ -20106,6 +20106,13 @@ const RAW_RUNTIME_STATE =
         "packageLocation": "./.yarn/cache/vscode-languageserver-textdocument-npm-1.0.11-6fc94d2b7b-6096d2a855.zip/node_modules/vscode-languageserver-textdocument/",\
         "packageDependencies": [\
           ["vscode-languageserver-textdocument", "npm:1.0.11"]\
+        ],\
+        "linkType": "HARD"\
+      }],\
+      ["npm:1.0.12", {\
+        "packageLocation": "./.yarn/cache/vscode-languageserver-textdocument-npm-1.0.12-5bc25d204a-2bc0fde952.zip/node_modules/vscode-languageserver-textdocument/",\
+        "packageDependencies": [\
+          ["vscode-languageserver-textdocument", "npm:1.0.12"]\
         ],\
         "linkType": "HARD"\
       }]\

@@ -73,7 +73,7 @@ __metadata:
     npm: "npm:10.5.0"
     postcss: "npm:^8.4.31"
     seedrandom: "npm:3.0.5"
-    volar-service-css: "npm:^0.0.34"
+    volar-service-css: "npm:^0.0.61"
     volar-service-html: "npm:^0.0.34"
     volar-service-json: "npm:^0.0.34"
     volar-service-prettier: "npm:^0.0.34"
@@ -15364,19 +15364,19 @@ __metadata:
   languageName: node
   linkType: hard
 
-"volar-service-css@npm:^0.0.34":
-  version: 0.0.34
-  resolution: "volar-service-css@npm:0.0.34"
+"volar-service-css@npm:^0.0.61":
+  version: 0.0.61
+  resolution: "volar-service-css@npm:0.0.61"
   dependencies:
-    vscode-css-languageservice: "npm:^6.2.10"
+    vscode-css-languageservice: "npm:^6.3.0"
     vscode-languageserver-textdocument: "npm:^1.0.11"
     vscode-uri: "npm:^3.0.8"
   peerDependencies:
-    "@volar/language-service": ~2.1.0
+    "@volar/language-service": ~2.4.0
   peerDependenciesMeta:
     "@volar/language-service":
       optional: true
-  checksum: 10/c87e7f48e364fe425fed20e8d1478ee72a971661e0812325cb1f605c635bdac2853626e03da45301ecbc40871b175fc8d1dff33ece47c2b59f57caf8842b74b7
+  checksum: 10/d26c395fc7f1153aee99b44086495c49a00a5f3b01274323a4f93cf6b360cc3c3b6eece4b268015a4dd20520d4c569b7b7093b45844cff5344d0e9e65a71174b
   languageName: node
   linkType: hard
 
@@ -15428,15 +15428,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vscode-css-languageservice@npm:^6.2.10":
-  version: 6.2.12
-  resolution: "vscode-css-languageservice@npm:6.2.12"
+"vscode-css-languageservice@npm:^6.3.0":
+  version: 6.3.1
+  resolution: "vscode-css-languageservice@npm:6.3.1"
   dependencies:
     "@vscode/l10n": "npm:^0.0.18"
-    vscode-languageserver-textdocument: "npm:^1.0.11"
+    vscode-languageserver-textdocument: "npm:^1.0.12"
     vscode-languageserver-types: "npm:3.17.5"
     vscode-uri: "npm:^3.0.8"
-  checksum: 10/154ca255533ca987638f4c5f95de6ce421fae0fdf7861ae111c087e022295d28af04399f76fccd57725568ee934d6bfb79b6a7b646e04ee89397a9a733538cd5
+  checksum: 10/f0f2dc84aefad9aab6b93d4f2617904c4d2eb7c0beba16f1a2f54484108addcfabba0d00e568cd81e451f69898d3405513a973c3614a9d16731f80ee7720699c
   languageName: node
   linkType: hard
 
@@ -15469,6 +15469,13 @@ __metadata:
   version: 1.0.11
   resolution: "vscode-languageserver-textdocument@npm:1.0.11"
   checksum: 10/6096d2a85570e819e01ff406de7c88c48211e6874c6fc71df92193aa8b5aadf40591e44f033d634a95d04975d7aad29049d3eccab617ca41c189ae325aadb913
+  languageName: node
+  linkType: hard
+
+"vscode-languageserver-textdocument@npm:^1.0.12":
+  version: 1.0.12
+  resolution: "vscode-languageserver-textdocument@npm:1.0.12"
+  checksum: 10/2bc0fde952d40f35a31179623d1491b0fafdee156aaf58557f40f5d394a25fc84826763cdde55fa6ce2ed9cd35a931355ad6dd7fe5db82e7f21e5d865f0af8c6
   languageName: node
   linkType: hard
 
