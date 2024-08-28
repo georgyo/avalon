@@ -66,7 +66,7 @@ __metadata:
     eslint: "npm:8.57.0"
     eslint-plugin-promise: "npm:6.1.1"
     eslint-plugin-vue: "npm:^9.17.0"
-    eslint-plugin-vuetify: "npm:2.2.0"
+    eslint-plugin-vuetify: "npm:2.4.0"
     firebase: "npm:9.23.0"
     i: "npm:0.3.7"
     lodash: "npm:4.17.21"
@@ -7254,16 +7254,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint-plugin-vuetify@npm:2.2.0":
-  version: 2.2.0
-  resolution: "eslint-plugin-vuetify@npm:2.2.0"
+"eslint-plugin-vuetify@npm:2.4.0":
+  version: 2.4.0
+  resolution: "eslint-plugin-vuetify@npm:2.4.0"
   dependencies:
     eslint-plugin-vue: "npm:^9.6.0"
     requireindex: "npm:^1.2.0"
   peerDependencies:
     eslint: ^8.0.0
     vuetify: ^3.0.0
-  checksum: 10/57856cbc16163d2479c4053af4cedda8bbb0dcf0be4d58d75f7e3b158e44930132b9729994875f16449ed4b055c710afb203e55f105c2724a889057c5099cfba
+  checksum: 10/87cf463ec6efc84fdd6e8dce3078bdbef81fe11bc576f0cce816df6b398c3a1adc8f6ea7eb457070d73ecc7fbe8a2e757dcde7d22918303232ee4e5e601067ee
   languageName: node
   linkType: hard
 
