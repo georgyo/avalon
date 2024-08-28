@@ -73,7 +73,7 @@ __metadata:
     postcss: "npm:^8.4.41"
     seedrandom: "npm:3.0.5"
     volar-service-css: "npm:^0.0.61"
-    volar-service-html: "npm:^0.0.61"
+    volar-service-html: "npm:^0.0.62"
     volar-service-json: "npm:^0.0.61"
     volar-service-prettier: "npm:^0.0.61"
     vue: "npm:2.7.16"
@@ -16064,9 +16064,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"volar-service-html@npm:^0.0.61":
-  version: 0.0.61
-  resolution: "volar-service-html@npm:0.0.61"
+"volar-service-html@npm:^0.0.62":
+  version: 0.0.62
+  resolution: "volar-service-html@npm:0.0.62"
   dependencies:
     vscode-html-languageservice: "npm:^5.3.0"
     vscode-languageserver-textdocument: "npm:^1.0.11"
@@ -16076,7 +16076,7 @@ __metadata:
   peerDependenciesMeta:
     "@volar/language-service":
       optional: true
-  checksum: 10/95272d5213d23105abf4091f54938727d47d0cf35f0858905a26466ab30c61d941e0d938df8315251e1019d4244f667087941691fdc15b1b399b574bf49a364e
+  checksum: 10/81d8f41fe6537edff4034805a1dc4ba73b06beb642f7b424982372be3acc7b0659122c0541048b2666fa59ecbce38531073ac748b37db98d98993a676b1f5eeb
   languageName: node
   linkType: hard
 
