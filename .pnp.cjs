@@ -126,7 +126,7 @@ const RAW_RUNTIME_STATE =
           ["postcss", "npm:8.4.41"],\
           ["seedrandom", "npm:3.0.5"],\
           ["volar-service-css", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:0.0.61"],\
-          ["volar-service-html", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:0.0.61"],\
+          ["volar-service-html", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:0.0.62"],\
           ["volar-service-json", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:0.0.61"],\
           ["volar-service-prettier", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:0.0.61"],\
           ["vue", "npm:2.7.16"],\
@@ -20657,17 +20657,17 @@ const RAW_RUNTIME_STATE =
       }]\
     ]],\
     ["volar-service-html", [\
-      ["npm:0.0.61", {\
-        "packageLocation": "./.yarn/cache/volar-service-html-npm-0.0.61-ac8f22d851-95272d5213.zip/node_modules/volar-service-html/",\
+      ["npm:0.0.62", {\
+        "packageLocation": "./.yarn/cache/volar-service-html-npm-0.0.62-f6f1926460-81d8f41fe6.zip/node_modules/volar-service-html/",\
         "packageDependencies": [\
-          ["volar-service-html", "npm:0.0.61"]\
+          ["volar-service-html", "npm:0.0.62"]\
         ],\
         "linkType": "SOFT"\
       }],\
-      ["virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:0.0.61", {\
-        "packageLocation": "./.yarn/__virtual__/volar-service-html-virtual-5da73ed626/0/cache/volar-service-html-npm-0.0.61-ac8f22d851-95272d5213.zip/node_modules/volar-service-html/",\
+      ["virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:0.0.62", {\
+        "packageLocation": "./.yarn/__virtual__/volar-service-html-virtual-345e4ca375/0/cache/volar-service-html-npm-0.0.62-f6f1926460-81d8f41fe6.zip/node_modules/volar-service-html/",\
         "packageDependencies": [\
-          ["volar-service-html", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:0.0.61"],\
+          ["volar-service-html", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:0.0.62"],\
           ["@types/volar__language-service", null],\
           ["@volar/language-service", null],\
           ["vscode-html-languageservice", "npm:5.3.1"],\
