@@ -7962,10 +7962,11 @@ const RAW_RUNTIME_STATE =
       }]\
     ]],\
     ["basic-auth-connect", [\
-      ["npm:1.0.0", {\
-        "packageLocation": "./.yarn/cache/basic-auth-connect-npm-1.0.0-45193662ca-f62e7fd17c.zip/node_modules/basic-auth-connect/",\
+      ["npm:1.1.0", {\
+        "packageLocation": "./.yarn/cache/basic-auth-connect-npm-1.1.0-352723f064-29eff1dd06.zip/node_modules/basic-auth-connect/",\
         "packageDependencies": [\
-          ["basic-auth-connect", "npm:1.0.0"]\
+          ["basic-auth-connect", "npm:1.1.0"],\
+          ["tsscmp", "npm:1.0.6"]\
         ],\
         "linkType": "HARD"\
       }]\
@@ -19703,7 +19704,7 @@ const RAW_RUNTIME_STATE =
         "packageLocation": "./.yarn/cache/superstatic-npm-9.0.3-d2cd029b2d-83db365f91.zip/node_modules/superstatic/",\
         "packageDependencies": [\
           ["superstatic", "npm:9.0.3"],\
-          ["basic-auth-connect", "npm:1.0.0"],\
+          ["basic-auth-connect", "npm:1.1.0"],\
           ["commander", "npm:10.0.1"],\
           ["compression", "npm:1.7.4"],\
           ["connect", "npm:3.7.0"],\
@@ -20176,6 +20177,15 @@ const RAW_RUNTIME_STATE =
         "packageLocation": "./.yarn/cache/tslib-npm-2.6.2-4fc8c068d9-bd26c22d36.zip/node_modules/tslib/",\
         "packageDependencies": [\
           ["tslib", "npm:2.6.2"]\
+        ],\
+        "linkType": "HARD"\
+      }]\
+    ]],\
+    ["tsscmp", [\
+      ["npm:1.0.6", {\
+        "packageLocation": "./.yarn/cache/tsscmp-npm-1.0.6-3223087558-850405080e.zip/node_modules/tsscmp/",\
+        "packageDependencies": [\
+          ["tsscmp", "npm:1.0.6"]\
         ],\
         "linkType": "HARD"\
       }]\
