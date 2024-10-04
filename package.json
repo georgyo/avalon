@@ -19,7 +19,7 @@
     "@babel/core": "^7.23.2",
     "@babel/eslint-parser": "^7.22.15",
     "autoprefixer": "^10.4.16",
-    "eslint": "^8.51.0",
+    "eslint": "^9.0.0",
     "eslint-plugin-vue": "^9.17.0",
     "postcss": "^8.4.41"
   },
