@@ -5089,7 +5089,6 @@ __metadata:
     autoprefixer: "npm:^10.4.20"
     eslint: "npm:^9.12.0"
     eslint-plugin-vue: "npm:^9.29.0"
-    postcss: "npm:^8.4.47"
   bin:
     avalon-admin: ./server/admin.js
     avalon-server: ./server/server.js
