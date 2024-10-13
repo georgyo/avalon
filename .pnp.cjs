@@ -111,7 +111,7 @@ const RAW_RUNTIME_STATE =
           ["npm", "npm:10.9.0"],\
           ["postcss", "npm:8.4.47"],\
           ["seedrandom", "npm:3.0.5"],\
-          ["vite", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:2.9.18"],\
+          ["vite", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:3.2.11"],\
           ["vite-plugin-vue2", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:2.0.3"],\
           ["volar-service-css", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:0.0.62"],\
           ["volar-service-html", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:0.0.62"],\
@@ -3743,11 +3743,20 @@ const RAW_RUNTIME_STATE =
         "linkType": "HARD"\
       }]\
     ]],\
-    ["@esbuild/linux-loong64", [\
-      ["npm:0.14.54", {\
-        "packageLocation": "./.yarn/unplugged/@esbuild-linux-loong64-npm-0.14.54-a70f90ee9a/node_modules/@esbuild/linux-loong64/",\
+    ["@esbuild/android-arm", [\
+      ["npm:0.15.18", {\
+        "packageLocation": "./.yarn/unplugged/@esbuild-android-arm-npm-0.15.18-1a5d80ee32/node_modules/@esbuild/android-arm/",\
         "packageDependencies": [\
-          ["@esbuild/linux-loong64", "npm:0.14.54"]\
+          ["@esbuild/android-arm", "npm:0.15.18"]\
+        ],\
+        "linkType": "HARD"\
+      }]\
+    ]],\
+    ["@esbuild/linux-loong64", [\
+      ["npm:0.15.18", {\
+        "packageLocation": "./.yarn/unplugged/@esbuild-linux-loong64-npm-0.15.18-7e5f29c057/node_modules/@esbuild/linux-loong64/",\
+        "packageDependencies": [\
+          ["@esbuild/linux-loong64", "npm:0.15.18"]\
         ],\
         "linkType": "HARD"\
       }]\
@@ -6672,7 +6681,7 @@ const RAW_RUNTIME_STATE =
         "packageDependencies": [\
           ["@vitejs/plugin-vue", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:1.10.2"],\
           ["@types/vite", null],\
-          ["vite", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:2.9.18"]\
+          ["vite", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:3.2.11"]\
         ],\
         "packagePeers": [\
           "@types/vite",\
@@ -10035,211 +10044,212 @@ const RAW_RUNTIME_STATE =
       }]\
     ]],\
     ["esbuild", [\
-      ["npm:0.14.54", {\
-        "packageLocation": "./.yarn/unplugged/esbuild-npm-0.14.54-b3dcd8a41e/node_modules/esbuild/",\
+      ["npm:0.15.18", {\
+        "packageLocation": "./.yarn/unplugged/esbuild-npm-0.15.18-61e07796c8/node_modules/esbuild/",\
         "packageDependencies": [\
-          ["esbuild", "npm:0.14.54"],\
-          ["@esbuild/linux-loong64", "npm:0.14.54"],\
-          ["esbuild-android-64", "npm:0.14.54"],\
-          ["esbuild-android-arm64", "npm:0.14.54"],\
-          ["esbuild-darwin-64", "npm:0.14.54"],\
-          ["esbuild-darwin-arm64", "npm:0.14.54"],\
-          ["esbuild-freebsd-64", "npm:0.14.54"],\
-          ["esbuild-freebsd-arm64", "npm:0.14.54"],\
-          ["esbuild-linux-32", "npm:0.14.54"],\
-          ["esbuild-linux-64", "npm:0.14.54"],\
-          ["esbuild-linux-arm", "npm:0.14.54"],\
-          ["esbuild-linux-arm64", "npm:0.14.54"],\
-          ["esbuild-linux-mips64le", "npm:0.14.54"],\
-          ["esbuild-linux-ppc64le", "npm:0.14.54"],\
-          ["esbuild-linux-riscv64", "npm:0.14.54"],\
-          ["esbuild-linux-s390x", "npm:0.14.54"],\
-          ["esbuild-netbsd-64", "npm:0.14.54"],\
-          ["esbuild-openbsd-64", "npm:0.14.54"],\
-          ["esbuild-sunos-64", "npm:0.14.54"],\
-          ["esbuild-windows-32", "npm:0.14.54"],\
-          ["esbuild-windows-64", "npm:0.14.54"],\
-          ["esbuild-windows-arm64", "npm:0.14.54"]\
+          ["esbuild", "npm:0.15.18"],\
+          ["@esbuild/android-arm", "npm:0.15.18"],\
+          ["@esbuild/linux-loong64", "npm:0.15.18"],\
+          ["esbuild-android-64", "npm:0.15.18"],\
+          ["esbuild-android-arm64", "npm:0.15.18"],\
+          ["esbuild-darwin-64", "npm:0.15.18"],\
+          ["esbuild-darwin-arm64", "npm:0.15.18"],\
+          ["esbuild-freebsd-64", "npm:0.15.18"],\
+          ["esbuild-freebsd-arm64", "npm:0.15.18"],\
+          ["esbuild-linux-32", "npm:0.15.18"],\
+          ["esbuild-linux-64", "npm:0.15.18"],\
+          ["esbuild-linux-arm", "npm:0.15.18"],\
+          ["esbuild-linux-arm64", "npm:0.15.18"],\
+          ["esbuild-linux-mips64le", "npm:0.15.18"],\
+          ["esbuild-linux-ppc64le", "npm:0.15.18"],\
+          ["esbuild-linux-riscv64", "npm:0.15.18"],\
+          ["esbuild-linux-s390x", "npm:0.15.18"],\
+          ["esbuild-netbsd-64", "npm:0.15.18"],\
+          ["esbuild-openbsd-64", "npm:0.15.18"],\
+          ["esbuild-sunos-64", "npm:0.15.18"],\
+          ["esbuild-windows-32", "npm:0.15.18"],\
+          ["esbuild-windows-64", "npm:0.15.18"],\
+          ["esbuild-windows-arm64", "npm:0.15.18"]\
         ],\
         "linkType": "HARD"\
       }]\
     ]],\
     ["esbuild-android-64", [\
-      ["npm:0.14.54", {\
-        "packageLocation": "./.yarn/unplugged/esbuild-android-64-npm-0.14.54-e220c28471/node_modules/esbuild-android-64/",\
+      ["npm:0.15.18", {\
+        "packageLocation": "./.yarn/unplugged/esbuild-android-64-npm-0.15.18-97400e1085/node_modules/esbuild-android-64/",\
         "packageDependencies": [\
-          ["esbuild-android-64", "npm:0.14.54"]\
+          ["esbuild-android-64", "npm:0.15.18"]\
         ],\
         "linkType": "HARD"\
       }]\
     ]],\
     ["esbuild-android-arm64", [\
-      ["npm:0.14.54", {\
-        "packageLocation": "./.yarn/unplugged/esbuild-android-arm64-npm-0.14.54-a6b89fb7b7/node_modules/esbuild-android-arm64/",\
+      ["npm:0.15.18", {\
+        "packageLocation": "./.yarn/unplugged/esbuild-android-arm64-npm-0.15.18-e0ae9fe181/node_modules/esbuild-android-arm64/",\
         "packageDependencies": [\
-          ["esbuild-android-arm64", "npm:0.14.54"]\
+          ["esbuild-android-arm64", "npm:0.15.18"]\
         ],\
         "linkType": "HARD"\
       }]\
     ]],\
     ["esbuild-darwin-64", [\
-      ["npm:0.14.54", {\
-        "packageLocation": "./.yarn/unplugged/esbuild-darwin-64-npm-0.14.54-602c9b8d1f/node_modules/esbuild-darwin-64/",\
+      ["npm:0.15.18", {\
+        "packageLocation": "./.yarn/unplugged/esbuild-darwin-64-npm-0.15.18-c3c12de20e/node_modules/esbuild-darwin-64/",\
         "packageDependencies": [\
-          ["esbuild-darwin-64", "npm:0.14.54"]\
+          ["esbuild-darwin-64", "npm:0.15.18"]\
         ],\
         "linkType": "HARD"\
       }]\
     ]],\
     ["esbuild-darwin-arm64", [\
-      ["npm:0.14.54", {\
-        "packageLocation": "./.yarn/unplugged/esbuild-darwin-arm64-npm-0.14.54-ec53803fa6/node_modules/esbuild-darwin-arm64/",\
+      ["npm:0.15.18", {\
+        "packageLocation": "./.yarn/unplugged/esbuild-darwin-arm64-npm-0.15.18-37bdbfa731/node_modules/esbuild-darwin-arm64/",\
         "packageDependencies": [\
-          ["esbuild-darwin-arm64", "npm:0.14.54"]\
+          ["esbuild-darwin-arm64", "npm:0.15.18"]\
         ],\
         "linkType": "HARD"\
       }]\
     ]],\
     ["esbuild-freebsd-64", [\
-      ["npm:0.14.54", {\
-        "packageLocation": "./.yarn/unplugged/esbuild-freebsd-64-npm-0.14.54-74d9cef391/node_modules/esbuild-freebsd-64/",\
+      ["npm:0.15.18", {\
+        "packageLocation": "./.yarn/unplugged/esbuild-freebsd-64-npm-0.15.18-11e301bd31/node_modules/esbuild-freebsd-64/",\
         "packageDependencies": [\
-          ["esbuild-freebsd-64", "npm:0.14.54"]\
+          ["esbuild-freebsd-64", "npm:0.15.18"]\
         ],\
         "linkType": "HARD"\
       }]\
     ]],\
     ["esbuild-freebsd-arm64", [\
-      ["npm:0.14.54", {\
-        "packageLocation": "./.yarn/unplugged/esbuild-freebsd-arm64-npm-0.14.54-54e0237b48/node_modules/esbuild-freebsd-arm64/",\
+      ["npm:0.15.18", {\
+        "packageLocation": "./.yarn/unplugged/esbuild-freebsd-arm64-npm-0.15.18-2a54a732b7/node_modules/esbuild-freebsd-arm64/",\
         "packageDependencies": [\
-          ["esbuild-freebsd-arm64", "npm:0.14.54"]\
+          ["esbuild-freebsd-arm64", "npm:0.15.18"]\
         ],\
         "linkType": "HARD"\
       }]\
     ]],\
     ["esbuild-linux-32", [\
-      ["npm:0.14.54", {\
-        "packageLocation": "./.yarn/unplugged/esbuild-linux-32-npm-0.14.54-78f4196822/node_modules/esbuild-linux-32/",\
+      ["npm:0.15.18", {\
+        "packageLocation": "./.yarn/unplugged/esbuild-linux-32-npm-0.15.18-7bb0e9887d/node_modules/esbuild-linux-32/",\
         "packageDependencies": [\
-          ["esbuild-linux-32", "npm:0.14.54"]\
+          ["esbuild-linux-32", "npm:0.15.18"]\
         ],\
         "linkType": "HARD"\
       }]\
     ]],\
     ["esbuild-linux-64", [\
-      ["npm:0.14.54", {\
-        "packageLocation": "./.yarn/unplugged/esbuild-linux-64-npm-0.14.54-2cb8070ade/node_modules/esbuild-linux-64/",\
+      ["npm:0.15.18", {\
+        "packageLocation": "./.yarn/unplugged/esbuild-linux-64-npm-0.15.18-b7675c5a72/node_modules/esbuild-linux-64/",\
         "packageDependencies": [\
-          ["esbuild-linux-64", "npm:0.14.54"]\
+          ["esbuild-linux-64", "npm:0.15.18"]\
         ],\
         "linkType": "HARD"\
       }]\
     ]],\
     ["esbuild-linux-arm", [\
-      ["npm:0.14.54", {\
-        "packageLocation": "./.yarn/unplugged/esbuild-linux-arm-npm-0.14.54-1553aba402/node_modules/esbuild-linux-arm/",\
+      ["npm:0.15.18", {\
+        "packageLocation": "./.yarn/unplugged/esbuild-linux-arm-npm-0.15.18-f873f51c2a/node_modules/esbuild-linux-arm/",\
         "packageDependencies": [\
-          ["esbuild-linux-arm", "npm:0.14.54"]\
+          ["esbuild-linux-arm", "npm:0.15.18"]\
         ],\
         "linkType": "HARD"\
       }]\
     ]],\
     ["esbuild-linux-arm64", [\
-      ["npm:0.14.54", {\
-        "packageLocation": "./.yarn/unplugged/esbuild-linux-arm64-npm-0.14.54-494e5f1b94/node_modules/esbuild-linux-arm64/",\
+      ["npm:0.15.18", {\
+        "packageLocation": "./.yarn/unplugged/esbuild-linux-arm64-npm-0.15.18-16f8e6f421/node_modules/esbuild-linux-arm64/",\
         "packageDependencies": [\
-          ["esbuild-linux-arm64", "npm:0.14.54"]\
+          ["esbuild-linux-arm64", "npm:0.15.18"]\
         ],\
         "linkType": "HARD"\
       }]\
     ]],\
     ["esbuild-linux-mips64le", [\
-      ["npm:0.14.54", {\
-        "packageLocation": "./.yarn/unplugged/esbuild-linux-mips64le-npm-0.14.54-63cb82ecbf/node_modules/esbuild-linux-mips64le/",\
+      ["npm:0.15.18", {\
+        "packageLocation": "./.yarn/unplugged/esbuild-linux-mips64le-npm-0.15.18-098def652e/node_modules/esbuild-linux-mips64le/",\
         "packageDependencies": [\
-          ["esbuild-linux-mips64le", "npm:0.14.54"]\
+          ["esbuild-linux-mips64le", "npm:0.15.18"]\
         ],\
         "linkType": "HARD"\
       }]\
     ]],\
     ["esbuild-linux-ppc64le", [\
-      ["npm:0.14.54", {\
-        "packageLocation": "./.yarn/unplugged/esbuild-linux-ppc64le-npm-0.14.54-d5c426496b/node_modules/esbuild-linux-ppc64le/",\
+      ["npm:0.15.18", {\
+        "packageLocation": "./.yarn/unplugged/esbuild-linux-ppc64le-npm-0.15.18-f7486f784a/node_modules/esbuild-linux-ppc64le/",\
         "packageDependencies": [\
-          ["esbuild-linux-ppc64le", "npm:0.14.54"]\
+          ["esbuild-linux-ppc64le", "npm:0.15.18"]\
         ],\
         "linkType": "HARD"\
       }]\
     ]],\
     ["esbuild-linux-riscv64", [\
-      ["npm:0.14.54", {\
-        "packageLocation": "./.yarn/unplugged/esbuild-linux-riscv64-npm-0.14.54-4b4af6acd1/node_modules/esbuild-linux-riscv64/",\
+      ["npm:0.15.18", {\
+        "packageLocation": "./.yarn/unplugged/esbuild-linux-riscv64-npm-0.15.18-75646f6aa3/node_modules/esbuild-linux-riscv64/",\
         "packageDependencies": [\
-          ["esbuild-linux-riscv64", "npm:0.14.54"]\
+          ["esbuild-linux-riscv64", "npm:0.15.18"]\
         ],\
         "linkType": "HARD"\
       }]\
     ]],\
     ["esbuild-linux-s390x", [\
-      ["npm:0.14.54", {\
-        "packageLocation": "./.yarn/unplugged/esbuild-linux-s390x-npm-0.14.54-fb3a2f515b/node_modules/esbuild-linux-s390x/",\
+      ["npm:0.15.18", {\
+        "packageLocation": "./.yarn/unplugged/esbuild-linux-s390x-npm-0.15.18-08b5a4f7e0/node_modules/esbuild-linux-s390x/",\
         "packageDependencies": [\
-          ["esbuild-linux-s390x", "npm:0.14.54"]\
+          ["esbuild-linux-s390x", "npm:0.15.18"]\
         ],\
         "linkType": "HARD"\
       }]\
     ]],\
     ["esbuild-netbsd-64", [\
-      ["npm:0.14.54", {\
-        "packageLocation": "./.yarn/unplugged/esbuild-netbsd-64-npm-0.14.54-8fda595e69/node_modules/esbuild-netbsd-64/",\
+      ["npm:0.15.18", {\
+        "packageLocation": "./.yarn/unplugged/esbuild-netbsd-64-npm-0.15.18-196750ec64/node_modules/esbuild-netbsd-64/",\
         "packageDependencies": [\
-          ["esbuild-netbsd-64", "npm:0.14.54"]\
+          ["esbuild-netbsd-64", "npm:0.15.18"]\
         ],\
         "linkType": "HARD"\
       }]\
     ]],\
     ["esbuild-openbsd-64", [\
-      ["npm:0.14.54", {\
-        "packageLocation": "./.yarn/unplugged/esbuild-openbsd-64-npm-0.14.54-969b3ff0ab/node_modules/esbuild-openbsd-64/",\
+      ["npm:0.15.18", {\
+        "packageLocation": "./.yarn/unplugged/esbuild-openbsd-64-npm-0.15.18-b19c84d158/node_modules/esbuild-openbsd-64/",\
         "packageDependencies": [\
-          ["esbuild-openbsd-64", "npm:0.14.54"]\
+          ["esbuild-openbsd-64", "npm:0.15.18"]\
         ],\
         "linkType": "HARD"\
       }]\
     ]],\
     ["esbuild-sunos-64", [\
-      ["npm:0.14.54", {\
-        "packageLocation": "./.yarn/unplugged/esbuild-sunos-64-npm-0.14.54-5f2932b262/node_modules/esbuild-sunos-64/",\
+      ["npm:0.15.18", {\
+        "packageLocation": "./.yarn/unplugged/esbuild-sunos-64-npm-0.15.18-0558720f39/node_modules/esbuild-sunos-64/",\
         "packageDependencies": [\
-          ["esbuild-sunos-64", "npm:0.14.54"]\
+          ["esbuild-sunos-64", "npm:0.15.18"]\
         ],\
         "linkType": "HARD"\
       }]\
     ]],\
     ["esbuild-windows-32", [\
-      ["npm:0.14.54", {\
-        "packageLocation": "./.yarn/unplugged/esbuild-windows-32-npm-0.14.54-9e77bdaba1/node_modules/esbuild-windows-32/",\
+      ["npm:0.15.18", {\
+        "packageLocation": "./.yarn/unplugged/esbuild-windows-32-npm-0.15.18-1a66313508/node_modules/esbuild-windows-32/",\
         "packageDependencies": [\
-          ["esbuild-windows-32", "npm:0.14.54"]\
+          ["esbuild-windows-32", "npm:0.15.18"]\
         ],\
         "linkType": "HARD"\
       }]\
     ]],\
     ["esbuild-windows-64", [\
-      ["npm:0.14.54", {\
-        "packageLocation": "./.yarn/unplugged/esbuild-windows-64-npm-0.14.54-5c15fbbf87/node_modules/esbuild-windows-64/",\
+      ["npm:0.15.18", {\
+        "packageLocation": "./.yarn/unplugged/esbuild-windows-64-npm-0.15.18-f926268f42/node_modules/esbuild-windows-64/",\
         "packageDependencies": [\
-          ["esbuild-windows-64", "npm:0.14.54"]\
+          ["esbuild-windows-64", "npm:0.15.18"]\
         ],\
         "linkType": "HARD"\
       }]\
     ]],\
     ["esbuild-windows-arm64", [\
-      ["npm:0.14.54", {\
-        "packageLocation": "./.yarn/unplugged/esbuild-windows-arm64-npm-0.14.54-f494d71409/node_modules/esbuild-windows-arm64/",\
+      ["npm:0.15.18", {\
+        "packageLocation": "./.yarn/unplugged/esbuild-windows-arm64-npm-0.15.18-ca93639f32/node_modules/esbuild-windows-arm64/",\
         "packageDependencies": [\
-          ["esbuild-windows-arm64", "npm:0.14.54"]\
+          ["esbuild-windows-arm64", "npm:0.15.18"]\
         ],\
         "linkType": "HARD"\
       }]\
@@ -16913,14 +16923,6 @@ const RAW_RUNTIME_STATE =
       }]\
     ]],\
     ["rollup", [\
-      ["npm:2.77.3", {\
-        "packageLocation": "./.yarn/cache/rollup-npm-2.77.3-be523d3443-95854079d6.zip/node_modules/rollup/",\
-        "packageDependencies": [\
-          ["rollup", "npm:2.77.3"],\
-          ["fsevents", "patch:fsevents@npm%3A2.3.3#optional!builtin<compat/fsevents>::version=2.3.3&hash=df0bf1"]\
-        ],\
-        "linkType": "HARD"\
-      }],\
       ["npm:2.79.2", {\
         "packageLocation": "./.yarn/cache/rollup-npm-2.79.2-1b08e69c0e-095ba0a828.zip/node_modules/rollup/",\
         "packageDependencies": [\
@@ -18518,36 +18520,46 @@ const RAW_RUNTIME_STATE =
       }]\
     ]],\
     ["vite", [\
-      ["npm:2.9.18", {\
-        "packageLocation": "./.yarn/cache/vite-npm-2.9.18-1ef513a12f-9bef770941.zip/node_modules/vite/",\
+      ["npm:3.2.11", {\
+        "packageLocation": "./.yarn/cache/vite-npm-3.2.11-d175c5e4b9-3933d93165.zip/node_modules/vite/",\
         "packageDependencies": [\
-          ["vite", "npm:2.9.18"]\
+          ["vite", "npm:3.2.11"]\
         ],\
         "linkType": "SOFT"\
       }],\
-      ["virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:2.9.18", {\
-        "packageLocation": "./.yarn/__virtual__/vite-virtual-f28c8b6708/0/cache/vite-npm-2.9.18-1ef513a12f-9bef770941.zip/node_modules/vite/",\
+      ["virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:3.2.11", {\
+        "packageLocation": "./.yarn/__virtual__/vite-virtual-209bd000af/0/cache/vite-npm-3.2.11-d175c5e4b9-3933d93165.zip/node_modules/vite/",\
         "packageDependencies": [\
-          ["vite", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:2.9.18"],\
+          ["vite", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:3.2.11"],\
           ["@types/less", null],\
+          ["@types/node", null],\
           ["@types/sass", null],\
           ["@types/stylus", null],\
-          ["esbuild", "npm:0.14.54"],\
+          ["@types/sugarss", null],\
+          ["@types/terser", null],\
+          ["esbuild", "npm:0.15.18"],\
           ["fsevents", "patch:fsevents@npm%3A2.3.3#optional!builtin<compat/fsevents>::version=2.3.3&hash=df0bf1"],\
           ["less", null],\
           ["postcss", "npm:8.4.47"],\
           ["resolve", "patch:resolve@npm%3A1.22.8#optional!builtin<compat/resolve>::version=1.22.8&hash=c3c19d"],\
-          ["rollup", "npm:2.77.3"],\
+          ["rollup", "npm:2.79.2"],\
           ["sass", null],\
-          ["stylus", null]\
+          ["stylus", null],\
+          ["sugarss", null],\
+          ["terser", null]\
         ],\
         "packagePeers": [\
           "@types/less",\
+          "@types/node",\
           "@types/sass",\
           "@types/stylus",\
+          "@types/sugarss",\
+          "@types/terser",\
           "less",\
           "sass",\
-          "stylus"\
+          "stylus",\
+          "sugarss",\
+          "terser"\
         ],\
         "linkType": "HARD"\
       }]\
@@ -18594,7 +18606,7 @@ const RAW_RUNTIME_STATE =
           ["rollup", "npm:2.79.2"],\
           ["slash", "npm:3.0.0"],\
           ["source-map", "npm:0.7.4"],\
-          ["vite", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:2.9.18"],\
+          ["vite", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:3.2.11"],\
           ["vue-template-babel-compiler", "virtual:3e8c3825bfd905d9d50fd085fa199777207a415f340bb2c3cdd357e8a80c9eb398c435041154cccae64539b7567e2e05baad0f8f0cea0abe3d1bf88653dbb6f7#npm:1.2.0"],\
           ["vue-template-compiler", "npm:2.7.16"]\
         ],\
