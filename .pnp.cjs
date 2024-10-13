@@ -11158,17 +11158,17 @@ const RAW_RUNTIME_STATE =
       }]\
     ]],\
     ["firebase-functions", [\
-      ["npm:4.9.0", {\
-        "packageLocation": "./.yarn/cache/firebase-functions-npm-4.9.0-634d2563d7-7b23295bb4.zip/node_modules/firebase-functions/",\
+      ["npm:6.0.1", {\
+        "packageLocation": "./.yarn/cache/firebase-functions-npm-6.0.1-eb53bff67c-f5d2f6388d.zip/node_modules/firebase-functions/",\
         "packageDependencies": [\
-          ["firebase-functions", "npm:4.9.0"]\
+          ["firebase-functions", "npm:6.0.1"]\
         ],\
         "linkType": "SOFT"\
       }],\
-      ["virtual:1c48d6fc54bd63a4a7a92b825c3188ce017de7b96310c12c0672c1faf971fb61632a4b939610bf601aced2f901d0649c6fb175a44219174f74f248e1599d043d#npm:4.9.0", {\
-        "packageLocation": "./.yarn/__virtual__/firebase-functions-virtual-f340c48732/0/cache/firebase-functions-npm-4.9.0-634d2563d7-7b23295bb4.zip/node_modules/firebase-functions/",\
+      ["virtual:1c48d6fc54bd63a4a7a92b825c3188ce017de7b96310c12c0672c1faf971fb61632a4b939610bf601aced2f901d0649c6fb175a44219174f74f248e1599d043d#npm:6.0.1", {\
+        "packageLocation": "./.yarn/__virtual__/firebase-functions-virtual-3e0d65e697/0/cache/firebase-functions-npm-6.0.1-eb53bff67c-f5d2f6388d.zip/node_modules/firebase-functions/",\
         "packageDependencies": [\
-          ["firebase-functions", "virtual:1c48d6fc54bd63a4a7a92b825c3188ce017de7b96310c12c0672c1faf971fb61632a4b939610bf601aced2f901d0649c6fb175a44219174f74f248e1599d043d#npm:4.9.0"],\
+          ["firebase-functions", "virtual:1c48d6fc54bd63a4a7a92b825c3188ce017de7b96310c12c0672c1faf971fb61632a4b939610bf601aced2f901d0649c6fb175a44219174f74f248e1599d043d#npm:6.0.1"],\
           ["@types/cors", "npm:2.8.17"],\
           ["@types/express", "npm:4.17.3"],\
           ["@types/firebase-admin", null],\
@@ -11201,7 +11201,7 @@ const RAW_RUNTIME_STATE =
           ["@types/jest", null],\
           ["@types/lodash", "npm:4.17.0"],\
           ["firebase-admin", "virtual:1c48d6fc54bd63a4a7a92b825c3188ce017de7b96310c12c0672c1faf971fb61632a4b939610bf601aced2f901d0649c6fb175a44219174f74f248e1599d043d#npm:11.11.1"],\
-          ["firebase-functions", "virtual:1c48d6fc54bd63a4a7a92b825c3188ce017de7b96310c12c0672c1faf971fb61632a4b939610bf601aced2f901d0649c6fb175a44219174f74f248e1599d043d#npm:4.9.0"],\
+          ["firebase-functions", "virtual:1c48d6fc54bd63a4a7a92b825c3188ce017de7b96310c12c0672c1faf971fb61632a4b939610bf601aced2f901d0649c6fb175a44219174f74f248e1599d043d#npm:6.0.1"],\
           ["jest", "virtual:1c48d6fc54bd63a4a7a92b825c3188ce017de7b96310c12c0672c1faf971fb61632a4b939610bf601aced2f901d0649c6fb175a44219174f74f248e1599d043d#npm:29.7.0"],\
           ["lodash", "npm:4.17.21"],\
           ["ts-deepmerge", "npm:2.0.7"]\
@@ -11499,7 +11499,7 @@ const RAW_RUNTIME_STATE =
           ["eslint", "npm:8.57.0"],\
           ["eslint-plugin-promise", "virtual:1c48d6fc54bd63a4a7a92b825c3188ce017de7b96310c12c0672c1faf971fb61632a4b939610bf601aced2f901d0649c6fb175a44219174f74f248e1599d043d#npm:6.6.0"],\
           ["firebase-admin", "virtual:1c48d6fc54bd63a4a7a92b825c3188ce017de7b96310c12c0672c1faf971fb61632a4b939610bf601aced2f901d0649c6fb175a44219174f74f248e1599d043d#npm:11.11.1"],\
-          ["firebase-functions", "virtual:1c48d6fc54bd63a4a7a92b825c3188ce017de7b96310c12c0672c1faf971fb61632a4b939610bf601aced2f901d0649c6fb175a44219174f74f248e1599d043d#npm:4.9.0"],\
+          ["firebase-functions", "virtual:1c48d6fc54bd63a4a7a92b825c3188ce017de7b96310c12c0672c1faf971fb61632a4b939610bf601aced2f901d0649c6fb175a44219174f74f248e1599d043d#npm:6.0.1"],\
           ["firebase-functions-test", "virtual:1c48d6fc54bd63a4a7a92b825c3188ce017de7b96310c12c0672c1faf971fb61632a4b939610bf601aced2f901d0649c6fb175a44219174f74f248e1599d043d#npm:3.1.1"],\
           ["firebase-tools", "npm:13.16.0"],\
           ["jest", "virtual:1c48d6fc54bd63a4a7a92b825c3188ce017de7b96310c12c0672c1faf971fb61632a4b939610bf601aced2f901d0649c6fb175a44219174f74f248e1599d043d#npm:29.7.0"]\
