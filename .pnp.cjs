@@ -10422,13 +10422,6 @@ const RAW_RUNTIME_STATE =
       }]\
     ]],\
     ["eslint-plugin-promise", [\
-      ["npm:6.6.0", {\
-        "packageLocation": "./.yarn/cache/eslint-plugin-promise-npm-6.6.0-8b48ba0714-c2b5604efd.zip/node_modules/eslint-plugin-promise/",\
-        "packageDependencies": [\
-          ["eslint-plugin-promise", "npm:6.6.0"]\
-        ],\
-        "linkType": "SOFT"\
-      }],\
       ["npm:7.1.0", {\
         "packageLocation": "./.yarn/cache/eslint-plugin-promise-npm-7.1.0-84a3fbeaa7-ae2c6245d4.zip/node_modules/eslint-plugin-promise/",\
         "packageDependencies": [\
@@ -10436,10 +10429,10 @@ const RAW_RUNTIME_STATE =
         ],\
         "linkType": "SOFT"\
       }],\
-      ["virtual:1c48d6fc54bd63a4a7a92b825c3188ce017de7b96310c12c0672c1faf971fb61632a4b939610bf601aced2f901d0649c6fb175a44219174f74f248e1599d043d#npm:6.6.0", {\
-        "packageLocation": "./.yarn/__virtual__/eslint-plugin-promise-virtual-8263c2fc0e/0/cache/eslint-plugin-promise-npm-6.6.0-8b48ba0714-c2b5604efd.zip/node_modules/eslint-plugin-promise/",\
+      ["virtual:1c48d6fc54bd63a4a7a92b825c3188ce017de7b96310c12c0672c1faf971fb61632a4b939610bf601aced2f901d0649c6fb175a44219174f74f248e1599d043d#npm:7.1.0", {\
+        "packageLocation": "./.yarn/__virtual__/eslint-plugin-promise-virtual-699e71a35e/0/cache/eslint-plugin-promise-npm-7.1.0-84a3fbeaa7-ae2c6245d4.zip/node_modules/eslint-plugin-promise/",\
         "packageDependencies": [\
-          ["eslint-plugin-promise", "virtual:1c48d6fc54bd63a4a7a92b825c3188ce017de7b96310c12c0672c1faf971fb61632a4b939610bf601aced2f901d0649c6fb175a44219174f74f248e1599d043d#npm:6.6.0"],\
+          ["eslint-plugin-promise", "virtual:1c48d6fc54bd63a4a7a92b825c3188ce017de7b96310c12c0672c1faf971fb61632a4b939610bf601aced2f901d0649c6fb175a44219174f74f248e1599d043d#npm:7.1.0"],\
           ["@types/eslint", null],\
           ["eslint", "npm:8.57.0"]\
         ],\
@@ -11487,7 +11480,7 @@ const RAW_RUNTIME_STATE =
           ["functions", "workspace:firebase/functions"],\
           ["@firebase/app-types", "npm:0.9.2"],\
           ["eslint", "npm:8.57.0"],\
-          ["eslint-plugin-promise", "virtual:1c48d6fc54bd63a4a7a92b825c3188ce017de7b96310c12c0672c1faf971fb61632a4b939610bf601aced2f901d0649c6fb175a44219174f74f248e1599d043d#npm:6.6.0"],\
+          ["eslint-plugin-promise", "virtual:1c48d6fc54bd63a4a7a92b825c3188ce017de7b96310c12c0672c1faf971fb61632a4b939610bf601aced2f901d0649c6fb175a44219174f74f248e1599d043d#npm:7.1.0"],\
           ["firebase-admin", "virtual:1c48d6fc54bd63a4a7a92b825c3188ce017de7b96310c12c0672c1faf971fb61632a4b939610bf601aced2f901d0649c6fb175a44219174f74f248e1599d043d#npm:11.11.1"],\
           ["firebase-functions", "virtual:1c48d6fc54bd63a4a7a92b825c3188ce017de7b96310c12c0672c1faf971fb61632a4b939610bf601aced2f901d0649c6fb175a44219174f74f248e1599d043d#npm:4.9.0"],\
           ["firebase-functions-test", "virtual:1c48d6fc54bd63a4a7a92b825c3188ce017de7b96310c12c0672c1faf971fb61632a4b939610bf601aced2f901d0649c6fb175a44219174f74f248e1599d043d#npm:3.1.1"],\
