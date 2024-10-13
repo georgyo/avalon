@@ -145,7 +145,7 @@ const RAW_RUNTIME_STATE =
           ["@avalon/server", "workspace:server"],\
           ["@firebase/app-types", "npm:0.9.2"],\
           ["eslint", "npm:8.57.0"],\
-          ["express", "npm:4.19.2"],\
+          ["express", "npm:4.20.0"],\
           ["express-promise-router", "virtual:1cbebe8a36d487ff03fd5e0d9ea4db39ddd47d4fca1722ebd0509c9358ad156a39346a45dab140fabcc5e45c1757f9fe716ff56e644771abd4ce5b8b91f00806#npm:4.1.1"],\
           ["firebase-admin", "virtual:1c48d6fc54bd63a4a7a92b825c3188ce017de7b96310c12c0672c1faf971fb61632a4b939610bf601aced2f901d0649c6fb175a44219174f74f248e1599d043d#npm:11.11.1"],\
           ["lodash", "npm:4.17.21"],\
@@ -10973,36 +10973,36 @@ const RAW_RUNTIME_STATE =
       }]\
     ]],\
     ["express", [\
-      ["npm:4.19.2", {\
-        "packageLocation": "./.yarn/cache/express-npm-4.19.2-f81334a22a-3fcd792536.zip/node_modules/express/",\
+      ["npm:4.20.0", {\
+        "packageLocation": "./.yarn/cache/express-npm-4.20.0-a4b76bf3f8-4131f566cf.zip/node_modules/express/",\
         "packageDependencies": [\
-          ["express", "npm:4.19.2"],\
+          ["express", "npm:4.20.0"],\
           ["accepts", "npm:1.3.8"],\
           ["array-flatten", "npm:1.1.1"],\
-          ["body-parser", "npm:1.20.2"],\
+          ["body-parser", "npm:1.20.3"],\
           ["content-disposition", "npm:0.5.4"],\
           ["content-type", "npm:1.0.5"],\
           ["cookie", "npm:0.6.0"],\
           ["cookie-signature", "npm:1.0.6"],\
           ["debug", "virtual:e0cd6afa69db469de21c754be1546e018ea723a8653bf7c1fdbb52b3d67b9c4065461f2d7632852c8644c3b36b5304269483ba2eb51ad39f9eae03847036d7a9#npm:2.6.9"],\
           ["depd", "npm:2.0.0"],\
-          ["encodeurl", "npm:1.0.2"],\
+          ["encodeurl", "npm:2.0.0"],\
           ["escape-html", "npm:1.0.3"],\
           ["etag", "npm:1.8.1"],\
           ["finalhandler", "npm:1.2.0"],\
           ["fresh", "npm:0.5.2"],\
           ["http-errors", "npm:2.0.0"],\
-          ["merge-descriptors", "npm:1.0.1"],\
+          ["merge-descriptors", "npm:1.0.3"],\
           ["methods", "npm:1.1.2"],\
           ["on-finished", "npm:2.4.1"],\
           ["parseurl", "npm:1.3.3"],\
-          ["path-to-regexp", "npm:0.1.7"],\
+          ["path-to-regexp", "npm:0.1.10"],\
           ["proxy-addr", "npm:2.0.7"],\
           ["qs", "npm:6.11.0"],\
           ["range-parser", "npm:1.2.1"],\
           ["safe-buffer", "npm:5.2.1"],\
-          ["send", "npm:0.18.0"],\
-          ["serve-static", "npm:1.15.0"],\
+          ["send", "npm:0.19.0"],\
+          ["serve-static", "npm:1.16.0"],\
           ["setprototypeof", "npm:1.2.0"],\
           ["statuses", "npm:2.0.1"],\
           ["type-is", "npm:1.6.18"],\
@@ -11063,7 +11063,7 @@ const RAW_RUNTIME_STATE =
         "packageDependencies": [\
           ["express-promise-router", "virtual:1cbebe8a36d487ff03fd5e0d9ea4db39ddd47d4fca1722ebd0509c9358ad156a39346a45dab140fabcc5e45c1757f9fe716ff56e644771abd4ce5b8b91f00806#npm:4.1.1"],\
           ["@types/express", null],\
-          ["express", "npm:4.19.2"],\
+          ["express", "npm:4.20.0"],\
           ["is-promise", "npm:4.0.0"],\
           ["lodash.flattendeep", "npm:4.4.0"],\
           ["methods", "npm:1.1.2"]\
@@ -15231,13 +15231,6 @@ const RAW_RUNTIME_STATE =
       }]\
     ]],\
     ["merge-descriptors", [\
-      ["npm:1.0.1", {\
-        "packageLocation": "./.yarn/cache/merge-descriptors-npm-1.0.1-615287aaa8-5abc259d2a.zip/node_modules/merge-descriptors/",\
-        "packageDependencies": [\
-          ["merge-descriptors", "npm:1.0.1"]\
-        ],\
-        "linkType": "HARD"\
-      }],\
       ["npm:1.0.3", {\
         "packageLocation": "./.yarn/cache/merge-descriptors-npm-1.0.3-10b44ad75c-52117adbe0.zip/node_modules/merge-descriptors/",\
         "packageDependencies": [\
@@ -19030,10 +19023,10 @@ const RAW_RUNTIME_STATE =
       }]\
     ]],\
     ["serve-static", [\
-      ["npm:1.15.0", {\
-        "packageLocation": "./.yarn/cache/serve-static-npm-1.15.0-86c81879f5-699b2d4c29.zip/node_modules/serve-static/",\
+      ["npm:1.16.0", {\
+        "packageLocation": "./.yarn/cache/serve-static-npm-1.16.0-88462a5f62-29a01f67e8.zip/node_modules/serve-static/",\
         "packageDependencies": [\
-          ["serve-static", "npm:1.15.0"],\
+          ["serve-static", "npm:1.16.0"],\
           ["encodeurl", "npm:1.0.2"],\
           ["escape-html", "npm:1.0.3"],\
           ["parseurl", "npm:1.3.3"],\
