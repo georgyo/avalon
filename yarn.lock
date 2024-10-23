@@ -4061,7 +4061,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/express-serve-static-core@npm:*, @types/express-serve-static-core@npm:^4.17.33":
+"@types/express-serve-static-core@npm:^4.17.33":
   version: 4.17.43
   resolution: "@types/express-serve-static-core@npm:4.17.43"
   dependencies:
@@ -4073,18 +4073,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/express@npm:4.17.3":
-  version: 4.17.3
-  resolution: "@types/express@npm:4.17.3"
-  dependencies:
-    "@types/body-parser": "npm:*"
-    "@types/express-serve-static-core": "npm:*"
-    "@types/serve-static": "npm:*"
-  checksum: 10/9895c322dcddcf17f3fe4c479808be5d8d76a80f05df55843bcccdb06b91b30f3b83a5ce9b02df1d2971f6630588aefcac4bb6326caae4b739ce79d375b5b886
-  languageName: node
-  linkType: hard
-
-"@types/express@npm:^4.17.17":
+"@types/express@npm:^4.17.17, @types/express@npm:^4.17.21":
   version: 4.17.21
   resolution: "@types/express@npm:4.17.21"
   dependencies:
@@ -7387,7 +7376,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"express@npm:4.21.1, express@npm:^4.16.4, express@npm:^4.17.1":
+"express@npm:4.21.1, express@npm:^4.16.4, express@npm:^4.21.0":
   version: 4.21.1
   resolution: "express@npm:4.21.1"
   dependencies:
@@ -7671,20 +7660,20 @@ __metadata:
   languageName: node
   linkType: hard
 
-"firebase-functions@npm:4.9.0":
-  version: 4.9.0
-  resolution: "firebase-functions@npm:4.9.0"
+"firebase-functions@npm:6.1.0":
+  version: 6.1.0
+  resolution: "firebase-functions@npm:6.1.0"
   dependencies:
     "@types/cors": "npm:^2.8.5"
-    "@types/express": "npm:4.17.3"
+    "@types/express": "npm:^4.17.21"
     cors: "npm:^2.8.5"
-    express: "npm:^4.17.1"
+    express: "npm:^4.21.0"
     protobufjs: "npm:^7.2.2"
   peerDependencies:
-    firebase-admin: ^10.0.0 || ^11.0.0 || ^12.0.0
+    firebase-admin: ^11.10.0 || ^12.0.0
   bin:
     firebase-functions: lib/bin/firebase-functions.js
-  checksum: 10/7b23295bb40053ea4e80018bf7bcfc55afc41d13c2db236c2e263b4ac1fef30f6ed379424945e38190a1b8a97e30392fad0f983cd4a0d11ad2c5e68dc4130a09
+  checksum: 10/6370cc91e13e107b505475b946d1215d94b99d3c53ff00a2efeaa8693a93593a2942d36759bd088f2bc5adb3197bdad08d3118cff55ad3be88666a4d6898f4f9
   languageName: node
   linkType: hard
 
@@ -7984,7 +7973,7 @@ __metadata:
     eslint: "npm:8.57.0"
     eslint-plugin-promise: "npm:6.6.0"
     firebase-admin: "npm:11.11.1"
-    firebase-functions: "npm:4.9.0"
+    firebase-functions: "npm:6.1.0"
     firebase-functions-test: "npm:3.1.1"
     firebase-tools: "npm:13.16.0"
     jest: "npm:^29.7.0"
