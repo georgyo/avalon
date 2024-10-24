@@ -8,7 +8,7 @@
   "dependencies": {
     "express": "4.21.1",
     "express-promise-router": "4.1.1",
-    "firebase-admin": "11.11.1",
+    "firebase-admin": "12.7.0",
     "lodash": "4.17.21",
     "read-env": "^2.0.0"
   },
