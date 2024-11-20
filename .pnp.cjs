@@ -9438,16 +9438,16 @@ const RAW_RUNTIME_STATE =
         "packageLocation": "./.yarn/cache/cross-env-npm-5.2.1-90c1c3d1d2-5a81dc207e.zip/node_modules/cross-env/",\
         "packageDependencies": [\
           ["cross-env", "npm:5.2.1"],\
-          ["cross-spawn", "npm:6.0.5"]\
+          ["cross-spawn", "npm:6.0.6"]\
         ],\
         "linkType": "HARD"\
       }]\
     ]],\
     ["cross-spawn", [\
-      ["npm:6.0.5", {\
-        "packageLocation": "./.yarn/cache/cross-spawn-npm-6.0.5-2deab6c280-f07e643b48.zip/node_modules/cross-spawn/",\
+      ["npm:6.0.6", {\
+        "packageLocation": "./.yarn/cache/cross-spawn-npm-6.0.6-a983639a0d-7abf6137b2.zip/node_modules/cross-spawn/",\
         "packageDependencies": [\
-          ["cross-spawn", "npm:6.0.5"],\
+          ["cross-spawn", "npm:6.0.6"],\
           ["nice-try", "npm:1.0.5"],\
           ["path-key", "npm:2.0.1"],\
           ["semver", "npm:5.7.2"],\
