@@ -1,6 +1,6 @@
 {
   "name": "avalon-workspace",
-  "packageManager": "yarn@4.5.0",
+  "packageManager": "yarn@4.6.0",
   "workspaces": [
     "client",
     "server",
