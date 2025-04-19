@@ -17,13 +17,14 @@
     "firebase": "9.23.0",
     "i": "0.3.7",
     "lodash": "4.17.21",
+    "mitt": "^3.0.1",
     "npm": "10.8.2",
     "rollup": "^4.34.9",
     "seedrandom": "3.0.5",
-    "vue": "^2.7.16",
-    "vue-toasted": "1.1.28",
-    "vuedraggable": "2.24.3",
-    "vuetify": "2.7.2"
+    "vue": "^3.2.47",
+    "vue-toastification": "^1.7.14",
+    "vuedraggable": "^4.1.0",
+    "vuetify": "^3.3.6"
   },
   "devDependencies": {
     "@babel/core": "^7.23.2",

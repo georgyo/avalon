@@ -58,8 +58,8 @@ export default {
   },
   props: [ 'avalon' ],
   mounted() {
-      EventBus.$on('show-role', () => this.sheet = true);
-      EventBus.$on('GAME_ENDED', () => this.sheet = false);
+      EventBus.on('show-role', () => this.sheet = true);
+      EventBus.on('GAME_ENDED', () => this.sheet = false);
   },
   data() {
       return {

@@ -46,13 +46,13 @@ export default {
       }
   },
   mounted() {
-      EventBus.$on('GAME_STARTED', () => {
+      EventBus.on('GAME_STARTED', () => {
           this.missionDialog = false;
       });
-      EventBus.$on('GAME_ENDED', () => {
+      EventBus.on('GAME_ENDED', () => {
           this.missionDialog = false;
       });
-      EventBus.$on('MISSION_RESULT', () => {
+      EventBus.on('MISSION_RESULT', () => {
           this.missionDialog = true;
       });
   }

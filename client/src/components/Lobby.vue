@@ -128,7 +128,7 @@ export default {
     }
   },
   created() {
-    EventBus.$on('evt', () => console.log("event in lobby", ...arguments));
+    EventBus.on('evt', () => console.log("event in lobby", ...arguments));
   },
   computed: {
     reasonToNotStartGame: function() {

@@ -73,10 +73,10 @@ export default {
       }
   },
   mounted() {
-      EventBus.$on('GAME_ENDED', () => {
+      EventBus.on('GAME_ENDED', () => {
           this.endGameDialog = true;
       });
-      EventBus.$on('GAME_STARTED', () => {
+      EventBus.on('GAME_STARTED', () => {
           // time to start new game!
           this.endGameDialog = false;
       });

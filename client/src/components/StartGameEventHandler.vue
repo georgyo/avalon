@@ -29,14 +29,14 @@ export default {
   methods: {
       startGameDialogClosed() {
           this.startGameDialog = false;
-          EventBus.$emit('show-role');
+          EventBus.emit('show-role');
       }
   },
   mounted() {
-      EventBus.$on('GAME_STARTED', () => {
+      EventBus.on('GAME_STARTED', () => {
           this.startGameDialog = true;
       });
-      EventBus.$on('GAME_ENDED', () => {
+      EventBus.on('GAME_ENDED', () => {
           this.startGameDialog = false;
       });
   }

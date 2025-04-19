@@ -1,43 +1,47 @@
-import Vue from 'vue'
-import Vuetify from 'vuetify'
+import { createApp } from 'vue'
 import App from './App.vue'
-import 'vuetify/dist/vuetify.min.css'
-import Toasted from 'vue-toasted';
-import '@mdi/font/css/materialdesignicons.css'
-import '@fortawesome/fontawesome-free/css/all.min.css'
-import { library } from '@fortawesome/fontawesome-svg-core'
-import { FontAwesomeIcon, FontAwesomeLayers, FontAwesomeLayersText} from '@fortawesome/vue-fontawesome'
 
-// importing icons which we need for layering and manipulations
+import { createVuetify } from 'vuetify'
+import 'vuetify/styles'
+import * as components from 'vuetify/components'
+import * as directives from 'vuetify/directives'
+import '@mdi/font/css/materialdesignicons.css'
+
+import { library } from '@fortawesome/fontawesome-svg-core'
+import { FontAwesomeIcon, FontAwesomeLayers, FontAwesomeLayersText } from '@fortawesome/vue-fontawesome'
+import '@fortawesome/fontawesome-free/css/all.min.css'
+
+// importing icons we need for layering and manipulations
 import { faCrown, faCircle as faSolidCircle, faEllipsisH, faVoteYea } from '@fortawesome/free-solid-svg-icons'
 import { faCircle, faTimesCircle, faCheckCircle, faThumbsUp, faThumbsDown } from '@fortawesome/free-regular-svg-icons'
 
-Vue.component('font-awesome-icon', FontAwesomeIcon); // Register component globally
-Vue.component('font-awesome-layers', FontAwesomeLayers);
-Vue.component('font-awesome-layers-text', FontAwesomeLayersText);
-
-library.add(faCrown, faSolidCircle, faCircle,
+// register FontAwesome components
+library.add(
+  faCrown, faSolidCircle, faCircle,
   faTimesCircle, faCheckCircle, faThumbsDown, faThumbsUp,
-  faEllipsisH, faVoteYea);
-// the line below would add EVERYTHING, so would bloat the size
-//library.add(far, fas);
+  faEllipsisH, faVoteYea
+)
 
-const opts = {
-  iconfont: 'mdiSvg',
-  //dark: true,
-}
-Vue.use(Vuetify, opts)
+import Toast from 'vue-toastification'
+import 'vue-toastification/dist/index.css'
 
-export const EventBus = new Vue();
+import mitt from 'mitt'
+export const EventBus = mitt()
 
-Vue.config.productionTip = false
+const vuetify = createVuetify({
+  components,
+  directives,
+  icons: { defaultSet: 'mdi' },
+})
 
-Vue.use(Toasted,
-  { position: 'top-center',
-    fullWidth: true,
-    duration: 2000 });
+const app = createApp(App)
 
-new Vue({
-  vuetify: new Vuetify(opts),
-  render: h => h(App),
-}).$mount('#app')
+app.use(vuetify)
+app.use(Toast, { position: 'top-center', fullWidth: true, duration: 2000 })
+
+app.component('font-awesome-icon', FontAwesomeIcon)
+app.component('font-awesome-layers', FontAwesomeLayers)
+app.component('font-awesome-layers-text', FontAwesomeLayersText)
+
+app.mount('#app')
+
