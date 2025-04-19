@@ -7,7 +7,7 @@
     "dev": "vite",
     "serve": "vite",
     "build": "vite build",
-    "lint": "eslint --ext .js,.vue src"
+    "lint": "eslint --ext .js,.vue,.ts src"
   },
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "6.7.2",
@@ -31,6 +31,8 @@
     "@babel/eslint-parser": "7.27.0",
     "@fortawesome/fontawesome-free": "6.7.2",
     "@mdi/font": "7.4.47",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
     "@vitejs/plugin-vue": "^5.2.3",
     "@vue/babel-preset-app": "^5.0.8",
     "eslint": "9.25.0",
@@ -39,6 +41,7 @@
     "eslint-plugin-vuetify": "2.5.2",
     "postcss": "^8.5.3",
     "rollup": "^4.40.0",
+    "typescript": "^5.1.6",
     "vite": "^6.3.2",
     "volar-service-css": "^0.0.64",
     "volar-service-html": "^0.0.64",
