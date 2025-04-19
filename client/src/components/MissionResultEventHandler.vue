@@ -37,10 +37,11 @@
   </v-dialog>
 </template>
 
-<script>
-import { EventBus } from '../main.js'
+<script lang="ts">
+import { defineComponent } from "vue";
+import { EventBus } from '../main.ts'
 
-export default {
+export default defineComponent({
   name: 'MissionResultEventHandler',
   props: [ 'avalon' ],
   data() {
@@ -70,6 +71,7 @@ export default {
       });
   }
 }
+);
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->

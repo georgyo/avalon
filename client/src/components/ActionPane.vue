@@ -21,13 +21,14 @@
   </div>
 </template>
 
-<script>
+<script lang="ts">
+import { defineComponent } from "vue";
 import TeamProposalAction from './TeamProposalAction.vue'
 import TeamVoteAction from './TeamVoteAction.vue'
 import MissionAction from './MissionAction.vue'
 import AssassinationAction from './AssassinationAction.vue'
 
-export default {
+export default defineComponent({
   name: 'ActionPane',
   components: {
     TeamProposalAction,
@@ -51,6 +52,7 @@ export default {
     },
   },
 }
+);
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->

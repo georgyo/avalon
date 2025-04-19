@@ -159,13 +159,14 @@
   </v-container>
 </template>
 
-<script>
-import { EventBus } from '../main.js'
+<script lang="ts">
+import { defineComponent } from "vue";
+import { EventBus } from '../main.ts'
 import avalonLib from '../../../server/common/avalonlib.mjs'
 import LobbyPlayerList from './LobbyPlayerList.vue'
 import RoleList from './RoleList.vue'
 
-export default {
+export default defineComponent({
   name: 'AvalonLobby',
   components: {
     LobbyPlayerList,
@@ -215,6 +216,7 @@ export default {
     }
   }
  }
+);
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->

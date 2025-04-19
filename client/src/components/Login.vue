@@ -64,10 +64,11 @@
   </v-container>
 </template>
 
-<script>
+<script lang="ts">
+import { defineComponent } from "vue";
 import StatsDisplay from './StatsDisplay.vue'
 
-export default {
+export default defineComponent({
   name: 'AvalonLogin',
   components: {
     StatsDisplay
@@ -133,6 +134,7 @@ export default {
     }
   }
 }
+);
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->

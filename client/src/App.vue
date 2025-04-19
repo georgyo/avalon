@@ -54,7 +54,7 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue';
-import AvalonGame from './avalon.js'
+import AvalonGame from './avalon'
 import { EventBus } from './main.ts'
 import Toolbar from './components/Toolbar.vue'
 import EventHandler from './components/EventHandler.vue'
@@ -87,7 +87,7 @@ export default defineComponent({
       EventBus.$emit(...arguments);
     },
   },
-})
+});
 </script>
 <style>
 

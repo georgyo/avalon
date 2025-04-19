@@ -18,12 +18,13 @@
   </div>
 </template>
 
-<script>
+<script lang="ts">
+import { defineComponent } from "vue";
 import Missions from './Missions.vue'
 import GameParticipants from './GameParticipants.vue'
 import ActionPane from './ActionPane.vue'
 
-export default {
+export default defineComponent({
   name: 'AvalonGame',
   components: {
     Missions,
@@ -42,6 +43,7 @@ export default {
     },
   },
 }
+);
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->

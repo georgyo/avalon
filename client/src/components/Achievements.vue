@@ -35,10 +35,11 @@
     </div>
   </div>
 </template>
-<script>
-import GameAnalysis from "../avalon-analysis.js";
+<script lang="ts">
+import { defineComponent } from "vue";
+import GameAnalysis from "../avalon-analysis";
 
-export default {
+export default defineComponent({
   name: "AvalonAchievements",
   props: ["avalon"],
   computed: {
@@ -51,7 +52,7 @@ export default {
       return gameAnalysis.getBadges();
     }
   }
-};
+});
 </script>
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>

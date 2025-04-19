@@ -26,13 +26,15 @@
   </v-tabs>
 </template>
 
-<script>
+<script lang="ts">
+import { defineComponent } from "vue";
 import GamePlayerList from './GamePlayerList.vue'
 import RoleList from './RoleList.vue'
 
-export default {
+export default defineComponent({
   name: 'GameParticipants',
   components: { GamePlayerList, RoleList },
   props: [ 'avalon' ],
 }
+);
 </script>

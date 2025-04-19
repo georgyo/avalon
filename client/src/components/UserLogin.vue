@@ -119,9 +119,10 @@
   </v-card>
 </template>
 
-<script>
+<script lang="ts">
+import { defineComponent } from "vue";
 
-export default {
+export default defineComponent({
   name: 'UserLogin',
   props: {
     avalon: Object
@@ -164,6 +165,7 @@ export default {
     }
   }
 }
+);
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->

@@ -18,12 +18,13 @@
   </v-toolbar>
 </template>
 
-<script>
+<script lang="ts">
+import { defineComponent } from "vue";
 import ToolbarQuitButton from './ToolbarQuitButton.vue';
 import ViewRoleButton from './ViewRoleButton.vue'
 import LogoutButton from './LogoutButton.vue'
 
-export default {
+export default defineComponent({
   name: 'AvalonToolbar',
   components: {
     ToolbarQuitButton,
@@ -32,6 +33,7 @@ export default {
   },
   props: [ 'avalon' ]
  }
+);
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->

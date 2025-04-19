@@ -83,10 +83,11 @@
   </div>
 </template>
 
-<script>
+<script lang="ts">
+import { defineComponent } from "vue";
 import draggable from "vuedraggable";
 
-export default {
+export default defineComponent({
   name: "LobbyPlayerList",
   components: {
     draggable
@@ -128,7 +129,7 @@ export default {
         );
     }
   }
-};
+});
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->

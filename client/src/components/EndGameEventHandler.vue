@@ -54,12 +54,13 @@
   </v-dialog>
 </template>
 
-<script>
-import { EventBus } from '../main.js'
+<script lang="ts">
+import { defineComponent } from "vue";
+import { EventBus } from '../main.ts'
 import Achievements from './Achievements.vue'
 import MissionSummaryTable from './MissionSummaryTable.vue'
 
-export default {
+export default defineComponent({
   name: 'EndGameEventHandler',
   components: {
       Achievements,
@@ -105,6 +106,7 @@ export default {
       }
   }
 }
+);
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->

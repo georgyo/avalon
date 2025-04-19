@@ -6,13 +6,14 @@
   </div>
 </template>
 
-<script>
-import { EventBus } from '../main.js'
+<script lang="ts">
+import { defineComponent } from "vue";
+import { EventBus } from '../main.ts'
 import StartGameEventHandler from './StartGameEventHandler.vue'
 import EndGameEventHandler from './EndGameEventHandler.vue'
 import MissionResultEventHandler from './MissionResultEventHandler.vue'
 
-export default {
+export default defineComponent({
   name: 'EventHandler',
   components: {
       StartGameEventHandler,
@@ -51,6 +52,7 @@ export default {
     });
   }
 }
+);
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->

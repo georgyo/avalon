@@ -82,11 +82,12 @@
   </v-bottom-sheet>
 </template>
 
-<script>
-import { EventBus } from '../main.js'
+<script lang="ts">
+import { defineComponent } from "vue";
+import { EventBus } from '../main.ts'
 import StatsDisplay from './StatsDisplay.vue'
 
-export default {
+export default defineComponent({
   name: 'ViewRoleButton',
   components: {
     StatsDisplay
@@ -102,6 +103,7 @@ export default {
       EventBus.on('GAME_ENDED', () => this.sheet = false);
   },
 }
+);
 </script>
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>

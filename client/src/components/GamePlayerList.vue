@@ -120,8 +120,9 @@
   </v-list>
 </template>
 
-<script>
-export default {
+<script lang="ts">
+import { defineComponent } from "vue";
+export default defineComponent({
   name: 'GamePlayerList',
   props: [ 'avalon' ],
   data() {
@@ -218,6 +219,7 @@ export default {
     }
   }
  }
+);
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
