@@ -11,7 +11,7 @@ export default [
   },
   // Vue recommended flat config (includes parser setup for .vue files)
   ...pluginVue.configs['flat/recommended'],
-  // Overrides: disable prop-type, default-prop, emits and template style rules for JS and Vue files
+  // Overrides: disable prop-type, default-prop, emits checks since we use TS for typing
   {
     files: [
       '*.vue', '**/*.vue',
@@ -20,7 +20,11 @@ export default [
       '*.cjs', '**/*.cjs',
       '*.ts', '**/*.ts'
     ],
-    rules: {}
+    rules: {
+      'vue/require-prop-types': 'off',
+      'vue/require-default-prop': 'off',
+      'vue/require-explicit-emits': 'off'
+    }
   },
   // TypeScript files
   {
@@ -29,7 +33,8 @@ export default [
       parser: tsParser,
       parserOptions: {
         project: './tsconfig.json',
-        tsconfigRootDir: __dirname,
+        // Use current working directory for tsconfig
+        tsconfigRootDir: process.cwd(),
         extraFileExtensions: ['.vue']
       }
     },
