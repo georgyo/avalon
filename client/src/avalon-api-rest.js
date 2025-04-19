@@ -1,15 +1,20 @@
-import firebase from 'firebase/compat/app';
-import 'firebase/compat/auth';
+// Firebase v9 modular imports
+import { getAuth } from 'firebase/auth';
 
 import axios from 'axios';
 
+const auth = getAuth();
 export class AvalonApi {
   constructor() {
     axios.defaults.baseURL = "/api";
   }
 
   post(endPoint, data) {
-    return firebase.auth().currentUser.getIdToken(false).then(function(idToken) {
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      return Promise.reject(new Error('Not authenticated'));
+    }
+    return currentUser.getIdToken(false).then(function(idToken) {
       console.debug("Calling", endPoint, 'with', data);
       return axios.post(endPoint, data, {
         headers: {'X-Avalon-Auth': idToken}

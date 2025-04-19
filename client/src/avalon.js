@@ -1,17 +1,27 @@
-import firebase from 'firebase/compat/app'
-import 'firebase/compat/auth'
-import 'firebase/compat/firestore'
-import _ from 'lodash'
+// Firebase v9 modular imports
+import { initializeApp } from 'firebase/app';
+import {
+  getAuth,
+  onAuthStateChanged,
+  signOut as fbSignOut,
+  sendSignInLinkToEmail as fbSendSignInLinkToEmail,
+  signInAnonymously as fbSignInAnonymously,
+  signInWithEmailLink as fbSignInWithEmailLink
+} from 'firebase/auth';
+import { getFirestore, doc, onSnapshot, getDoc } from 'firebase/firestore';
+import _ from 'lodash';
 import avalonLib from '../../server/common/avalonlib.mjs';
-import {AvalonApi} from './avalon-api-rest';
+import { AvalonApi } from './avalon-api-rest';
 import firebaseConfig from './firebase-config';
 
 import axios from 'axios';
 
 const HOSTNAME = window.location.origin + '/';
 
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
 
 function onFirebaseError(err) {
   console.error(err);
@@ -118,13 +128,17 @@ class LobbySubscription {
   }
 
   start() {
-    this._subscriptions.lobbyDoc =
-      db.collection('lobbies').doc(this.name).onSnapshot(
-        this._lobbyDocUpdated.bind(this),
-        onFirebaseError);
-    this._subscriptions.roleDoc =
-      db.collection('lobbies').doc(this.name).collection('roles').doc(this._uid).onSnapshot(
-        this._roleDocUpdated.bind(this));
+    // Subscribe to lobby document
+    this._subscriptions.lobbyDoc = onSnapshot(
+      doc(db, 'lobbies', this.name),
+      this._lobbyDocUpdated.bind(this),
+      onFirebaseError
+    );
+    // Subscribe to role document
+    this._subscriptions.roleDoc = onSnapshot(
+      doc(db, 'lobbies', this.name, 'roles', this._uid),
+      this._roleDocUpdated.bind(this)
+    );
   }
 
   stop() {
@@ -170,18 +184,19 @@ class LobbySubscription {
       // const logName = '2020-04-07T02:08:27.212Z_TPB'; // five rejected in a row
       const logName = '2020-04-14T02:50:34.684Z_SQL'; // Actual Merlin achievement
       //const logName = '2020-03-26T01:56:50.603Z_CHR';
-      db.collection('logs').doc(logName).get().then((doc) => {
-        console.log('got ', doc.data());
-        this._game = doc.data();
+      // Using modular Firestore API
+      getDoc(doc(db, 'logs', logName)).then((snapshot) => {
+        console.log('got ', snapshot.data());
+        this._game = snapshot.data();
         this._game.players = this._game.players.map(p => p.name); // flatten it to just names
-        this._eventHandler('GAME_ENDED');    
+        this._eventHandler('GAME_ENDED');
       }); /* */
 
       /* -- debug -- view random lobby
       const lobbyName = 'WDR';
-      db.collection('lobbies').doc(lobbyName).get().then((lobbyDoc) => {
-        this._game = lobbyDoc.get('game');
-        
+      // Using modular Firestore API
+      getDoc(doc(db, 'lobbies', lobbyName)).then((lobbySnapshot) => {
+        this._game = lobbySnapshot.get('game');
         this._eventHandler('GAME_ENDED');
       });
       */
@@ -469,7 +484,8 @@ export default class AvalonGame {
   }
 
   logout() {
-    firebase.auth().signOut();
+    // Sign out using modular Firebase API
+    fbSignOut(auth);
   }
 
   async validateEmailAddr(email) {
@@ -497,14 +513,14 @@ export default class AvalonGame {
   async submitEmailAddr(emailAddr) {
     const isValidAddr = await this.validateEmailAddr(emailAddr);
     if (!isValidAddr) return;
-    return firebase.auth().sendSignInLinkToEmail(emailAddr, {
+    return fbSendSignInLinkToEmail(auth, emailAddr, {
       url: encodeURI(this.hostname + '?confirmEmail=' + emailAddr),
       handleCodeInApp: true
     });
   }
 
   async signInAnonymously() {
-    return firebase.auth().signInAnonymously()
+    return fbSignInAnonymously(auth);
   }
 
   init() {
@@ -515,14 +531,15 @@ export default class AvalonGame {
       alert('Maybe next time?');
     }
 
-    firebase.auth().onAuthStateChanged(function (userCred) {
+    // Listen for auth state changes using modular Firebase API
+    onAuthStateChanged(auth, function (userCred) {
       if (userCred == null) {
         // not logged in
         // maybe there's an email link?
         let urlParams = new URLSearchParams(window.location.search);
         if (urlParams.has("confirmEmail")) {
           const emailAddr = urlParams.get("confirmEmail");
-          return firebase.auth().signInWithEmailLink(emailAddr, window.location.href).then(function() {
+          return fbSignInWithEmailLink(auth, emailAddr, window.location.href).then(function() {
             this.confirmingEmailError = null;
           }.bind(this)).catch(function(err) {
             this.confirmingEmailError = err.message;
@@ -545,13 +562,17 @@ export default class AvalonGame {
         // we have user credentials
         console.debug('I am', userCred.uid);
         this.api.login(userCred.email).then(function() {
-          this.userDocUnsubscribe = db.collection('users').doc(userCred.uid).onSnapshot(
+          // Subscribe to user document
+          this.userDocUnsubscribe = onSnapshot(
+            doc(db, 'users', userCred.uid),
             this.userDocUpdated.bind(this),
-            onFirebaseError);
+            onFirebaseError
+          );
           }.bind(this));
 
-          db.collection('stats').doc('global').get().then(doc => {
-            this.globalStats = doc.data();
+          // Fetch global stats using modular Firestore API
+          getDoc(doc(db, 'stats', 'global')).then(snapshot => {
+            this.globalStats = snapshot.data();
           });
 
           // strip params from URL (if we followed a confirmEmail link but we're already logged in)
