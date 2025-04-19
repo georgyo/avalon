@@ -39,7 +39,7 @@
 import GameAnalysis from "../avalon-analysis.js";
 
 export default {
-  name: "Achievements",
+  name: "AvalonAchievements",
   props: ["avalon"],
   computed: {
     badges() {

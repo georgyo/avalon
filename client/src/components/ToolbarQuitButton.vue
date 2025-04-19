@@ -5,7 +5,6 @@
   >
     <template #activator="{ on }">
       <v-btn
-        slot="activator"
         light
         :loading="quitting"
         v-on="on"

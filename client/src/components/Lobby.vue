@@ -166,7 +166,7 @@ import LobbyPlayerList from './LobbyPlayerList.vue'
 import RoleList from './RoleList.vue'
 
 export default {
-  name: 'Lobby',
+  name: 'AvalonLobby',
   components: {
     LobbyPlayerList,
     RoleList

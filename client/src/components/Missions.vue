@@ -82,7 +82,7 @@
 import MissionSummaryTable from './MissionSummaryTable.vue'
 
 export default {
-  name: 'Missions',
+  name: 'AvalonMissions',
   components: {
       MissionSummaryTable
   },

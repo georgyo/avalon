@@ -59,7 +59,7 @@
               :error-messages="errorMessage"
               autofocus
               @keyup="clearErrorMessage()"
-              @keyup.native.enter="submitEmailAddress()"
+              @keyup.enter="submitEmailAddress()"
             />
             <v-btn
               :loading="isSubmittingEmailAddr"
@@ -145,7 +145,6 @@ export default {
     submitEmailAddress() {
         this.isSubmittingEmailAddr = true;
         this.clearErrorMessage();
-        this.avalon.confirmingEmailError = ''; // this is not very clean but eh
         this.avalon.submitEmailAddr(this.emailAddr).then(function() {
             this.emailSubmitted = true;
         }.bind(this)).catch(function(err) {

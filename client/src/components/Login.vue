@@ -39,7 +39,7 @@
           label="Lobby"
           :error-messages="errorMsg"
           @input="lobby = lobby.toUpperCase()"
-          @keyup.native.enter="joinLobby()"
+          @keyup.enter="joinLobby()"
         />
         <v-btn
           :disabled="!lobby"
@@ -68,7 +68,7 @@
 import StatsDisplay from './StatsDisplay.vue'
 
 export default {
-  name: 'Login',
+  name: 'AvalonLogin',
   components: {
     StatsDisplay
   },

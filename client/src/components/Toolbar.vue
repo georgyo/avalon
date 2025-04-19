@@ -24,7 +24,7 @@ import ViewRoleButton from './ViewRoleButton.vue'
 import LogoutButton from './LogoutButton.vue'
 
 export default {
-  name: 'Toolbar',
+  name: 'AvalonToolbar',
   components: {
     ToolbarQuitButton,
     ViewRoleButton,

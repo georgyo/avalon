@@ -1,6 +1,5 @@
 <template>
   <v-btn
-    slot="activator"
     light
     :loading="loggingOut"
     @click="logoutButtonClicked()"

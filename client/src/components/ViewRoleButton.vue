@@ -2,7 +2,6 @@
   <v-bottom-sheet v-model="sheet">
     <template #activator="{ on }">
       <v-btn
-        slot="activator"
         light
         v-on="on"
       >

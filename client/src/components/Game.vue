@@ -24,7 +24,7 @@ import GameParticipants from './GameParticipants.vue'
 import ActionPane from './ActionPane.vue'
 
 export default {
-  name: 'Game',
+  name: 'AvalonGame',
   components: {
     Missions,
     GameParticipants,
