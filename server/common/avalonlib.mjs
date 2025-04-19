@@ -1,5 +1,5 @@
 
-exports.ROLES = [
+export const ROLES = [
     { name: 'MERLIN',
       team: 'good',
       sees: ['MORGANA', 'OBERON', 'ASSASSIN', 'EVIL MINION'],
@@ -65,6 +65,8 @@ exports.ROLES = [
     }
 ];
 
-exports.getNumEvilForGameSize = function(numPlayers) {
+export function getNumEvilForGameSize(numPlayers) {
     return { 5: 2, 6: 2, 7: 3, 8: 3, 9: 3, 10: 4 }[numPlayers];
-}
+};
+
+export default { ROLES, getNumEvilForGameSize}
