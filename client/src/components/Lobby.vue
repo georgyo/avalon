@@ -10,7 +10,7 @@
           Please pitch in if you enjoy playing here. Every little bit helps.
         </v-card-text>
         <v-divider></v-divider>
-      </v-card>    
+      </v-card>
 
   <v-layout align-start justify-center wrap>
   <v-flex xs12 sm6>
@@ -68,13 +68,13 @@
       <v-btn icon @click='showOptionGameLog = true'><v-icon>info</v-icon>
       </v-btn>
     </v-flex>
-  </v-list-tile> 
+  </v-list-tile>
   </v-list>
   </v-container>
   </v-flex>
   </v-layout>
 
-                     END IN-GAME LOG CODE SELECTION -->  
+                     END IN-GAME LOG CODE SELECTION -->
   <v-layout align-center justify-center pt-2>
     <v-btn
      v-if='canStartGame'
@@ -106,8 +106,8 @@
 </template>
 
 <script>
-import { EventBus } from '@/main.js'
-import avalonLib from '@/../../server/common/avalonlib.mjs'
+import { EventBus } from '../main.js'
+import avalonLib from '../../../server/common/avalonlib.mjs'
 import LobbyPlayerList from './LobbyPlayerList.vue'
 import RoleList from './RoleList.vue'
 

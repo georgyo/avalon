@@ -25,7 +25,7 @@
 </template>
 
 <script>
-import { EventBus } from '@/main.js'
+import { EventBus } from '../main.js'
 
 export default {
   name: 'MissionResultEventHandler',
@@ -41,7 +41,7 @@ export default {
             this.avalon.lobby.game.missions.length : this.avalon.lobby.game.currentMissionIdx;
           return this.avalon.lobby.game.missions[curMissionIdx - 1];
       },
-      numFails() {          
+      numFails() {
           return this.mission.numFails;
       }
   },

@@ -7,7 +7,7 @@
             </v-layout>
         </v-card-title>
         <v-card-text>
-            <v-layout align-center column justify-center>            
+            <v-layout align-center column justify-center>
             <div class='text-h5 font-weight-bold'> {{ avalon.game.outcome.message }}</div>
             <p v-if='avalon.game.outcome.assassinated'>
                 {{ avalon.game.outcome.assassinated}} was assassinated by
@@ -32,7 +32,7 @@
 </template>
 
 <script>
-import { EventBus } from '@/main.js'
+import { EventBus } from '../main.js'
 import Achievements from './Achievements.vue'
 import MissionSummaryTable from './MissionSummaryTable.vue'
 
@@ -79,7 +79,7 @@ export default {
       EventBus.$on('GAME_STARTED', () => {
           // time to start new game!
           this.endGameDialog = false;
-      });      
+      });
   }
 }
 </script>
@@ -87,7 +87,7 @@ export default {
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
 
- table { 
+ table {
     border-collapse: collapse;
  }
 
@@ -96,14 +96,14 @@ export default {
  }
 
  td {
-     width: 1.7em;     
+     width: 1.7em;
      padding-left: 6px;
      padding-right: 4px;
  }
 
-  tr:nth-child(even) { 
+  tr:nth-child(even) {
      background-color: Gainsboro;
-  } 
+  }
 
   tr:nth-child(odd) {
       background-color: bisque;
@@ -119,7 +119,7 @@ export default {
   }
 
   td.mission-result {
-    border-right: 2px solid;  
+    border-right: 2px solid;
   }
 
   .endGameTitle {
