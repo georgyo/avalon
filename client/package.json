@@ -12,7 +12,7 @@
     "@fortawesome/fontawesome-svg-core": "6.6.0",
     "@fortawesome/free-regular-svg-icons": "6.6.0",
     "@fortawesome/free-solid-svg-icons": "6.6.0",
-    "@fortawesome/vue-fontawesome": "2.0.10",
+    "@fortawesome/vue-fontawesome": "3.0.8",
     "axios": "1.7.5",
     "firebase": "9.23.0",
     "i": "0.3.7",
@@ -22,7 +22,7 @@
     "rollup": "^4.34.9",
     "seedrandom": "3.0.5",
     "vue": "^3.2.47",
-    "vue-toastification": "^1.7.14",
+    "vue-toastification": "2.0.0-rc.5",
     "vuedraggable": "^4.1.0",
     "vuetify": "^3.3.6"
   },
@@ -31,7 +31,7 @@
     "@babel/eslint-parser": "7.25.1",
     "@fortawesome/fontawesome-free": "6.6.0",
     "@mdi/font": "7.4.47",
-    "@vitejs/plugin-vue2": "^2.3.3",
+    "@vitejs/plugin-vue": "^5.2.3",
     "@vue/babel-preset-app": "^5.0.8",
     "eslint": "8.57.0",
     "eslint-plugin-promise": "6.6.0",
@@ -43,7 +43,6 @@
     "volar-service-css": "^0.0.61",
     "volar-service-html": "^0.0.61",
     "volar-service-json": "^0.0.61",
-    "volar-service-prettier": "^0.0.61",
-    "vue-template-compiler": "^2.7.16"
+    "volar-service-prettier": "^0.0.61"
   }
 }
