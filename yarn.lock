@@ -51,7 +51,7 @@ __metadata:
     "@vue/compiler-sfc": "npm:3.5.12"
     axios: "npm:1.7.7"
     eslint: "npm:9.17.0"
-    eslint-plugin-promise: "npm:7.1.0"
+    eslint-plugin-promise: "npm:7.2.1"
     eslint-plugin-vue: "npm:^9.29.0"
     firebase: "npm:9.23.0"
     i: "npm:0.3.7"
@@ -7003,21 +7003,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint-plugin-promise@npm:6.6.0":
-  version: 6.6.0
-  resolution: "eslint-plugin-promise@npm:6.6.0"
+"eslint-plugin-promise@npm:7.2.1":
+  version: 7.2.1
+  resolution: "eslint-plugin-promise@npm:7.2.1"
+  dependencies:
+    "@eslint-community/eslint-utils": "npm:^4.4.0"
   peerDependencies:
     eslint: ^7.0.0 || ^8.0.0 || ^9.0.0
-  checksum: 10/c2b5604efd7e1390c132fcbf06cb2f072c956ffa65c14a991cb74ba1e2327357797239cb5b9b292d5e4010301bb897bd85a6273d7873fb157edc46aa2d95cbd9
-  languageName: node
-  linkType: hard
-
-"eslint-plugin-promise@npm:7.1.0":
-  version: 7.1.0
-  resolution: "eslint-plugin-promise@npm:7.1.0"
-  peerDependencies:
-    eslint: ^7.0.0 || ^8.0.0 || ^9.0.0
-  checksum: 10/ae2c6245d45beac99d55a7ca0b517c04d995238af1bce6c4bb4bfc9be03d8dd7f3ceb9d383822e78a043817664e3c1341486e89ac82955f3cd9c88fa3e17951b
+  checksum: 10/e7447159d52dbc0fdaacfad18571906bb783f9f41f497e73f9b0351e9cc79497f9a9053fbef8141d0c027c16c768a1ef7f8cd4709a4a5cbb14636e862a1ccb34
   languageName: node
   linkType: hard
 
@@ -8036,7 +8029,7 @@ __metadata:
   dependencies:
     "@firebase/app-types": "npm:^0.9.0"
     eslint: "npm:8.57.1"
-    eslint-plugin-promise: "npm:6.6.0"
+    eslint-plugin-promise: "npm:7.2.1"
     firebase-admin: "npm:11.11.1"
     firebase-functions: "npm:4.9.0"
     firebase-functions-test: "npm:3.1.1"
