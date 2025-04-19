@@ -1,27 +1,14 @@
 // Firebase v9 modular imports
-import { initializeApp } from 'firebase/app';
-import {
-  getAuth,
-  onAuthStateChanged,
-  signOut as fbSignOut,
-  sendSignInLinkToEmail as fbSendSignInLinkToEmail,
-  signInAnonymously as fbSignInAnonymously,
-  signInWithEmailLink as fbSignInWithEmailLink
-} from 'firebase/auth';
-import { getFirestore, doc, onSnapshot, getDoc } from 'firebase/firestore';
+import { onAuthStateChanged, signOut as fbSignOut, sendSignInLinkToEmail as fbSendSignInLinkToEmail, signInAnonymously as fbSignInAnonymously, signInWithEmailLink as fbSignInWithEmailLink } from 'firebase/auth';
+import { doc, onSnapshot, getDoc } from 'firebase/firestore';
 import _ from 'lodash';
 import avalonLib from '../../server/common/avalonlib.mjs';
 import { AvalonApi } from './avalon-api-rest';
-import firebaseConfig from './firebase-config';
-
 import axios from 'axios';
+import { auth, db } from './firebase';
 
 const HOSTNAME = window.location.origin + '/';
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
 
 function onFirebaseError(err) {
   console.error(err);

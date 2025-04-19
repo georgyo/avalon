@@ -1,9 +1,6 @@
 // Firebase v9 modular imports
-import { getAuth } from 'firebase/auth';
-
+import { auth } from './firebase';
 import axios from 'axios';
-
-const auth = getAuth();
 export class AvalonApi {
   constructor() {
     axios.defaults.baseURL = "/api";
