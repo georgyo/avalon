@@ -52,9 +52,10 @@
   </div>
 </template>
 
-<script>
+<script lang="ts">
+import { defineComponent } from 'vue';
 import AvalonGame from './avalon.js'
-import { EventBus } from './main.js'
+import { EventBus } from './main.ts'
 import Toolbar from './components/Toolbar.vue'
 import EventHandler from './components/EventHandler.vue'
 import Login from './components/Login.vue'
@@ -62,7 +63,7 @@ import Lobby from './components/Lobby.vue'
 import Game from './components/Game.vue'
 import UserLogin from './components/UserLogin.vue'
 
-export default {
+export default defineComponent({
   name: 'App',
   components: {
     Login,
@@ -86,7 +87,7 @@ export default {
       EventBus.$emit(...arguments);
     },
   },
-}
+})
 </script>
 <style>
 
