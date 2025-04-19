@@ -7,7 +7,7 @@ let
   project =
     pkgs.callPackage ./yarn-project.nix
       {
-        nodejs = pkgs.nodejs-slim_20;
+        nodejs = pkgs.nodejs-slim_22;
       }
       {
         src = with builtins; path {
@@ -29,6 +29,7 @@ project.overrideAttrs (oldAttrs: {
 
   buildPhase = ''
     yarn build
+    (cd server && ln -s ../client/dist .)
   '';
 
 })
