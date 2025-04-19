@@ -1,33 +1,51 @@
 <template>
   <div id="app">
     <v-app class="indigo darken-2">
-      <EventHandler :avalon='avalon'></EventHandler>
-      <v-container fill-height justify-center v-if='!avalon.initialized'>
+      <EventHandler :avalon="avalon" />
+      <v-container
+        v-if="!avalon.initialized"
+        fill-height
+        justify-center
+      >
         <v-progress-circular
-               indeterminate
-               :size="150"
-               color="yellow"></v-progress-circular>
+          indeterminate
+          :size="150"
+          color="yellow"
+        />
       </v-container>
       <template v-else>
         <v-main class="indigo darken-2">
-        <v-container v-if='!avalon.isLoggedIn' fill-height justify-center>
-          <UserLogin :avalon='avalon' />
-        </v-container>
-        <template v-else>
-          <Toolbar :avalon='avalon'></Toolbar>
+          <v-container
+            v-if="!avalon.isLoggedIn"
+            fill-height
+            justify-center
+          >
+            <UserLogin :avalon="avalon" />
+          </v-container>
+          <template v-else>
+            <Toolbar :avalon="avalon" />
             <v-container>          
-              <v-layout align-center justify-center column fill-height>
+              <v-layout
+                align-center
+                justify-center
+                column
+                fill-height
+              >
                 <Login
-                  :avalon='avalon'
                   v-if="!avalon.isInLobby"
+                  :avalon="avalon"
                 />
                 <Lobby
-                  v-bind:avalon='avalon'
-                  v-else-if='!avalon.isGameInProgress' />
-                <Game :avalon='avalon' v-else />
+                  v-else-if="!avalon.isGameInProgress"
+                  :avalon="avalon"
+                />
+                <Game
+                  v-else
+                  :avalon="avalon"
+                />
               </v-layout>
             </v-container>
-        </template>
+          </template>
         </v-main>
       </template>
     </v-app>
@@ -45,15 +63,7 @@ import Game from './components/Game.vue'
 import UserLogin from './components/UserLogin.vue'
 
 export default {
-  name: 'app',
-  data() {
-    return {
-      avalon: new AvalonGame(this.eventCallback.bind(this)),
-    }
-  },
-  created: function() {
-    this.avalon.init();
-  },
+  name: 'App',
   components: {
     Login,
     Lobby,
@@ -61,6 +71,14 @@ export default {
     EventHandler,
     Game,
     UserLogin
+  },
+  data() {
+    return {
+      avalon: new AvalonGame(this.eventCallback.bind(this)),
+    }
+  },
+  created: function() {
+    this.avalon.init();
   },
   methods: {
     eventCallback() {

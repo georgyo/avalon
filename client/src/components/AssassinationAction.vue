@@ -2,20 +2,21 @@
   <v-card class="blue-grey lighten-4">
     <v-card-title>
       Assassination Attempt
-     </v-card-title>
-     <v-card-text class="light-blue lighten-4">
-      <div v-if='avalon.lobby.role.assassin'>
+    </v-card-title>
+    <v-card-text class="light-blue lighten-4">
+      <div v-if="avalon.lobby.role.assassin">
         <v-btn
-         v-bind:disabled='!isValidSelection'
-         v-bind:loading='isAssassinating'
-         @click='assassinate()'>
-                {{ assassinateButtonText }}
+          :disabled="!isValidSelection"
+          :loading="isAssassinating"
+          @click="assassinate()"
+        >
+          {{ assassinateButtonText }}
         </v-btn>
-       </div>
-       <div v-else>
-           Waiting for target selection
-       </div>
-     </v-card-text>
+      </div>
+      <div v-else>
+        Waiting for target selection
+      </div>
+    </v-card-text>
   </v-card>
 </template>
 
@@ -26,12 +27,6 @@ export default {
   data() {
       return {
           isAssassinating: false
-      }
-  },
-  methods: {
-      assassinate() {
-        this.isAssassinating = true;
-        this.avalon.assassinate(this.playerList[0]);
       }
   },
   computed: {
@@ -46,6 +41,12 @@ export default {
             return "Select target"
         }
     }
+  },
+  methods: {
+      assassinate() {
+        this.isAssassinating = true;
+        this.avalon.assassinate(this.playerList[0]);
+      }
   }
 }
 </script>

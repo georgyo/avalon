@@ -1,14 +1,20 @@
 <template>
-<div>
- <v-container>
-  <Missions :avalon='avalon'></Missions>
- </v-container>
- <v-container>
-  <GameParticipants v-on:selected-players='updateSelectedPlayers($event)' :avalon='avalon'></GameParticipants>
- </v-container>
- <v-container>
-  <ActionPane :avalon='avalon' :selectedPlayers='selectedPlayers'></ActionPane>  
-  </v-container>
+  <div>
+    <v-container>
+      <Missions :avalon="avalon" />
+    </v-container>
+    <v-container>
+      <GameParticipants
+        :avalon="avalon"
+        @selected-players="updateSelectedPlayers($event)"
+      />
+    </v-container>
+    <v-container>
+      <ActionPane
+        :avalon="avalon"
+        :selected-players="selectedPlayers"
+      />  
+    </v-container>
   </div>
 </template>
 

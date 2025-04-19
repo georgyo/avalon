@@ -39,9 +39,9 @@ const app = createApp(App)
 app.use(vuetify)
 app.use(Toast, { position: 'top-center', fullWidth: true, duration: 2000 })
 
-app.component('font-awesome-icon', FontAwesomeIcon)
-app.component('font-awesome-layers', FontAwesomeLayers)
-app.component('font-awesome-layers-text', FontAwesomeLayersText)
+app.component('FontAwesomeIcon', FontAwesomeIcon)
+app.component('FontAwesomeLayers', FontAwesomeLayers)
+app.component('FontAwesomeLayersText', FontAwesomeLayersText)
 
 app.mount('#app')
 

@@ -1,7 +1,11 @@
 <template>
   <v-bottom-sheet v-model="sheet">
-    <template v-slot:activator="{ on }">
-      <v-btn slot="activator" v-on="on" light>
+    <template #activator="{ on }">
+      <v-btn
+        slot="activator"
+        light
+        v-on="on"
+      >
         <v-icon left>
           perm_identity
           <!-- person -->
@@ -9,39 +13,71 @@
         {{ avalon.user.name }}        
       </v-btn>
     </template>
-    <v-card v-if='!avalon.isGameInProgress' class="cyan lighten-4">
+    <v-card
+      v-if="!avalon.isGameInProgress"
+      class="cyan lighten-4"
+    >
       <v-card-title>
-        <v-layout align-center column justify-center>
-          <div class="font-weight-bold">When the game starts, you will see your role here.</div>
+        <v-layout
+          align-center
+          column
+          justify-center
+        >
+          <div class="font-weight-bold">
+            When the game starts, you will see your role here.
+          </div>
         </v-layout>
       </v-card-title>
       <v-card-text>
-        <v-layout align-center column justify-center>
-          <p class='subheading'>Your Stats</p>
-          <StatsDisplay :stats='avalon.user.stats' :globalStats='avalon.globalStats' />
+        <v-layout
+          align-center
+          column
+          justify-center
+        >
+          <p class="subheading">
+            Your Stats
+          </p>
+          <StatsDisplay
+            :stats="avalon.user.stats"
+            :global-stats="avalon.globalStats"
+          />
         </v-layout>
       </v-card-text>
     </v-card>
-    <v-card v-else class="cyan lighten-4">
+    <v-card
+      v-else
+      class="cyan lighten-4"
+    >
       <v-card-title class="cyan lighten-2">
-          <v-icon left v-if='avalon.lobby.role.role.team == "good"'>fab fa-old-republic</v-icon>
-          <v-icon left v-else color="red">fas fa-empire</v-icon>
-          <span class='text-h5'>{{ avalon.lobby.role.role.name }}</span>
+        <v-icon
+          v-if="avalon.lobby.role.role.team == &quot;good&quot;"
+          left
+        >
+          fab fa-old-republic
+        </v-icon>
+        <v-icon
+          v-else
+          left
+          color="red"
+        >
+          fas fa-empire
+        </v-icon>
+        <span class="text-h5">{{ avalon.lobby.role.role.name }}</span>
       </v-card-title>
       <v-card-text>
-           <p>Your role is <span class='font-weight-medium'>{{ avalon.lobby.role.role.name}}</span>.</p>
-           <p>You are on the <span class='font-weight-medium'>{{ avalon.lobby.role.role.team }}</span> team.</p>
-           <p>{{ avalon.lobby.role.role.description }}</p>
-           <p v-if='avalon.lobby.role.assassin'>
-             You are also the <span class='font-weight-medium'>ASSASSIN</span>!
-             It will be up to you to identify MERLIN if the good team succeeds 3 missions.
-           </p>
-           <div v-if='avalon.lobby.role.sees.length'>
-               <p>You see <span class='font-weight-bold'>{{ avalon.lobby.role.sees.joinWithAnd() }}</span>.</p>
-           </div>
-           <p v-else>
-             You do not see anyone.
-           </p>
+        <p>Your role is <span class="font-weight-medium">{{ avalon.lobby.role.role.name }}</span>.</p>
+        <p>You are on the <span class="font-weight-medium">{{ avalon.lobby.role.role.team }}</span> team.</p>
+        <p>{{ avalon.lobby.role.role.description }}</p>
+        <p v-if="avalon.lobby.role.assassin">
+          You are also the <span class="font-weight-medium">ASSASSIN</span>!
+          It will be up to you to identify MERLIN if the good team succeeds 3 missions.
+        </p>
+        <div v-if="avalon.lobby.role.sees.length">
+          <p>You see <span class="font-weight-bold">{{ avalon.lobby.role.sees.joinWithAnd() }}</span>.</p>
+        </div>
+        <p v-else>
+          You do not see anyone.
+        </p>
       </v-card-text>
     </v-card>
   </v-bottom-sheet>
@@ -57,14 +93,14 @@ export default {
     StatsDisplay
   },
   props: [ 'avalon' ],
-  mounted() {
-      EventBus.on('show-role', () => this.sheet = true);
-      EventBus.on('GAME_ENDED', () => this.sheet = false);
-  },
   data() {
       return {
           sheet: false,
       };
+  },
+  mounted() {
+      EventBus.on('show-role', () => this.sheet = true);
+      EventBus.on('GAME_ENDED', () => this.sheet = false);
   },
 }
 </script>

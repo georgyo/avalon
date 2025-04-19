@@ -1,30 +1,66 @@
 <template>
-  <v-container justify-center class="cyan lighten-5">
-    <v-layout align-center justify-center column fill-height>
-    <template v-if='!showLobbyInput'>
-      <v-text-field
-        label="Your Name" @input="name = name.toUpperCase()" ref='nameTextField' v-model="name" :error-messages='errorMsg' autofocus>          
-      </v-text-field>
-      <v-btn
-       :disabled='!name' @click='createLobby()' :loading="isCreatingLobby">
-        Create Lobby
-      </v-btn>
-      <v-btn :disabled='!name || isCreatingLobby' @click='showLobbyInput = true'>
-        Join Lobby
-      </v-btn>
-  </template>
-   <template v-else>
-    <v-text-field ref="lobbyTextField"  @input="lobby = lobby.toUpperCase()" label="Lobby" :error-messages='errorMsg' v-model="lobby" @keyup.native.enter="joinLobby()"></v-text-field>
-    <v-btn :disabled='!lobby' @click='joinLobby()' :loading="isJoiningLobby">
-      Join Lobby
-    </v-btn>
-    <v-btn @click='showLobbyInput = false' :disabled='isJoiningLobby'>
-      Cancel
-    </v-btn>
-   </template>
-  <div style='padding-top: 30px'></div>
-  <StatsDisplay :stats='avalon.user.stats' :globalStats='avalon.globalStats'></StatsDisplay>
-  </v-layout>
+  <v-container
+    justify-center
+    class="cyan lighten-5"
+  >
+    <v-layout
+      align-center
+      justify-center
+      column
+      fill-height
+    >
+      <template v-if="!showLobbyInput">
+        <v-text-field
+          ref="nameTextField"
+          v-model="name"
+          label="Your Name"
+          :error-messages="errorMsg"
+          autofocus
+          @input="name = name.toUpperCase()"
+        />
+        <v-btn
+          :disabled="!name"
+          :loading="isCreatingLobby"
+          @click="createLobby()"
+        >
+          Create Lobby
+        </v-btn>
+        <v-btn
+          :disabled="!name || isCreatingLobby"
+          @click="showLobbyInput = true"
+        >
+          Join Lobby
+        </v-btn>
+      </template>
+      <template v-else>
+        <v-text-field
+          ref="lobbyTextField"
+          v-model="lobby"
+          label="Lobby"
+          :error-messages="errorMsg"
+          @input="lobby = lobby.toUpperCase()"
+          @keyup.native.enter="joinLobby()"
+        />
+        <v-btn
+          :disabled="!lobby"
+          :loading="isJoiningLobby"
+          @click="joinLobby()"
+        >
+          Join Lobby
+        </v-btn>
+        <v-btn
+          :disabled="isJoiningLobby"
+          @click="showLobbyInput = false"
+        >
+          Cancel
+        </v-btn>
+      </template>
+      <div style="padding-top: 30px" />
+      <StatsDisplay
+        :stats="avalon.user.stats"
+        :global-stats="avalon.globalStats"
+      />
+    </v-layout>
   </v-container>
 </template>
 
@@ -35,6 +71,9 @@ export default {
   name: 'Login',
   components: {
     StatsDisplay
+  },
+  props: {
+    avalon: Object
   },
   data() {
     return {
@@ -47,8 +86,22 @@ export default {
       isCreatingLobby: false
     };
   },
-  props: {
-    avalon: Object
+  watch: {
+    showLobbyInput: function() {
+      const vm = this;
+      let textField = 'lobbyTextField';
+      if (!this.showLobbyInput) {
+        textField = 'nameTextField';
+      }
+      this.$nextTick(() => {
+        vm.$refs[textField].$el.getElementsByTagName('input')[0].focus();
+        vm.setInputWidth(textField);
+      });
+    }
+  },
+  mounted: function() {
+    this.setInputWidth('nameTextField');
+    document.title = 'Avalon - ' + (this.name ? this.name : this.avalon.user.email);
   },
   methods: {
     genericLogin(loadingValue, loginPromise) {
@@ -77,23 +130,6 @@ export default {
     setInputWidth(field) {
       const size = 20;
       this.$refs[field].$el.getElementsByTagName('input')[0].setAttribute('size', size);
-    }
-  },
-  mounted: function() {
-    this.setInputWidth('nameTextField');
-    document.title = 'Avalon - ' + (this.name ? this.name : this.avalon.user.email);
-  },
-  watch: {
-    showLobbyInput: function() {
-      const vm = this;
-      let textField = 'lobbyTextField';
-      if (!this.showLobbyInput) {
-        textField = 'nameTextField';
-      }
-      this.$nextTick(() => {
-        vm.$refs[textField].$el.getElementsByTagName('input')[0].focus();
-        vm.setInputWidth(textField);
-      });
     }
   }
 }

@@ -1,19 +1,19 @@
 <template>
-  <v-toolbar class='blue darken-1'>
+  <v-toolbar class="blue darken-1">
     <template v-if="avalon.lobby && avalon.lobby.name && avalon.user && avalon.user.name">
-    <v-icon left>
-      room
-    </v-icon>
-     <span class="font-weight-bold cyan--text text--lighten-5">{{ avalon.lobby.name }}</span>
-    <v-spacer></v-spacer>
-    <ViewRoleButton :avalon='avalon'></ViewRoleButton>
-    <v-spacer></v-spacer>
-    <ToolbarQuitButton :avalon='avalon'></ToolbarQuitButton>
+      <v-icon left>
+        room
+      </v-icon>
+      <span class="font-weight-bold cyan--text text--lighten-5">{{ avalon.lobby.name }}</span>
+      <v-spacer />
+      <ViewRoleButton :avalon="avalon" />
+      <v-spacer />
+      <ToolbarQuitButton :avalon="avalon" />
     </template>
     <template v-else>
       <span>{{ avalon.user.email }}</span>
-      <v-spacer></v-spacer>
-      <LogoutButton :avalon='avalon' />
+      <v-spacer />
+      <LogoutButton :avalon="avalon" />
     </template>
   </v-toolbar>
 </template>

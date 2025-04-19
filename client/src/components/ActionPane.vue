@@ -1,10 +1,24 @@
 <template>
-    <div>
-    <TeamProposalAction v-if='teamProposal' :avalon='avalon' :playerList='selectedPlayers'></TeamProposalAction>
-    <TeamVoteAction v-if='teamVote' :avalon='avalon'></TeamVoteAction>
-    <MissionAction v-if='missionAction' :avalon='avalon'></MissionAction>
-    <AssassinationAction v-if='assassinationPhase' :playerList='selectedPlayers' :avalon='avalon'></AssassinationAction>
-    </div>
+  <div>
+    <TeamProposalAction
+      v-if="teamProposal"
+      :avalon="avalon"
+      :player-list="selectedPlayers"
+    />
+    <TeamVoteAction
+      v-if="teamVote"
+      :avalon="avalon"
+    />
+    <MissionAction
+      v-if="missionAction"
+      :avalon="avalon"
+    />
+    <AssassinationAction
+      v-if="assassinationPhase"
+      :player-list="selectedPlayers"
+      :avalon="avalon"
+    />
+  </div>
 </template>
 
 <script>

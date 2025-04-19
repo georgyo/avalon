@@ -1,24 +1,37 @@
 <template>
   <v-card class="blue-grey lighten-4">
     <v-card-title class="light-blue lighten-4">
-      Team Proposal ({{ this.avalon.game.currentProposalIdx + 1}}/5)
+      Team Proposal ({{ avalon.game.currentProposalIdx + 1 }}/5)
     </v-card-title>
     <v-card-text>
-      <v-layout align-center justify-center column fill-height>
-     <div v-if='avalon.game.currentProposer == avalon.user.name'>
-        <v-flex xs12>
-        <div class="text-center">Propose a team of {{ this.avalon.game.currentMission.teamSize }}</div>
-        </v-flex>
-        <v-flex xs12>
-      <v-btn
-        v-bind:disabled='!isValidSelection'
-        v-bind:loading='isProposing'
-        v-on:click='proposeTeam()'>Propose Team</v-btn>
-        </v-flex>
-     </div>
-     <div v-else class="text-center">
-       Waiting for {{ avalon.game.currentProposer }} to propose a team of {{ this.avalon.game.currentMission.teamSize }}
-     </div>
+      <v-layout
+        align-center
+        justify-center
+        column
+        fill-height
+      >
+        <div v-if="avalon.game.currentProposer == avalon.user.name">
+          <v-flex xs12>
+            <div class="text-center">
+              Propose a team of {{ avalon.game.currentMission.teamSize }}
+            </div>
+          </v-flex>
+          <v-flex xs12>
+            <v-btn
+              :disabled="!isValidSelection"
+              :loading="isProposing"
+              @click="proposeTeam()"
+            >
+              Propose Team
+            </v-btn>
+          </v-flex>
+        </div>
+        <div
+          v-else
+          class="text-center"
+        >
+          Waiting for {{ avalon.game.currentProposer }} to propose a team of {{ avalon.game.currentMission.teamSize }}
+        </div>
       </v-layout>
     </v-card-text>
   </v-card>

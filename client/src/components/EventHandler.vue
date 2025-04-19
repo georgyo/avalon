@@ -1,8 +1,8 @@
 <template>
   <div>
-      <StartGameEventHandler :avalon='avalon'></StartGameEventHandler>
-      <MissionResultEventHandler :avalon='avalon'></MissionResultEventHandler>
-      <EndGameEventHandler :avalon='avalon'></EndGameEventHandler>
+    <StartGameEventHandler :avalon="avalon" />
+    <MissionResultEventHandler :avalon="avalon" />
+    <EndGameEventHandler :avalon="avalon" />
   </div>
 </template>
 
@@ -14,12 +14,12 @@ import MissionResultEventHandler from './MissionResultEventHandler.vue'
 
 export default {
   name: 'EventHandler',
-  props: [ 'avalon' ],
   components: {
       StartGameEventHandler,
       EndGameEventHandler,
       MissionResultEventHandler,
   },
+  props: [ 'avalon' ],
   mounted() {
     EventBus.on('LOBBY_CONNECTED', () => {
       document.title = `Avalon - ${this.avalon.lobby.name} - ${this.avalon.user.name}`;

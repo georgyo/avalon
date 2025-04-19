@@ -2,25 +2,39 @@
   <v-card class="blue-grey lighten-4">
     <v-card-title class="light-blue lighten-4">
       Mission in Progress
-     </v-card-title>
-     <v-card-text>
-      <div v-if='needsToVote'>
-        <v-layout align-center justify-space-between fill-height>
-        <v-btn @click='missionVote(true)'>
-            <v-icon left color="green">fas fa-check-circle</v-icon>
-                SUCCESS
-            </v-btn>
-        <v-btn @click='missionVote(false)'>
-          <v-icon left color="red">fas fa-times-circle</v-icon>
+    </v-card-title>
+    <v-card-text>
+      <div v-if="needsToVote">
+        <v-layout
+          align-center
+          justify-space-between
+          fill-height
+        >
+          <v-btn @click="missionVote(true)">
+            <v-icon
+              left
+              color="green"
+            >
+              fas fa-check-circle
+            </v-icon>
+            SUCCESS
+          </v-btn>
+          <v-btn @click="missionVote(false)">
+            <v-icon
+              left
+              color="red"
+            >
+              fas fa-times-circle
+            </v-icon>
             FAIL
-        </v-btn>
+          </v-btn>
         </v-layout>
-       </div>
-       <div v-else>
-           <!-- need to make a more dramatic reveal at the end! -->
-           {{ waitingForText }}
-       </div>
-     </v-card-text>
+      </div>
+      <div v-else>
+        <!-- need to make a more dramatic reveal at the end! -->
+        {{ waitingForText }}
+      </div>
+    </v-card-text>
   </v-card>
 </template>
 
@@ -35,13 +49,6 @@ export default {
           needsToVote: this.avalon.game.currentProposal.team.includes(this.avalon.user.name)
       };
   },
-  methods: {
-      missionVote(vote) {
-        // no loading state, we want to hide the results as fast as possible
-        this.needsToVote = false;
-        this.avalon.doMission(vote);
-      }
-  },
   computed: {
     stillWaitingFor() {
       return _.difference(this.avalon.game.currentProposal.team,
@@ -55,6 +62,13 @@ export default {
         return 'Waiting for results...';
       }
     }
+  },
+  methods: {
+      missionVote(vote) {
+        // no loading state, we want to hide the results as fast as possible
+        this.needsToVote = false;
+        this.avalon.doMission(vote);
+      }
   }
 }
 </script>

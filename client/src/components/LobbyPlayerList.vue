@@ -1,15 +1,22 @@
 <template>
   <div>
-    <v-dialog v-model="kickPlayerDialog" max-width='450'>
+    <v-dialog
+      v-model="kickPlayerDialog"
+      max-width="450"
+    >
       <v-card class="cyan lighten-4">
         <v-card-title class="cyan lighten-2">
-          <h3>Kick {{playerToKick}}?</h3>
+          <h3>Kick {{ playerToKick }}?</h3>
         </v-card-title>
         <v-card-text>Do you wish to kick {{ playerToKick }} from the lobby?</v-card-text>
-        <v-divider></v-divider>
+        <v-divider />
         <v-card-actions>
-          <v-btn @click="kickPlayer(playerToKick)">Kick {{ playerToKick }}</v-btn>
-          <v-btn @click="kickPlayerDialog = false">Cancel</v-btn>
+          <v-btn @click="kickPlayer(playerToKick)">
+            Kick {{ playerToKick }}
+          </v-btn>
+          <v-btn @click="kickPlayerDialog = false">
+            Cancel
+          </v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -18,24 +25,57 @@
       <draggable
         v-model="playerList"
         handle=".handle"
-        :disabled=!canDrag
-        @end="onReorderList()">
-        <v-list-item v-for="player in playerList" :key="player">
-          <v-icon left v-if="canDrag" class="handle">fas fa-bars</v-icon>
-          <v-icon left v-if="player == avalon.lobby.admin.name">star</v-icon>
-          <v-icon left v-else-if="player == avalon.user.name">perm_identity</v-icon>
-          <v-icon left v-else>person</v-icon>
-          <v-flex xs10>{{player}}</v-flex>
+        :disabled="!canDrag"
+        @end="onReorderList()"
+      >
+        <v-list-item
+          v-for="player in playerList"
+          :key="player"
+        >
+          <v-icon
+            v-if="canDrag"
+            left
+            class="handle"
+          >
+            fas fa-bars
+          </v-icon>
+          <v-icon
+            v-if="player == avalon.lobby.admin.name"
+            left
+          >
+            star
+          </v-icon>
+          <v-icon
+            v-else-if="player == avalon.user.name"
+            left
+          >
+            perm_identity
+          </v-icon>
+          <v-icon
+            v-else
+            left
+          >
+            person
+          </v-icon>
+          <v-flex xs10>
+            {{ player }}
+          </v-flex>
           <v-flex xs1>
-            <v-btn icon right text
-              v-if="(avalon.isAdmin && player != avalon.user.name && !avalon.isGameInProgress)"
-              :loading="playersBeingKicked.includes(player)"
-              @click.stop="kickPlayerConfirm(player)"
-              slot="activator"
-              color="black"
-              dark>
-              <v-icon>clear</v-icon>
-            </v-btn>
+            <template #activator>
+              <v-btn
+                v-if="(avalon.isAdmin && player != avalon.user.name && !avalon.isGameInProgress)"
+                icon
+                right
+                text
+                :loading="playersBeingKicked.includes(player)"
+                color="black"
+              
+                dark
+                @click.stop="kickPlayerConfirm(player)"
+              >
+                <v-icon>clear</v-icon>
+              </v-btn>
+            </template>
           </v-flex>
         </v-list-item>
       </draggable>
@@ -52,11 +92,6 @@ export default {
     draggable
   },
   props: ["avalon"],
-  computed: {
-    canDrag() {
-      return this.avalon.isAdmin && !this.avalon.isGameInProgress;
-    }
-  },
   data() {
     return {
       playerList: this.avalon.config.playerList,
@@ -64,6 +99,16 @@ export default {
       playerToKick: "",
       playersBeingKicked: []
     };
+  },
+  computed: {
+    canDrag() {
+      return this.avalon.isAdmin && !this.avalon.isGameInProgress;
+    }
+  },
+  watch: {
+    "avalon.config.playerList": function(list) {
+      this.playerList = list;
+    }
   },
   methods: {
     onReorderList() {
@@ -81,11 +126,6 @@ export default {
             this.playersBeingKicked.indexOf(player)
           )
         );
-    }
-  },
-  watch: {
-    "avalon.config.playerList": function(list) {
-      this.playerList = list;
     }
   }
 };

@@ -1,34 +1,57 @@
 <template>
-     <v-dialog v-model="endGameDialog" fullscreen persistent>
-      <v-card v-if='endGameDialog && avalon.game && avalon.game.outcome' class="cyan lighten-4">
-        <v-card-title class="cyan lighten-2 endGameTitle">
-            <v-layout align-center justify-center fill-height>
-                <span class='text-h4 font-weight-bold'>{{title}}</span>
-            </v-layout>
-        </v-card-title>
-        <v-card-text>
-            <v-layout align-center column justify-center>
-            <div class='text-h5 font-weight-bold'> {{ avalon.game.outcome.message }}</div>
-            <p v-if='avalon.game.outcome.assassinated'>
-                {{ avalon.game.outcome.assassinated}} was assassinated by
-                {{ avalon.game.outcome.roles.find(r => r.assassin ).name }}
-            </p>
-            <v-container style='overflow-x: auto; width: 100%;'>
-              <MissionSummaryTable
-               :players='avalon.game.players'
-               :missions='missions'
-               :roles='roleAssignments'
-               :missionVotes='avalon.game.outcome.votes' />
-            </v-container>
-            <Achievements :avalon='avalon' />
-            </v-layout>
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer></v-spacer>
-          <v-btn light @click="endGameDialogClosed()">Close</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+  <v-dialog
+    v-model="endGameDialog"
+    fullscreen
+    persistent
+  >
+    <v-card
+      v-if="endGameDialog && avalon.game && avalon.game.outcome"
+      class="cyan lighten-4"
+    >
+      <v-card-title class="cyan lighten-2 endGameTitle">
+        <v-layout
+          align-center
+          justify-center
+          fill-height
+        >
+          <span class="text-h4 font-weight-bold">{{ title }}</span>
+        </v-layout>
+      </v-card-title>
+      <v-card-text>
+        <v-layout
+          align-center
+          column
+          justify-center
+        >
+          <div class="text-h5 font-weight-bold">
+            {{ avalon.game.outcome.message }}
+          </div>
+          <p v-if="avalon.game.outcome.assassinated">
+            {{ avalon.game.outcome.assassinated }} was assassinated by
+            {{ avalon.game.outcome.roles.find(r => r.assassin ).name }}
+          </p>
+          <v-container style="overflow-x: auto; width: 100%;">
+            <MissionSummaryTable
+              :players="avalon.game.players"
+              :missions="missions"
+              :roles="roleAssignments"
+              :mission-votes="avalon.game.outcome.votes"
+            />
+          </v-container>
+          <Achievements :avalon="avalon" />
+        </v-layout>
+      </v-card-text>
+      <v-card-actions>
+        <v-spacer />
+        <v-btn
+          light
+          @click="endGameDialogClosed()"
+        >
+          Close
+        </v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
 </template>
 
 <script>
@@ -38,11 +61,11 @@ import MissionSummaryTable from './MissionSummaryTable.vue'
 
 export default {
   name: 'EndGameEventHandler',
-  props: [ 'avalon' ],
   components: {
       Achievements,
       MissionSummaryTable
   },
+  props: [ 'avalon' ],
   data() {
       return {
           endGameDialog: false,
@@ -67,11 +90,6 @@ export default {
           return this.avalon.game.missions.filter(m => m.proposals.filter(p => p.state != 'PENDING').length > 0);
       }
   },
-  methods: {
-      endGameDialogClosed() {
-          this.endGameDialog = false;
-      }
-  },
   mounted() {
       EventBus.on('GAME_ENDED', () => {
           this.endGameDialog = true;
@@ -80,6 +98,11 @@ export default {
           // time to start new game!
           this.endGameDialog = false;
       });
+  },
+  methods: {
+      endGameDialogClosed() {
+          this.endGameDialog = false;
+      }
   }
 }
 </script>
