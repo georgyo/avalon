@@ -52,7 +52,7 @@ let
       rm $out/.gitignore
     '';
     outputHashMode = "recursive";
-    outputHash = "sha512-NCVOVRp0kq67PvDdgsBNhqsFKw3U2HVFMZBNnLd5iLRtpNTxuwULb+8YVejP3ja3eloDqrpZib171vWz+Nk9Ng==";
+    outputHash = "sha512-ltAUikUx+T+wlijba0gLlLmDcKranJvOTwkr9YOr2ipn/5Hsmq/CNLmT0LkL6c73fNWUSxuU3gA/m4OLBkFzEw==";
   };
 
   # Main project derivation.
@@ -118,7 +118,6 @@ let
         cp --reflink=auto --recursive .yarn "$out/libexec/$name"
 
         # Copy the Yarn linker output into the package.
-        cp --reflink=auto .pnp.* "$out/libexec/$name"
       fi
 
       cd "$out/libexec/$name"

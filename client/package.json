@@ -3,9 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "serve": "vue-cli-service serve",
-    "build": "vue-cli-service build",
-    "lint": "vue-cli-service lint"
+    "dev": "vite",
+    "serve": "vite",
+    "build": "vite build",
+    "lint": "eslint --ext .js,.vue src"
   },
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "6.6.0",
@@ -17,8 +18,9 @@
     "i": "0.3.7",
     "lodash": "4.17.21",
     "npm": "10.8.2",
+    "rollup": "^4.34.9",
     "seedrandom": "3.0.5",
-    "vue": "2.7.16",
+    "vue": "^2.7.16",
     "vue-toasted": "1.1.28",
     "vuedraggable": "2.24.3",
     "vuetify": "2.7.2"
@@ -28,20 +30,18 @@
     "@babel/eslint-parser": "7.25.1",
     "@fortawesome/fontawesome-free": "6.6.0",
     "@mdi/font": "7.4.47",
-    "@vue/babel-preset-app": "^5.0.8",
-    "@vue/cli-plugin-babel": "5.0.8",
-    "@vue/cli-plugin-eslint": "5.0.8",
-    "@vue/cli-service": "5.0.8",
-    "@vue/compiler-sfc": "3.4.38",
+    "@vitejs/plugin-vue2": "^2.3.3",
     "eslint": "8.57.0",
     "eslint-plugin-promise": "6.6.0",
     "eslint-plugin-vue": "^9.17.0",
     "eslint-plugin-vuetify": "2.4.0",
     "postcss": "^8.4.41",
+    "rollup": "^4.34.9",
+    "vite": "^6.3.2",
     "volar-service-css": "^0.0.61",
     "volar-service-html": "^0.0.61",
     "volar-service-json": "^0.0.61",
     "volar-service-prettier": "^0.0.61",
-    "vue-template-compiler": "2.7.16"
+    "vue-template-compiler": "^2.7.16"
   }
 }
