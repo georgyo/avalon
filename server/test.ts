@@ -1,4 +1,3 @@
-// @ts-nocheck
 import firebaseAdmin from 'firebase-admin';
 const serviceAccount: any = require('./firebaseKey');
 import _ from 'lodash';
@@ -107,8 +106,8 @@ function missionVote(game: any): Promise<any[]> {
 
 function assassinate(game: any): Promise<any> {
   const target: string = pickPlayersAtRandom(game, 1)[0];
-  const assassin = Object.values(roles).find((r: any) => r.assassin);
-  const name: string = assassin.name;
+  const assassin: any = Object.values(roles).find((r: any) => r.assassin);
+  const name: any = assassin.name;
   return avalon.assassinate({ lobby, name, target }, name);
 }
 

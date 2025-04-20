@@ -1,5 +1,15 @@
 
-export const ROLES = [
+interface Role {
+    name: string;
+    team: "good" | "evil";
+    sees: string[];
+    description: string;
+    selected: bool;
+    selectable: true;
+}
+
+
+export const ROLES: Role[] = [
     { name: 'MERLIN',
       team: 'good',
       sees: ['MORGANA', 'OBERON', 'ASSASSIN', 'EVIL MINION'],

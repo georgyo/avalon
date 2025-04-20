@@ -7,7 +7,7 @@ module.exports = defineConfig({
   server: {
     proxy: {
       // Proxy all requests to the backend
-      '/': {
+      '/api/': {
         target: 'https://avalon.onl',
         changeOrigin: true,
         secure: false,

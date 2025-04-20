@@ -49,12 +49,12 @@ router.post('/login', (req: Request, res: Response) => {
 
 router.post('/createLobby', (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
-  return avalon.createLobby(req.body, authReq.uid).then(r => res.json(r));
+return avalon.createLobby(req.body, authReq.uid).then((r: any) => res.json(r));
 });
 
 router.post('/joinLobby', (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
-  return avalon.joinLobby(req.body, authReq.uid).then(r => res.json(r));
+return avalon.joinLobby(req.body, authReq.uid).then((r: any) => res.json(r));
 });
 
 router.post('/leaveLobby', (req: Request, res: Response) => {

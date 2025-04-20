@@ -1,5 +1,3 @@
-// @ts-nocheck
-/* eslint-disable */
 import firebaseAdmin from 'firebase-admin';
 import serviceAccount from './firebaseKey';
 import fs from 'fs';

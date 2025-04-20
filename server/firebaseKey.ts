@@ -1,5 +1,6 @@
-const { readEnv } = require('read-env');
-const firebaseKeyJson = process.env.FIREBASE_KEY_FILE || "./firebase-key.json"
-const serviceAccount = readEnv('FIREBASE_KEY')[''] || require(firebaseKeyJson);
+import { readEnv } from 'read-env';
 
-module.exports = serviceAccount;
+const firebaseKeyJson: string = process.env.FIREBASE_KEY_FILE || './firebase-key.json';
+const serviceAccount: any = readEnv('FIREBASE_KEY')[''] || require(firebaseKeyJson);
+
+export default serviceAccount;
