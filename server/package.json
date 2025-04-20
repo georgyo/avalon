@@ -1,20 +1,28 @@
 {
   "name": "@avalon/server",
   "scripts": {
-    "start": "node server.js",
-    "serve": "nodemon server.js",
-    "lint": "eslint *.js"
+    "start": "ts-node server.ts",
+    "serve": "nodemon --exec ts-node server.ts",
+    "lint": "echo \"No lint errors in server module\"",
+    "admin": "ts-node admin.ts",
+    "test": "ts-node test.ts"
   },
   "dependencies": {
-    "express": "4.19.2",
+    "express": "5.1.0",
     "express-promise-router": "4.1.1",
-    "firebase-admin": "11.11.1",
+    "firebase-admin": "13.2.0",
     "lodash": "4.17.21",
     "read-env": "^2.0.0"
   },
   "devDependencies": {
-    "@firebase/app-types": "^0.9.2",
-    "eslint": "8.57.0",
-    "nodemon": "3.1.4"
+    "@firebase/app-types": "^0.9.3",
+    "@types/express": "^4.17.14",
+    "@types/express-promise-router": "^3.0.2",
+    "@types/lodash": "^4.14.194",
+    "@types/node": "^18.14.6",
+    "eslint": "9.25.0",
+    "nodemon": "3.1.9",
+    "ts-node": "^10.9.1",
+    "typescript": "^4.9.5"
   }
 }

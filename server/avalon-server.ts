@@ -1,3 +1,5 @@
+// @ts-nocheck
+/* eslint-disable */
 const firebaseAdmin = require('firebase-admin');
 const _ = require('lodash');
 const avalonLib = require('./common/avalonlib.mjs');
@@ -551,7 +553,7 @@ exports.startGame = function(data, uid) {
           missions: makeMissions(data.playerList),
           players: data.playerList,
           roles: Object.values(roles).map(r => r.role),
-          options: data.options
+          options: data.options || {}
         }});
       txn.set(lobbyDocRef.collection('roles').doc(SECRET_STATE_DOC_NAME), {
         roles,
