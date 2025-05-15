@@ -408,47 +408,7 @@ function assignRoles(playerList, roles = [], oldRoles) {
       }), (p) => p.name);
   };
 
-  // how many special roles are assigned to the same people as last time?
-  const measureSameness = function(newRoles, oldRoles) {
-    if (!oldRoles) return 0;
-
-    let sameness = 0;
-    
-    for (const player in newRoles) {
-      const newRole = newRoles[player];
-      const oldRole = oldRoles.find(r => r.name == player);
-      if (!oldRole) continue;
-
-      if ((newRole.role == oldRole.role) && !avalonLib.ROLES.find(r => r.name == newRole.role).filler) {
-        sameness++;
-      }
-    }
-    return sameness;
-  };
-
-  const weightedRandom = function(weights) {
-    const totalWeight = weights.reduce((a,b) => a + b);
-    let random = Math.random() * totalWeight;
-    for (let i = 0; i < weights.length; i++) {
-      random -= weights[i];
-      if (random <= 0) {
-        return i;
-      }
-    }
-    return weights.length - 1;
-  }
-
-  const candidateAssignments = [];
-  const sameness = [];
-  do {
-    const rolesAssignment = assignRolesImpl(playerList, roles);
-    candidateAssignments.push(rolesAssignment);
-    sameness.push(measureSameness(rolesAssignment, oldRoles));
-    // keep generating candidates until we either have 5 or we generated one with no overlap to previous assignment
-  } while ((sameness.length < 5) && (sameness[sameness.length - 1] > 0));
-
-  const weights = sameness.map(s => 1 / (1 + s));
-  return candidateAssignments[weightedRandom(weights)];
+  return assignRolesImpl(playerList, roles);
 }
 
 function endGameTxn(txn, lobbyDoc, secretDoc, state, message,
