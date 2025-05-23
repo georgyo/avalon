@@ -29,7 +29,7 @@
     "@babel/eslint-parser": "7.25.8",
     "@fortawesome/fontawesome-free": "6.6.0",
     "@mdi/font": "7.4.47",
-    "@vitejs/plugin-vue": "^1.10.2",
+    "@vitejs/plugin-vue": "^5.0.0",
     "@vue/babel-preset-app": "^5.0.8",
     "@vue/compiler-sfc": "3.5.12",
     "eslint": "9.17.0",
