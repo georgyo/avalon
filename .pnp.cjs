@@ -3586,11 +3586,10 @@ const RAW_RUNTIME_STATE =
       }]\
     ]],\
     ["@babel/runtime", [\
-      ["npm:7.24.0", {\
-        "packageLocation": "./.yarn/cache/@babel-runtime-npm-7.24.0-7eb1dd11a2-8d32c7e116.zip/node_modules/@babel/runtime/",\
+      ["npm:7.27.1", {\
+        "packageLocation": "./.yarn/cache/@babel-runtime-npm-7.27.1-c9b375440e-34cefcbf78.zip/node_modules/@babel/runtime/",\
         "packageDependencies": [\
-          ["@babel/runtime", "npm:7.24.0"],\
-          ["regenerator-runtime", "npm:0.14.1"]\
+          ["@babel/runtime", "npm:7.27.1"]\
         ],\
         "linkType": "HARD"\
       }]\
@@ -6843,7 +6842,7 @@ const RAW_RUNTIME_STATE =
           ["@babel/plugin-syntax-jsx", "virtual:8933c9ae24aaf8fec8cedcd4e583035bab879934596710197fb98efe78cb5b4cd382a2a94511ad61fb0979e927c9ba2f9f3ffed0e6e40fa514ec95c121192b23#npm:7.23.3"],\
           ["@babel/plugin-transform-runtime", "virtual:8933c9ae24aaf8fec8cedcd4e583035bab879934596710197fb98efe78cb5b4cd382a2a94511ad61fb0979e927c9ba2f9f3ffed0e6e40fa514ec95c121192b23#npm:7.24.0"],\
           ["@babel/preset-env", "virtual:8933c9ae24aaf8fec8cedcd4e583035bab879934596710197fb98efe78cb5b4cd382a2a94511ad61fb0979e927c9ba2f9f3ffed0e6e40fa514ec95c121192b23#npm:7.24.0"],\
-          ["@babel/runtime", "npm:7.24.0"],\
+          ["@babel/runtime", "npm:7.27.1"],\
           ["@types/babel__core", null],\
           ["@types/core-js", null],\
           ["@types/vue", null],\
@@ -16801,21 +16800,12 @@ const RAW_RUNTIME_STATE =
         "linkType": "HARD"\
       }]\
     ]],\
-    ["regenerator-runtime", [\
-      ["npm:0.14.1", {\
-        "packageLocation": "./.yarn/cache/regenerator-runtime-npm-0.14.1-a6c97c609a-5db3161abb.zip/node_modules/regenerator-runtime/",\
-        "packageDependencies": [\
-          ["regenerator-runtime", "npm:0.14.1"]\
-        ],\
-        "linkType": "HARD"\
-      }]\
-    ]],\
     ["regenerator-transform", [\
       ["npm:0.15.2", {\
         "packageLocation": "./.yarn/cache/regenerator-transform-npm-0.15.2-109e57a69f-c4fdcb46d1.zip/node_modules/regenerator-transform/",\
         "packageDependencies": [\
           ["regenerator-transform", "npm:0.15.2"],\
-          ["@babel/runtime", "npm:7.24.0"]\
+          ["@babel/runtime", "npm:7.27.1"]\
         ],\
         "linkType": "HARD"\
       }]\
