@@ -52,7 +52,7 @@ let
       rm $out/.gitignore
     '';
     outputHashMode = "recursive";
-    outputHash = "sha512-l7PFgH+ljwKuAbAYAGSlHRjc7SpeYyGuwMTL0/uDQZ12rcF1aLhuJI+pX3vWI5IhdYifC3MBiQsP7LYkkQepAg==";
+    outputHash = "sha512-lOVY0Zmf+eybmiD8Di/8qyrkyqrMD9QZ31PQu6+/i5jz4GFNggKPli6YeGBfD8um9rprRPoE09aOut05Fy6UiQ==";
   };
 
   # Main project derivation.
