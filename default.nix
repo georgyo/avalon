@@ -27,6 +27,16 @@ project.overrideAttrs (oldAttrs: {
 
   name = "avalon";
 
+  nativeBuildInputs = (oldAttrs.nativeBuildInputs or []) ++ [
+    pkgs.python3
+    pkgs.pkg-config
+    pkgs.nodePackages.patch-package
+  ];
+
+  buildInputs = (oldAttrs.buildInputs or []) ++ [
+    pkgs.re2
+  ];
+
   buildPhase = ''
     yarn build
     (cd server && ln -s ../client/dist .)
