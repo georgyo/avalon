@@ -9,7 +9,8 @@
         {{ avalon.user.name }}
       </v-btn>
     </template>
-    <v-card v-if='!avalon.isGameInProgress' class="bg-cyan-lighten-4">
+    <v-card class="bg-cyan-lighten-4">
+      <template v-if='!avalon.isGameInProgress'>
       <v-card-title>
         <div class="d-flex flex-column align-center justify-center w-100">
           <div class="font-weight-bold">When the game starts, you will see your role here.</div>
@@ -21,8 +22,8 @@
           <StatsDisplay :stats='avalon.user.stats' :globalStats='avalon.globalStats' />
         </div>
       </v-card-text>
-    </v-card>
-    <v-card v-else class="bg-cyan-lighten-4">
+      </template>
+      <template v-else>
       <v-card-title class="bg-cyan-lighten-2">
           <v-icon start v-if='avalon.lobby.role.role.team == "good"'>fab fa-old-republic</v-icon>
           <v-icon start v-else color="red">fas fa-empire</v-icon>
@@ -43,6 +44,7 @@
              You do not see anyone.
            </p>
       </v-card-text>
+      </template>
     </v-card>
   </v-bottom-sheet>
 </template>

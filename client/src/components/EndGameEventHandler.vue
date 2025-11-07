@@ -1,6 +1,7 @@
 <template>
      <v-dialog v-model="endGameDialog" fullscreen persistent>
-      <v-card v-if='endGameDialog && avalon.game && avalon.game.outcome' class="bg-cyan-lighten-4">
+      <v-card class="bg-cyan-lighten-4">
+        <template v-if='avalon.game && avalon.game.outcome'>
         <v-card-title class="bg-cyan-lighten-2 endGameTitle">
             <div class="d-flex align-center justify-center fill-height">
                 <span class='text-h4 font-weight-bold'>{{title}}</span>
@@ -27,6 +28,7 @@
           <v-spacer></v-spacer>
           <v-btn @click="endGameDialogClosed()">Close</v-btn>
         </v-card-actions>
+        </template>
       </v-card>
     </v-dialog>
 </template>
