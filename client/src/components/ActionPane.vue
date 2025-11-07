@@ -9,7 +9,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import { useAvalonStore } from '../stores/avalon.js'
+import { useAvalonStore } from '../stores/avalon'
 import TeamProposalAction from './TeamProposalAction.vue'
 import TeamVoteAction from './TeamVoteAction.vue'
 import MissionAction from './MissionAction.vue'

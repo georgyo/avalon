@@ -11,7 +11,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import { useAvalonStore } from '../stores/avalon.js'
+import { useAvalonStore } from '../stores/avalon'
 
 const avalonStore = useAvalonStore()
 const avalon = computed(() => avalonStore.getAvalon())

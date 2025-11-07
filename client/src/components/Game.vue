@@ -12,7 +12,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useAvalonStore } from '@/stores/avalon'
 import Missions from './Missions.vue'
@@ -22,9 +22,9 @@ import ActionPane from './ActionPane.vue'
 const avalonStore = useAvalonStore()
 const avalon = computed(() => avalonStore.getAvalon())
 
-const selectedPlayers = ref([])
+const selectedPlayers = ref<string[]>([])
 
-function updateSelectedPlayers(newList) {
+function updateSelectedPlayers(newList: string[]): void {
   selectedPlayers.value = newList
 }
 </script>

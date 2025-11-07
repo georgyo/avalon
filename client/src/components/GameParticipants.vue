@@ -20,7 +20,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import { useAvalonStore } from '../stores/avalon.js'
+import { useAvalonStore } from '../stores/avalon'
 import GamePlayerList from './GamePlayerList.vue'
 import RoleList from './RoleList.vue'
 

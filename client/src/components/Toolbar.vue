@@ -18,7 +18,7 @@
   </v-app-bar>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue'
 import { useAvalonStore } from '@/stores/avalon'
 import ToolbarQuitButton from './ToolbarQuitButton.vue'

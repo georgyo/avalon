@@ -20,13 +20,12 @@
             </p>
         </div>
       </v-card-title>
-        <v-tabs v-model="tab" center-active align-center fill-height centered grow >
-          <v-tabs-slider></v-tabs-slider>
-          <v-tab key="email">Email</v-tab>
-          <v-tab key="anonymous">Anonymous</v-tab>
+        <v-tabs v-model="tab" align-tabs="center" grow>
+          <v-tab value="email">Email</v-tab>
+          <v-tab value="anonymous">Anonymous</v-tab>
       </v-tabs>
-      <v-tabs-items v-model="tab" continuous center-active align-center fill-height centered >
-        <v-tab-item key="email">
+      <v-window v-model="tab">
+        <v-window-item value="email">
         <template v-if='!emailSubmitted'>
           <v-text-field
            label="Email Address" 
@@ -54,14 +53,14 @@
             Try Again
           </v-btn>
         </template>
-      </v-tab-item>
-    <v-tab-item key="anonymous">
+      </v-window-item>
+    <v-window-item value="anonymous">
       <v-btn
            @click='signInAnonymously()'>
             Login
         </v-btn>
-    </v-tab-item>
-      </v-tabs-items>
+    </v-window-item>
+      </v-window>
 
         </div>
       <div class="d-flex flex-column align-end">
@@ -77,28 +76,28 @@
   </v-card>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useAvalonStore } from '@/stores/avalon'
 
 const avalonStore = useAvalonStore()
 const avalon = computed(() => avalonStore.getAvalon())
 
-const tab = ref(null)
-const emailAddr = ref('')
-const errorMessage = ref('')
-const isSubmittingEmailAddr = ref(false)
-const emailSubmitted = ref(false)
+const tab = ref<string>('email')
+const emailAddr = ref<string>('')
+const errorMessage = ref<string>('')
+const isSubmittingEmailAddr = ref<boolean>(false)
+const emailSubmitted = ref<boolean>(false)
 
 onMounted(() => {
   document.title = 'Avalon (Not Logged In)'
 })
 
-function clearErrorMessage() {
+function clearErrorMessage(): void {
   errorMessage.value = ''
 }
 
-function submitEmailAddress() {
+function submitEmailAddress(): void {
   isSubmittingEmailAddr.value = true
   clearErrorMessage()
   avalon.value.confirmingEmailError = '' // this is not very clean but eh
@@ -106,7 +105,7 @@ function submitEmailAddress() {
     .then(() => {
       emailSubmitted.value = true
     })
-    .catch((err) => {
+    .catch((err: any) => {
       errorMessage.value = err.message
     })
     .finally(() => {
@@ -114,14 +113,14 @@ function submitEmailAddress() {
     })
 }
 
-function signInAnonymously() {
+function signInAnonymously(): void {
   clearErrorMessage()
   avalon.value.signInAnonymously()
     .then()
-    .catch((err) => errorMessage.value = err.message)
+    .catch((err: any) => errorMessage.value = err.message)
 }
 
-function resetForm() {
+function resetForm(): void {
   emailSubmitted.value = false
 }
 </script>

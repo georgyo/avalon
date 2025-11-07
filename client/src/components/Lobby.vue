@@ -105,22 +105,27 @@
   </v-container>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, inject, onMounted, onBeforeUnmount } from 'vue'
+import type { Emitter } from 'mitt'
 import { useAvalonStore } from '@/stores/avalon'
-import avalonLib from '@/../../server/common/avalonlib.cjs'
+import * as avalonLib from '@/lib/avalonlib'
 import LobbyPlayerList from './LobbyPlayerList.vue'
 import RoleList from './RoleList.vue'
 
 const avalonStore = useAvalonStore()
 const avalon = computed(() => avalonStore.getAvalon())
-const eventBus = inject('eventBus')
+const eventBus = inject<Emitter<any>>('eventBus')!
 
-const options = ref({
+interface GameOptions {
+  inGameLog: boolean
+}
+
+const options = ref<GameOptions>({
   inGameLog: false
 })
-const showOptionGameLog = ref(false)
-const startingGame = ref(false)
+const showOptionGameLog = ref<boolean>(false)
+const startingGame = ref<boolean>(false)
 
 const reasonToNotStartGame = computed(() => {
   if (avalon.value.config.playerList.length < 5) {
@@ -148,7 +153,7 @@ const numEvilPlayers = computed(() => {
   return avalonLib.getNumEvilForGameSize(avalon.value.config.playerList.length)
 })
 
-function startGame() {
+function startGame(): void {
   startingGame.value = true
   avalon.value.startGame(options.value)
 }

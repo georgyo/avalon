@@ -6,15 +6,16 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { onMounted, onBeforeUnmount, inject } from 'vue'
+import type { Emitter } from 'mitt'
 import { useAvalonStore } from '../stores/avalon'
 import { useToast } from '../composables/useToast'
 import StartGameEventHandler from './StartGameEventHandler.vue'
 import EndGameEventHandler from './EndGameEventHandler.vue'
 import MissionResultEventHandler from './MissionResultEventHandler.vue'
 
-const eventBus = inject('eventBus')
+const eventBus = inject<Emitter<any>>('eventBus')!
 const avalonStore = useAvalonStore()
 const toast = useToast()
 

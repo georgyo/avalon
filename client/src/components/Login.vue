@@ -28,41 +28,42 @@
   </v-container>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
+import type { Ref } from 'vue'
 import { useAvalonStore } from '@/stores/avalon'
 import StatsDisplay from './StatsDisplay.vue'
 
 const avalonStore = useAvalonStore()
 const avalon = computed(() => avalonStore.getAvalon())
 
-const nameTextField = ref(null)
-const lobbyTextField = ref(null)
+const nameTextField = ref<any>(null)
+const lobbyTextField = ref<any>(null)
 
-const name = ref(avalon.value.user ? avalon.value.user.name : '')
-const lobby = ref('')
-const alertTimeoutTimer = ref(null)
-const errorMsg = ref('')
-const showLobbyInput = ref(false)
-const isJoiningLobby = ref(false)
-const isCreatingLobby = ref(false)
+const name = ref<string>(avalon.value.user ? avalon.value.user.name : '')
+const lobby = ref<string>('')
+const alertTimeoutTimer = ref<NodeJS.Timeout | null>(null)
+const errorMsg = ref<string>('')
+const showLobbyInput = ref<boolean>(false)
+const isJoiningLobby = ref<boolean>(false)
+const isCreatingLobby = ref<boolean>(false)
 
-function genericLogin(loadingValue, loginPromise) {
+function genericLogin(loadingValue: Ref<boolean>, loginPromise: Promise<any>): void {
   loadingValue.value = true
   loginPromise.catch(
     (err) => showErrorMessage(err)).finally(
       () => loadingValue.value = false)
 }
 
-function createLobby() {
+function createLobby(): void {
   genericLogin(isCreatingLobby, avalon.value.createLobby(name.value))
 }
 
-function joinLobby() {
+function joinLobby(): void {
   genericLogin(isJoiningLobby, avalon.value.joinLobby(name.value, lobby.value))
 }
 
-function showErrorMessage(errMsg) {
+function showErrorMessage(errMsg: any): void {
   if (alertTimeoutTimer.value != null) {
     clearTimeout(alertTimeoutTimer.value)
   }
@@ -73,7 +74,7 @@ function showErrorMessage(errMsg) {
   }, 5000)
 }
 
-function setInputWidth(field) {
+function setInputWidth(field: string): void {
   const size = 20
   const fieldRef = field === 'nameTextField' ? nameTextField : lobbyTextField
   fieldRef.value.$el.getElementsByTagName('input')[0].setAttribute('size', size)
@@ -85,7 +86,7 @@ onMounted(() => {
 })
 
 watch(showLobbyInput, () => {
-  let textField = 'lobbyTextField'
+  let textField: string = 'lobbyTextField'
   if (!showLobbyInput.value) {
     textField = 'nameTextField'
   }

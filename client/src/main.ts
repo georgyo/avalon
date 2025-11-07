@@ -1,8 +1,9 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
+import type { Emitter } from 'mitt'
 import App from './App.vue'
 import vuetify from './plugins/vuetify'
-import Toast from 'vue-toastification'
+import Toast, { type PluginOptions } from 'vue-toastification'
 import 'vue-toastification/dist/index.css'
 import '@mdi/font/css/materialdesignicons.css'
 import '@fortawesome/fontawesome-free/css/all.min.css'
@@ -21,7 +22,7 @@ library.add(faCrown, faSolidCircle, faCircle,
 //library.add(far, fas);
 
 // Create mitt event emitter for EventBus replacement
-export const eventBus = mitt()
+export const eventBus: Emitter<any> = mitt()
 
 const app = createApp(App)
 const pinia = createPinia()
@@ -38,7 +39,7 @@ app.provide('eventBus', eventBus)
 app.use(pinia)
 
 // Configure toast
-app.use(Toast, {
+const toastOptions: PluginOptions = {
   position: 'top-center',
   timeout: 2000,
   closeOnClick: true,
@@ -54,7 +55,8 @@ app.use(Toast, {
   transition: 'Vue-Toastification__bounce',
   maxToasts: 20,
   newestOnTop: true
-})
+}
+app.use(Toast, toastOptions)
 
 app.use(vuetify)
 

@@ -26,7 +26,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { useAvalonStore } from '../stores/avalon.js'
+import { useAvalonStore } from '../stores/avalon'
 import _ from 'lodash'
 
 const avalonStore = useAvalonStore()

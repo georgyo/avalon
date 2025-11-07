@@ -45,7 +45,7 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { useAvalonStore } from '../stores/avalon.js'
+import { useAvalonStore } from '../stores/avalon'
 import draggable from "vuedraggable"
 
 const avalonStore = useAvalonStore()

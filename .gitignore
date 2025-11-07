@@ -1,4 +1,6 @@
 /dist
+client/dist
+server/dist
 
 # Logs
 logs

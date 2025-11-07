@@ -2,7 +2,7 @@ import firebase from 'firebase/compat/app'
 import 'firebase/compat/auth'
 import 'firebase/compat/firestore'
 import _ from 'lodash'
-import avalonLib from '../../server/common/avalonlib.cjs';
+import * as avalonLib from './lib/avalonlib';
 import {AvalonApi} from './avalon-api-rest';
 import firebaseConfig from './firebase-config';
 
