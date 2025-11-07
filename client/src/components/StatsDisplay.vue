@@ -1,50 +1,65 @@
 <template>
   <div class="d-flex flex-column align-center">
-  <table>
-    <thead>
-      <tr class='stats-header font-weight-medium'>
-        <td></td>
-        <td>Good</td>
-        <td>Evil</td>
-        <td>Total</td>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td class='font-weight-medium'>Games</td>
-        <td>{{ good }}</td>
-        <td>{{ evil }}</td>
-        <td>{{ games }}</td>
-       </tr>
-       <tr>
-         <td class='font-weight-medium'>Wins</td>
-         <td>{{ good_wins }}</td>
-         <td>{{ evil_wins }}</td>
-         <td>{{ wins }}</td>
+    <table>
+      <thead>
+        <tr class="stats-header font-weight-medium">
+          <td />
+          <td>Good</td>
+          <td>Evil</td>
+          <td>Total</td>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="font-weight-medium">
+            Games
+          </td>
+          <td>{{ good }}</td>
+          <td>{{ evil }}</td>
+          <td>{{ games }}</td>
         </tr>
         <tr>
-          <td class='font-weight-medium'>Losses</td>
+          <td class="font-weight-medium">
+            Wins
+          </td>
+          <td>{{ good_wins }}</td>
+          <td>{{ evil_wins }}</td>
+          <td>{{ wins }}</td>
+        </tr>
+        <tr>
+          <td class="font-weight-medium">
+            Losses
+          </td>
           <td>{{ good - good_wins }}</td>
           <td>{{ evil - evil_wins }}</td>
           <td>{{ games - wins }}</td>
         </tr>
         <tr>
-          <td class='font-weight-medium'>Win Rate</td>
+          <td class="font-weight-medium">
+            Win Rate
+          </td>
           <td>{{ good_win_rate }}</td>
           <td>{{ evil_win_rate }}</td>
           <td>{{ win_rate }}</td>
         </tr>
-        <tr v-if='globalStats'>
-          <td class='font-weight-medium'>All Users</td>
+        <tr v-if="globalStats">
+          <td class="font-weight-medium">
+            All Users
+          </td>
           <td>{{ global_good_win_rate }}</td>
           <td>{{ global_evil_win_rate }}</td>
-          <td></td>
+          <td />
         </tr>
-    </tbody>
-  </table>
-  <v-col cols="12" class="pt-2">
-    <div class="pt-12">Total Playtime: {{ playtime }} </div>
-  </v-col>
+      </tbody>
+    </table>
+    <v-col
+      cols="12"
+      class="pt-2"
+    >
+      <div class="pt-12">
+        Total Playtime: {{ playtime }}
+      </div>
+    </v-col>
   </div>
 </template>
 <script setup lang="ts">

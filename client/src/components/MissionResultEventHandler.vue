@@ -1,27 +1,39 @@
 <template>
-     <v-dialog v-model="missionDialog" max-width='450px'>
-      <v-card class="cyan-lighten-4">
-        <v-card-title class="cyan-lighten-2">
-            <div class='text-h5'>
-                <span v-if="mission.state == 'SUCCESS'">
-                    <v-icon left color="green" icon="fa:fas fa-check-circle"></v-icon>
-                    Mission Succeeded!
-                </span>
-                <span v-else>
-                    <v-icon left color="red" icon="fa:fas fa-times-circle"></v-icon>
-                    Mission Failed!
-                </span>
-            </div>
-        </v-card-title>
-        <v-card-text>
-            {{ mission.team.joinWithAnd() }} had
-            <span class='font-weight-bold'>
-                {{ numFails > 0 ? numFails : "no" }}
-            </span>
-            failure
-                {{ numFails == 1 ? "vote." : "votes." }}</v-card-text>
-      </v-card>
-    </v-dialog>
+  <v-dialog
+    v-model="missionDialog"
+    max-width="450px"
+  >
+    <v-card class="cyan-lighten-4">
+      <v-card-title class="cyan-lighten-2">
+        <div class="text-h5">
+          <span v-if="mission.state == 'SUCCESS'">
+            <v-icon
+              left
+              color="green"
+              icon="fa:fas fa-check-circle"
+            />
+            Mission Succeeded!
+          </span>
+          <span v-else>
+            <v-icon
+              left
+              color="red"
+              icon="fa:fas fa-times-circle"
+            />
+            Mission Failed!
+          </span>
+        </div>
+      </v-card-title>
+      <v-card-text>
+        {{ mission.team.joinWithAnd() }} had
+        <span class="font-weight-bold">
+          {{ numFails > 0 ? numFails : "no" }}
+        </span>
+        failure
+        {{ numFails == 1 ? "vote." : "votes." }}
+      </v-card-text>
+    </v-card>
+  </v-dialog>
 </template>
 
 <script setup>

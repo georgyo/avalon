@@ -2,75 +2,103 @@
   <v-card class="welcome bg-cyan-lighten-5">
     <div class="d-flex flex-column align-center justify-center fill-height">
       <v-card-title>
-
-       <v-alert
-        :value="avalon.confirmingEmailError"
-        type="error"
-       >
-        {{ avalon.confirmingEmailError }} Please try logging in again.
+        <v-alert
+          :value="avalon.confirmingEmailError"
+          type="error"
+        >
+          {{ avalon.confirmingEmailError }} Please try logging in again.
         </v-alert>
 
         
-        <div class='welcome'>
-            <span class=dtext-h3Avalon:> The Resistance <span class="font-weight-thin">Online</span></span>
-            <p class='mt-4 pt-2'>
-              <span class='subheading'>
-                A game of social deduction for 5 to 10 people, now on desktop and mobile.
-              </span>
-            </p>
+        <div class="welcome">
+          <span class="dtext-h3Avalon:"> The Resistance <span class="font-weight-thin">Online</span></span>
+          <p class="mt-4 pt-2">
+            <span class="subheading">
+              A game of social deduction for 5 to 10 people, now on desktop and mobile.
+            </span>
+          </p>
         </div>
       </v-card-title>
-        <v-tabs v-model="tab" align-tabs="center" grow>
-          <v-tab value="email">Email</v-tab>
-          <v-tab value="anonymous">Anonymous</v-tab>
+      <v-tabs
+        v-model="tab"
+        align-tabs="center"
+        grow
+      >
+        <v-tab value="email">
+          Email
+        </v-tab>
+        <v-tab value="anonymous">
+          Anonymous
+        </v-tab>
       </v-tabs>
       <v-window v-model="tab">
         <v-window-item value="email">
-        <template v-if='!emailSubmitted'>
-          <v-text-field
-           label="Email Address" 
-           ref='userEmailField'
-           v-model='emailAddr'
-           type="email"
-           autocomplete="email"
-           @keyup='clearErrorMessage()'
-           @keyup.enter='submitEmailAddress()'
-           :error-messages='errorMessage'
-           autofocus />
-          <v-btn
-           @click='submitEmailAddress()' :loading="isSubmittingEmailAddr">
-            Login
-          </v-btn>
-        </template>
-        <template v-else>
-          <v-card xs6 md3 class="bg-blue-grey-lighten-4">
-            <v-card-text class="text-center">
+          <template v-if="!emailSubmitted">
+            <v-text-field
+              ref="userEmailField" 
+              v-model="emailAddr"
+              label="Email Address"
+              type="email"
+              autocomplete="email"
+              :error-messages="errorMessage"
+              autofocus
+              @keyup="clearErrorMessage()"
+              @keyup.enter="submitEmailAddress()"
+            />
+            <v-btn
+              :loading="isSubmittingEmailAddr"
+              @click="submitEmailAddress()"
+            >
+              Login
+            </v-btn>
+          </template>
+          <template v-else>
+            <v-card
+              xs6
+              md3
+              class="bg-blue-grey-lighten-4"
+            >
+              <v-card-text class="text-center">
                 <p>Check your email for the verification link</p>
-            </v-card-text>
-          </v-card>
-          <v-btn class='mt-4'
-           @click='resetForm()'>
-            Try Again
-          </v-btn>
-        </template>
-      </v-window-item>
-    <v-window-item value="anonymous">
-      <v-btn
-           @click='signInAnonymously()'>
+              </v-card-text>
+            </v-card>
+            <v-btn
+              class="mt-4"
+              @click="resetForm()"
+            >
+              Try Again
+            </v-btn>
+          </template>
+        </v-window-item>
+        <v-window-item value="anonymous">
+          <v-btn
+            @click="signInAnonymously()"
+          >
             Login
-        </v-btn>
-    </v-window-item>
-      </v-window>
-
-        </div>
-      <div class="d-flex flex-column align-end">
-        <v-col cols="12" class='mt-4 pt-4'>
-          <v-btn size="small" href='mailto:avalon@shamm.as' target="_blank" color='grey-lighten-2'>
-            <v-icon start size="small" icon="fa:fas fa-envelope-square"></v-icon>
-            <span>Email</span>
           </v-btn>
-        </v-col>
-      </div>
+        </v-window-item>
+      </v-window>
+    </div>
+    <div class="d-flex flex-column align-end">
+      <v-col
+        cols="12"
+        class="mt-4 pt-4"
+      >
+        <v-btn
+          size="small"
+          href="mailto:avalon@shamm.as"
+          target="_blank"
+          color="grey-lighten-2"
+        >
+          <v-icon
+            start
+            size="small"
+            icon="fa:fas fa-envelope-square"
+          />
+          <span>Email</span>
+        </v-btn>
+      </v-col>
+    </div>
   </v-card>
 </template>
 

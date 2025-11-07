@@ -1,30 +1,61 @@
 <template>
-  <v-container justify-center class="bg-cyan-lighten-5">
+  <v-container
+    justify-center
+    class="bg-cyan-lighten-5"
+  >
     <div class="d-flex flex-column align-center justify-center fill-height">
-    <template v-if='!showLobbyInput'>
-      <v-text-field
-        label="Your Name" @input="name = name.toUpperCase()" ref='nameTextField' v-model="name" :error-messages='errorMsg' autofocus>
-      </v-text-field>
-      <v-btn
-       :disabled='!name' @click='createLobby()' :loading="isCreatingLobby">
-        Create Lobby
-      </v-btn>
-      <v-btn :disabled='!name || isCreatingLobby' @click='showLobbyInput = true'>
-        Join Lobby
-      </v-btn>
-  </template>
-   <template v-else>
-    <v-text-field ref="lobbyTextField"  @input="lobby = lobby.toUpperCase()" label="Lobby" :error-messages='errorMsg' v-model="lobby" @keyup.enter="joinLobby()"></v-text-field>
-    <v-btn :disabled='!lobby' @click='joinLobby()' :loading="isJoiningLobby">
-      Join Lobby
-    </v-btn>
-    <v-btn @click='showLobbyInput = false' :disabled='isJoiningLobby'>
-      Cancel
-    </v-btn>
-   </template>
-  <div style='padding-top: 30px'></div>
-  <StatsDisplay :stats='avalon.user.stats' :globalStats='avalon.globalStats'></StatsDisplay>
-  </div>
+      <template v-if="!showLobbyInput">
+        <v-text-field
+          ref="nameTextField"
+          v-model="name"
+          label="Your Name"
+          :error-messages="errorMsg"
+          autofocus
+          @input="name = name.toUpperCase()"
+        />
+        <v-btn
+          :disabled="!name"
+          :loading="isCreatingLobby"
+          @click="createLobby()"
+        >
+          Create Lobby
+        </v-btn>
+        <v-btn
+          :disabled="!name || isCreatingLobby"
+          @click="showLobbyInput = true"
+        >
+          Join Lobby
+        </v-btn>
+      </template>
+      <template v-else>
+        <v-text-field
+          ref="lobbyTextField"
+          v-model="lobby"
+          label="Lobby"
+          :error-messages="errorMsg"
+          @input="lobby = lobby.toUpperCase()"
+          @keyup.enter="joinLobby()"
+        />
+        <v-btn
+          :disabled="!lobby"
+          :loading="isJoiningLobby"
+          @click="joinLobby()"
+        >
+          Join Lobby
+        </v-btn>
+        <v-btn
+          :disabled="isJoiningLobby"
+          @click="showLobbyInput = false"
+        >
+          Cancel
+        </v-btn>
+      </template>
+      <div style="padding-top: 30px" />
+      <StatsDisplay
+        :stats="avalon.user.stats"
+        :global-stats="avalon.globalStats"
+      />
+    </div>
   </v-container>
 </template>
 

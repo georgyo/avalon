@@ -3,6 +3,7 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vuetify from 'vite-plugin-vuetify'
+import eslint from 'vite-plugin-eslint'
 import { fileURLToPath, URL } from 'node:url'
 
 // https://vitejs.dev/config/
@@ -11,6 +12,11 @@ export default defineConfig({
     vue(),
     vuetify({
       autoImport: true,
+    }),
+    eslint({
+      cache: false,
+      include: ['src/**/*.js', 'src/**/*.vue', 'src/**/*.ts'],
+      exclude: ['node_modules', 'dist'],
     }),
   ],
   resolve: {

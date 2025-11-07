@@ -46,6 +46,7 @@
     "typescript": "^5.7.2",
     "typescript-eslint": "^8.46.3",
     "vite": "^5.4.11",
+    "vite-plugin-eslint": "^1.8.1",
     "vite-plugin-vuetify": "^2.0.4",
     "volar-service-css": "^0.0.62",
     "volar-service-html": "^0.0.62",

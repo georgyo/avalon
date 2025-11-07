@@ -1,15 +1,22 @@
 <template>
   <div>
-    <v-dialog v-model="kickPlayerDialog" max-width='450'>
+    <v-dialog
+      v-model="kickPlayerDialog"
+      max-width="450"
+    >
       <v-card class="bg-cyan-lighten-4">
         <v-card-title class="bg-cyan-lighten-2">
-          <h3>Kick {{playerToKick}}?</h3>
+          <h3>Kick {{ playerToKick }}?</h3>
         </v-card-title>
         <v-card-text>Do you wish to kick {{ playerToKick }} from the lobby?</v-card-text>
-        <v-divider></v-divider>
+        <v-divider />
         <v-card-actions>
-          <v-btn @click="kickPlayer(playerToKick)">Kick {{ playerToKick }}</v-btn>
-          <v-btn @click="kickPlayerDialog = false">Cancel</v-btn>
+          <v-btn @click="kickPlayer(playerToKick)">
+            Kick {{ playerToKick }}
+          </v-btn>
+          <v-btn @click="kickPlayerDialog = false">
+            Cancel
+          </v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -19,27 +26,48 @@
         v-model="playerList"
         item-key="player"
         handle=".handle"
-        :disabled=!canDrag
-        @end="onReorderList()">
+        :disabled="!canDrag"
+        @end="onReorderList()"
+      >
         <template #item="{ element }">
-        <v-list-item :key="element">
-          <v-icon start v-if="canDrag" class="handle" icon="fa:fas fa-bars"></v-icon>
-          <v-icon start v-if="element == avalon.lobby.admin.name" icon="star"></v-icon>
-          <v-icon start v-else-if="element == avalon.user.name" icon="perm_identity"></v-icon>
-          <v-icon start v-else icon="person"></v-icon>
-          <v-col cols="10">{{element}}</v-col>
-          <v-col cols="1">
-            <v-btn
-              v-if="(avalon.isAdmin && element != avalon.user.name && !avalon.isGameInProgress)"
-              :loading="playersBeingKicked.includes(element)"
-              @click.stop="kickPlayerConfirm(element)"
-              icon
-              variant="text"
-              color="black">
-              <v-icon icon="clear"></v-icon>
-            </v-btn>
-          </v-col>
-        </v-list-item>
+          <v-list-item :key="element">
+            <v-icon
+              v-if="canDrag"
+              start
+              class="handle"
+              icon="fa:fas fa-bars"
+            />
+            <v-icon
+              v-if="element == avalon.lobby.admin.name"
+              start
+              icon="star"
+            />
+            <v-icon
+              v-else-if="element == avalon.user.name"
+              start
+              icon="perm_identity"
+            />
+            <v-icon
+              v-else
+              start
+              icon="person"
+            />
+            <v-col cols="10">
+              {{ element }}
+            </v-col>
+            <v-col cols="1">
+              <v-btn
+                v-if="(avalon.isAdmin && element != avalon.user.name && !avalon.isGameInProgress)"
+                :loading="playersBeingKicked.includes(element)"
+                icon
+                variant="text"
+                color="black"
+                @click.stop="kickPlayerConfirm(element)"
+              >
+                <v-icon icon="clear" />
+              </v-btn>
+            </v-col>
+          </v-list-item>
         </template>
       </draggable>
     </v-list>

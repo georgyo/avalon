@@ -1,8 +1,8 @@
 <template>
   <div>
-      <StartGameEventHandler />
-      <MissionResultEventHandler />
-      <EndGameEventHandler />
+    <StartGameEventHandler />
+    <MissionResultEventHandler />
+    <EndGameEventHandler />
   </div>
 </template>
 

@@ -1,7 +1,14 @@
 <template>
-  <v-btn light :loading='loggingOut' @click='logoutButtonClicked()'>
-    <v-icon start icon="exit_to_app"></v-icon>
-      Logout
+  <v-btn
+    light
+    :loading="loggingOut"
+    @click="logoutButtonClicked()"
+  >
+    <v-icon
+      start
+      icon="exit_to_app"
+    />
+    Logout
   </v-btn>
 </template>
 

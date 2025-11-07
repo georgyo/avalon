@@ -1,46 +1,67 @@
 <template>
   <v-container class="d-flex justify-center">
+    <v-card
+      v-if="false && (avalon.user.stats.games >= 3)"
+      class="bg-cyan-lighten-4"
+    >
+      <v-card-title class="bg-cyan-lighten-2">
+        <h3>Server Shutdown</h3>
+      </v-card-title>
+      <v-card-text>
+        Due to mounting costs, we're asking for your donations to keep the server running.
+        Please pitch in if you enjoy playing here. Every little bit helps.
+      </v-card-text>
+      <v-divider />
+    </v-card>
 
-      <v-card class="bg-cyan-lighten-4" v-if='false && (avalon.user.stats.games >= 3)'>
-        <v-card-title class="bg-cyan-lighten-2">
-          <h3>Server Shutdown</h3>
-        </v-card-title>
-        <v-card-text>
-          Due to mounting costs, we're asking for your donations to keep the server running.
-          Please pitch in if you enjoy playing here. Every little bit helps.
-        </v-card-text>
-        <v-divider></v-divider>
-      </v-card>
-
-  <v-row class="align-start justify-center">
-    <v-col cols="12" sm="6">
-      <v-container>
-      <p class="text-cyan-lighten-4">Players</p>
-      <LobbyPlayerList />
-      <p v-if='avalon.isAdmin && avalon.config.playerList.length > 2'
-        class="text-cyan-lighten-4 text-caption">Drag names to specify seating order</p>
-      </v-container>
-    </v-col>
-    <v-col v-show='validTeamSize' cols="12" sm="6">
-      <v-container>
-        <p class="text-cyan-lighten-4">Special Roles Available</p>
-        <RoleList
-          v-bind:roles='avalon.config.selectableRoles'
-          v-bind:allowSelect='avalon.isAdmin' />
-      </v-container>
-    </v-col>
-  </v-row>
-  <v-row class="align-center justify-center">
-    <v-col cols="12" v-if='validTeamSize'>
-      <div class="d-flex align-center justify-center fill-height">
-        <p class="text-cyan-lighten-4 text-h6">
-        {{ avalon.config.playerList.length }} players:
-        {{ avalon.config.playerList.length - numEvilPlayers }} good, {{ numEvilPlayers }} evil
-      </p>
-      </div>
-    </v-col>
-  </v-row>
-  <!--                IN-GAME LOG CODE. DISABLED FOR NOW    --
+    <v-row class="align-start justify-center">
+      <v-col
+        cols="12"
+        sm="6"
+      >
+        <v-container>
+          <p class="text-cyan-lighten-4">
+            Players
+          </p>
+          <LobbyPlayerList />
+          <p
+            v-if="avalon.isAdmin && avalon.config.playerList.length > 2"
+            class="text-cyan-lighten-4 text-caption"
+          >
+            Drag names to specify seating order
+          </p>
+        </v-container>
+      </v-col>
+      <v-col
+        v-show="validTeamSize"
+        cols="12"
+        sm="6"
+      >
+        <v-container>
+          <p class="text-cyan-lighten-4">
+            Special Roles Available
+          </p>
+          <RoleList
+            :roles="avalon.config.selectableRoles"
+            :allow-select="avalon.isAdmin"
+          />
+        </v-container>
+      </v-col>
+    </v-row>
+    <v-row class="align-center justify-center">
+      <v-col
+        v-if="validTeamSize"
+        cols="12"
+      >
+        <div class="d-flex align-center justify-center fill-height">
+          <p class="text-cyan-lighten-4 text-h6">
+            {{ avalon.config.playerList.length }} players:
+            {{ avalon.config.playerList.length - numEvilPlayers }} good, {{ numEvilPlayers }} evil
+          </p>
+        </div>
+      </v-col>
+    </v-row>
+    <!--                IN-GAME LOG CODE. DISABLED FOR NOW    --
   <v-layout align-center justify-center column>
     <v-flex xs12 sm6 v-if='canStartGame'>
       <v-container>
@@ -75,29 +96,49 @@
   </v-layout>
 
                      END IN-GAME LOG CODE SELECTION -->
-  <v-row class="align-center justify-center pt-2">
-    <v-btn
-     v-if='canStartGame'
-     :loading='startingGame'
-     @click='startGame()'
-    >
-        <v-icon start icon="play_arrow"></v-icon>
-      Start Game
-    </v-btn>
-    <v-card v-else class="bg-blue-grey-lighten-4" style="max-width: 400px;">
-      <v-card-text class="text-center">
-        {{ reasonToNotStartGame }}
-      </v-card-text>
-    </v-card>
-  </v-row>
-  <v-row class="pt-12">
-    <v-col cols="12" class="d-flex justify-end">
-      <v-btn size="small" block href='mailto:avalon@shamm.as' target="_blank" color='grey-lighten-1'>
-        <v-icon start size="small" icon="fa:fas fa-envelope-square"></v-icon>
-         <span>Send feedback</span>
+    <v-row class="align-center justify-center pt-2">
+      <v-btn
+        v-if="canStartGame"
+        :loading="startingGame"
+        @click="startGame()"
+      >
+        <v-icon
+          start
+          icon="play_arrow"
+        />
+        Start Game
       </v-btn>
-    </v-col>
-  </v-row>
+      <v-card
+        v-else
+        class="bg-blue-grey-lighten-4"
+        style="max-width: 400px;"
+      >
+        <v-card-text class="text-center">
+          {{ reasonToNotStartGame }}
+        </v-card-text>
+      </v-card>
+    </v-row>
+    <v-row class="pt-12">
+      <v-col
+        cols="12"
+        class="d-flex justify-end"
+      >
+        <v-btn
+          size="small"
+          block
+          href="mailto:avalon@shamm.as"
+          target="_blank"
+          color="grey-lighten-1"
+        >
+          <v-icon
+            start
+            size="small"
+            icon="fa:fas fa-envelope-square"
+          />
+          <span>Send feedback</span>
+        </v-btn>
+      </v-col>
+    </v-row>
   </v-container>
 </template>
 

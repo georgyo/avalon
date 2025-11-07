@@ -1,27 +1,40 @@
 <template>
-  <v-dialog v-model="dialog" max-width='450'>
-    <template v-slot:activator="{ props }">
-        <v-btn v-bind="props" light :loading='quitting'>
-        <v-icon icon="exit_to_app"></v-icon>
+  <v-dialog
+    v-model="dialog"
+    max-width="450"
+  >
+    <template #activator="{ props }">
+      <v-btn
+        v-bind="props"
+        light
+        :loading="quitting"
+      >
+        <v-icon icon="exit_to_app" />
         Quit
-        </v-btn>
+      </v-btn>
     </template>
     <v-card class="cyan-lighten-4">
       <v-card-title class="cyan-lighten-2">
-          <h3>{{ actionDescription }}?</h3>
+        <h3>{{ actionDescription }}?</h3>
       </v-card-title>
       <v-card-text>
-          {{ gameInProgressText }}
-          Are you sure you want to proceed?
+        {{ gameInProgressText }}
+        Are you sure you want to proceed?
       </v-card-text>
-      <v-divider></v-divider>
+      <v-divider />
       <v-card-actions>
-        <v-spacer></v-spacer>
-        <v-btn color="primary" @click='quitButtonClicked()'>
-            {{ actionDescription }}
+        <v-spacer />
+        <v-btn
+          color="primary"
+          @click="quitButtonClicked()"
+        >
+          {{ actionDescription }}
         </v-btn>
-        <v-btn color="secondary" @click='dialog = false'>
-            Nevermind
+        <v-btn
+          color="secondary"
+          @click="dialog = false"
+        >
+          Nevermind
         </v-btn>        
       </v-card-actions>
     </v-card>

@@ -1,14 +1,14 @@
 <template>
-<div>
- <v-container>
-  <Missions></Missions>
- </v-container>
- <v-container>
-  <GameParticipants v-on:selected-players='updateSelectedPlayers($event)'></GameParticipants>
- </v-container>
- <v-container>
-  <ActionPane :selectedPlayers='selectedPlayers'></ActionPane>
-  </v-container>
+  <div>
+    <v-container>
+      <Missions />
+    </v-container>
+    <v-container>
+      <GameParticipants @selected-players="updateSelectedPlayers($event)" />
+    </v-container>
+    <v-container>
+      <ActionPane :selected-players="selectedPlayers" />
+    </v-container>
   </div>
 </template>
 

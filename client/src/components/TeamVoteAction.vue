@@ -1,28 +1,52 @@
 <template>
-    <v-card class="bg-blue-grey-lighten-4">
-      <v-card-title class="bg-light-blue-lighten-4">
-          Team Proposal Vote ({{ this.avalon.game.currentProposalIdx + 1 }}/5)
-      </v-card-title>
-      <v-card-text>
-        <div>Voting for {{ proposer }} team of {{ this.avalon.game.currentProposal.team.joinWithAnd() }}</div>
-        <div class="d-flex align-center justify-space-between fill-height">
-        <v-btn @click='teamVote(true)'
-         v-bind:loading='loadingState.yes'
-         v-bind:disabled='disabledState.yes'>
-            <v-icon v-if='votedState.yes' start color='green' icon="fa:fas fa-vote-yea"></v-icon>
-            <v-icon v-else start color="green" icon="fa:far fa-thumbs-up"></v-icon>
-            Approve
+  <v-card class="bg-blue-grey-lighten-4">
+    <v-card-title class="bg-light-blue-lighten-4">
+      Team Proposal Vote ({{ avalon.game.currentProposalIdx + 1 }}/5)
+    </v-card-title>
+    <v-card-text>
+      <div>Voting for {{ proposer }} team of {{ avalon.game.currentProposal.team.joinWithAnd() }}</div>
+      <div class="d-flex align-center justify-space-between fill-height">
+        <v-btn
+          :loading="loadingState.yes"
+          :disabled="disabledState.yes"
+          @click="teamVote(true)"
+        >
+          <v-icon
+            v-if="votedState.yes"
+            start
+            color="green"
+            icon="fa:fas fa-vote-yea"
+          />
+          <v-icon
+            v-else
+            start
+            color="green"
+            icon="fa:far fa-thumbs-up"
+          />
+          Approve
         </v-btn>
-        <v-btn @click='teamVote(false)'
-         v-bind:loading='loadingState.no'
-         v-bind:disabled='disabledState.no'>
-          <v-icon v-if='votedState.no' start color='red' icon="fa:fas fa-vote-yea"></v-icon>
-          <v-icon v-else start color="red" icon="fa:far fa-thumbs-down"></v-icon>
-            Reject
+        <v-btn
+          :loading="loadingState.no"
+          :disabled="disabledState.no"
+          @click="teamVote(false)"
+        >
+          <v-icon
+            v-if="votedState.no"
+            start
+            color="red"
+            icon="fa:fas fa-vote-yea"
+          />
+          <v-icon
+            v-else
+            start
+            color="red"
+            icon="fa:far fa-thumbs-down"
+          />
+          Reject
         </v-btn>
-        </div>
+      </div>
     </v-card-text>
-    </v-card>
+  </v-card>
 </template>
 
 <script setup>

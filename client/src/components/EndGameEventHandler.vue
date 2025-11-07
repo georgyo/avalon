@@ -1,36 +1,45 @@
 <template>
-     <v-dialog v-model="endGameDialog" fullscreen persistent>
-      <v-card class="bg-cyan-lighten-4">
-        <template v-if='avalon.game && avalon.game.outcome'>
+  <v-dialog
+    v-model="endGameDialog"
+    fullscreen
+    persistent
+  >
+    <v-card class="bg-cyan-lighten-4">
+      <template v-if="avalon.game && avalon.game.outcome">
         <v-card-title class="bg-cyan-lighten-2 endGameTitle">
-            <div class="d-flex align-center justify-center fill-height">
-                <span class='text-h4 font-weight-bold'>{{title}}</span>
-            </div>
+          <div class="d-flex align-center justify-center fill-height">
+            <span class="text-h4 font-weight-bold">{{ title }}</span>
+          </div>
         </v-card-title>
         <v-card-text>
-            <div class="d-flex flex-column align-center justify-center">
-            <div class='text-h5 font-weight-bold'> {{ avalon.game.outcome.message }}</div>
-            <p v-if='avalon.game.outcome.assassinated'>
-                {{ avalon.game.outcome.assassinated}} was assassinated by
-                {{ avalon.game.outcome.roles.find(r => r.assassin ).name }}
+          <div class="d-flex flex-column align-center justify-center">
+            <div class="text-h5 font-weight-bold">
+              {{ avalon.game.outcome.message }}
+            </div>
+            <p v-if="avalon.game.outcome.assassinated">
+              {{ avalon.game.outcome.assassinated }} was assassinated by
+              {{ avalon.game.outcome.roles.find(r => r.assassin ).name }}
             </p>
-            <v-container style='overflow-x: auto; width: 100%;'>
+            <v-container style="overflow-x: auto; width: 100%;">
               <MissionSummaryTable
-               :players='avalon.game.players'
-               :missions='missions'
-               :roles='roleAssignments'
-               :missionVotes='avalon.game.outcome.votes' />
+                :players="avalon.game.players"
+                :missions="missions"
+                :roles="roleAssignments"
+                :mission-votes="avalon.game.outcome.votes"
+              />
             </v-container>
             <Achievements />
-            </div>
+          </div>
         </v-card-text>
         <v-card-actions>
-          <v-spacer></v-spacer>
-          <v-btn @click="endGameDialogClosed()">Close</v-btn>
+          <v-spacer />
+          <v-btn @click="endGameDialogClosed()">
+            Close
+          </v-btn>
         </v-card-actions>
-        </template>
-      </v-card>
-    </v-dialog>
+      </template>
+    </v-card>
+  </v-dialog>
 </template>
 
 <script setup>

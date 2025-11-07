@@ -1,13 +1,36 @@
 <template>
-  <div v-if="badges.length" class='pt-6'>
-    <div class='text-h4' style='text-align: center;'>Achievements</div>
-    <div v-for="badge in badges" :key="badge.title" class="pt-2">
-    <v-card class="blue-grey-lighten-4" min-width='400' max-width='900'>
-      <v-card-title class="cyan-lighten-2">
-        <v-icon left color="yellow" icon="fa:fas fa-trophy"></v-icon>
-        <div class='text-h6'>{{ badge.title }}</div></v-card-title>
-      <v-card-text>{{ badge.body }}</v-card-text>
-    </v-card>
+  <div
+    v-if="badges.length"
+    class="pt-6"
+  >
+    <div
+      class="text-h4"
+      style="text-align: center;"
+    >
+      Achievements
+    </div>
+    <div
+      v-for="badge in badges"
+      :key="badge.title"
+      class="pt-2"
+    >
+      <v-card
+        class="blue-grey-lighten-4"
+        min-width="400"
+        max-width="900"
+      >
+        <v-card-title class="cyan-lighten-2">
+          <v-icon
+            left
+            color="yellow"
+            icon="fa:fas fa-trophy"
+          />
+          <div class="text-h6">
+            {{ badge.title }}
+          </div>
+        </v-card-title>
+        <v-card-text>{{ badge.body }}</v-card-text>
+      </v-card>
     </div>
   </div>
 </template>

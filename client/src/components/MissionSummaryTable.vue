@@ -1,35 +1,72 @@
 <template>
   <table>
-    <tr v-for="player in players" :key="player">
-      <td class='player-name'>
-        <span class='font-weight-medium'>{{ player }}</span>
+    <tr
+      v-for="player in players"
+      :key="player"
+    >
+      <td class="player-name">
+        <span class="font-weight-medium">{{ player }}</span>
       </td>
-      <td v-if='roles' class='role'>
+      <td
+        v-if="roles"
+        class="role"
+      >
         {{ roles.find(r => r.name == player).role }}
       </td>
-      <template v-for='mission in missions'>
-        <td v-for='proposal in mission.proposals.filter(p => p.team.length > 0)'
-         :key='player + "_proposal" + missions.indexOf(mission) + "_" + mission.proposals.indexOf(proposal)'>
-        <font-awesome-layers>
-          <font-awesome-icon v-if='proposal.proposer == player'
-           color="yellow" transform="grow-13" :icon='["fas", "circle"]' />
-          <font-awesome-icon v-if='proposal.team.includes(player)'
-           color="#629ec1" transform="grow-13" :icon='["far", "circle"]' />
-          <template v-if='proposal.state != "PENDING"'>
-          <font-awesome-icon v-if='proposal.votes.includes(player)'
-           transform="right-1" color='green' :icon='["far", "thumbs-up"]' />
-          <font-awesome-icon transform="right-1" v-else
-           color='#ed1515' :icon='["far", "thumbs-down"]' />
+      <template v-for="mission in missions">
+        <td
+          v-for="proposal in mission.proposals.filter(p => p.team.length > 0)"
+          :key="player + &quot;_proposal&quot; + missions.indexOf(mission) + &quot;_&quot; + mission.proposals.indexOf(proposal)"
+        >
+          <font-awesome-layers>
+            <font-awesome-icon
+              v-if="proposal.proposer == player"
+              color="yellow"
+              transform="grow-13"
+              :icon="[&quot;fas&quot;, &quot;circle&quot;]"
+            />
+            <font-awesome-icon
+              v-if="proposal.team.includes(player)"
+              color="#629ec1"
+              transform="grow-13"
+              :icon="[&quot;far&quot;, &quot;circle&quot;]"
+            />
+            <template v-if="proposal.state != &quot;PENDING&quot;">
+              <font-awesome-icon
+                v-if="proposal.votes.includes(player)"
+                transform="right-1"
+                color="green"
+                :icon="[&quot;far&quot;, &quot;thumbs-up&quot;]"
+              />
+              <font-awesome-icon
+                v-else
+                transform="right-1"
+                color="#ed1515"
+                :icon="[&quot;far&quot;, &quot;thumbs-down&quot;]"
+              />
+            </template>
+          </font-awesome-layers>
+        </td>
+        <td
+          v-if="missionVotes"
+          :key="player + &quot;_mission&quot; + missions.indexOf(mission)"
+          class="mission-result"
+        >
+          <template v-if="mission.team.includes(player)">
+            <v-icon
+              v-if="missionVotes[missions.indexOf(mission)][player]"
+              size="small"
+              color="green"
+              icon="fa:fas fa-check-circle"
+            />
+            <v-icon
+              v-else
+              size="small"
+              color="red"
+              icon="fa:fas fa-times-circle"
+            />
           </template>
-        </font-awesome-layers>
-      </td>
-      <td v-if='missionVotes' :key='player + "_mission" + missions.indexOf(mission)' class='mission-result'>
-        <template v-if='mission.team.includes(player)'>
-          <v-icon size="small" v-if='missionVotes[missions.indexOf(mission)][player]'
-            color='green' icon="fa:fas fa-check-circle"></v-icon>
-          <v-icon size="small" v-else color="red" icon="fa:fas fa-times-circle"></v-icon>
-        </template>
-      </td>
+        </td>
       </template>
     </tr>
   </table>
@@ -38,7 +75,24 @@
 <script>
 export default {
   name: 'MissionSummaryTable',
-  props: [ 'players', 'missions', 'roles', 'missionVotes' ],
+  props: {
+    players: {
+      type: Array,
+      required: true
+    },
+    missions: {
+      type: Array,
+      required: true
+    },
+    roles: {
+      type: Array,
+      required: true
+    },
+    missionVotes: {
+      type: Array,
+      required: true
+    }
+  },
   data() {
       return {
       }

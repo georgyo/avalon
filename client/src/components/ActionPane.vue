@@ -1,10 +1,16 @@
 <template>
-    <div>
-    <TeamProposalAction v-if='teamProposal' :playerList='selectedPlayers'></TeamProposalAction>
-    <TeamVoteAction v-if='teamVote'></TeamVoteAction>
-    <MissionAction v-if='missionAction'></MissionAction>
-    <AssassinationAction v-if='assassinationPhase' :playerList='selectedPlayers'></AssassinationAction>
-    </div>
+  <div>
+    <TeamProposalAction
+      v-if="teamProposal"
+      :player-list="selectedPlayers"
+    />
+    <TeamVoteAction v-if="teamVote" />
+    <MissionAction v-if="missionAction" />
+    <AssassinationAction
+      v-if="assassinationPhase"
+      :player-list="selectedPlayers"
+    />
+  </div>
 </template>
 
 <script setup>
@@ -18,7 +24,10 @@ import AssassinationAction from './AssassinationAction.vue'
 // Props used in template
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const props = defineProps({
-  selectedPlayers: Array
+  selectedPlayers: {
+    type: Array,
+    default: () => []
+  }
 })
 
 const avalonStore = useAvalonStore()

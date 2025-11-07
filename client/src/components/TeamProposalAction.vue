@@ -1,24 +1,32 @@
 <template>
   <v-card class="bg-blue-grey-lighten-4">
     <v-card-title class="bg-light-blue-lighten-4">
-      Team Proposal ({{ this.avalon.game.currentProposalIdx + 1}}/5)
+      Team Proposal ({{ avalon.game.currentProposalIdx + 1 }}/5)
     </v-card-title>
     <v-card-text>
       <div class="d-flex flex-column align-center justify-center fill-height">
-     <div v-if='avalon.game.currentProposer == avalon.user.name'>
-        <v-col cols="12">
-        <div class="text-center">Propose a team of {{ this.avalon.game.currentMission.teamSize }}</div>
-        </v-col>
-        <v-col cols="12">
-      <v-btn
-        v-bind:disabled='!isValidSelection'
-        v-bind:loading='isProposing'
-        v-on:click='proposeTeam()'>Propose Team</v-btn>
-        </v-col>
-     </div>
-     <div v-else class="text-center">
-       Waiting for {{ avalon.game.currentProposer }} to propose a team of {{ this.avalon.game.currentMission.teamSize }}
-     </div>
+        <div v-if="avalon.game.currentProposer == avalon.user.name">
+          <v-col cols="12">
+            <div class="text-center">
+              Propose a team of {{ avalon.game.currentMission.teamSize }}
+            </div>
+          </v-col>
+          <v-col cols="12">
+            <v-btn
+              :disabled="!isValidSelection"
+              :loading="isProposing"
+              @click="proposeTeam()"
+            >
+              Propose Team
+            </v-btn>
+          </v-col>
+        </div>
+        <div
+          v-else
+          class="text-center"
+        >
+          Waiting for {{ avalon.game.currentProposer }} to propose a team of {{ avalon.game.currentMission.teamSize }}
+        </div>
       </div>
     </v-card-text>
   </v-card>
@@ -29,7 +37,10 @@ import { ref, computed } from 'vue'
 import { useAvalonStore } from '../stores/avalon'
 
 const props = defineProps({
-  playerList: Array
+  playerList: {
+    type: Array,
+    default: () => []
+  }
 })
 
 const avalonStore = useAvalonStore()

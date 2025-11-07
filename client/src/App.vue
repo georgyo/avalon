@@ -2,29 +2,39 @@
   <div id="app">
     <v-app>
       <EventHandler />
-      <v-container v-if='!avalonStore.initialized' class="fill-height d-flex justify-center align-center">
+      <v-container
+        v-if="!avalonStore.initialized"
+        class="fill-height d-flex justify-center align-center"
+      >
         <v-progress-circular
-               indeterminate
-               :size="150"
-               color="yellow"></v-progress-circular>
+          indeterminate
+          :size="150"
+          color="yellow"
+        />
       </v-container>
       <template v-else>
         <v-main>
-        <v-container v-if='!avalonStore.isLoggedIn' class="fill-height d-flex justify-center align-center">
-          <UserLogin />
-        </v-container>
-        <template v-else>
-          <Toolbar />
+          <v-container
+            v-if="!avalonStore.isLoggedIn"
+            class="fill-height d-flex justify-center align-center"
+          >
+            <UserLogin />
+          </v-container>
+          <template v-else>
+            <Toolbar />
             <v-container>
               <v-row class="fill-height align-center justify-center">
-                <v-col cols="12" class="d-flex flex-column align-center">
+                <v-col
+                  cols="12"
+                  class="d-flex flex-column align-center"
+                >
                   <Login v-if="!avalonStore.isInLobby" />
-                  <Lobby v-else-if='!avalonStore.isGameInProgress' />
+                  <Lobby v-else-if="!avalonStore.isGameInProgress" />
                   <Game v-else />
                 </v-col>
               </v-row>
             </v-container>
-        </template>
+          </template>
         </v-main>
       </template>
     </v-app>

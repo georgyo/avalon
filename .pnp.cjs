@@ -122,6 +122,7 @@ const RAW_RUNTIME_STATE =
           ["typescript", "patch:typescript@npm%3A5.9.3#optional!builtin<compat/typescript>::version=5.9.3&hash=5786d5"],\
           ["typescript-eslint", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:8.46.3"],\
           ["vite", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:5.4.21"],\
+          ["vite-plugin-eslint", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:1.8.1"],\
           ["vite-plugin-vuetify", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:2.1.2"],\
           ["volar-service-css", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:0.0.62"],\
           ["volar-service-html", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:0.0.62"],\
@@ -6215,6 +6216,17 @@ const RAW_RUNTIME_STATE =
         "linkType": "HARD"\
       }]\
     ]],\
+    ["@rollup/pluginutils", [\
+      ["npm:4.2.1", {\
+        "packageLocation": "./.yarn/cache/@rollup-pluginutils-npm-4.2.1-0f52a5eba2-503a6f0a44.zip/node_modules/@rollup/pluginutils/",\
+        "packageDependencies": [\
+          ["@rollup/pluginutils", "npm:4.2.1"],\
+          ["estree-walker", "npm:2.0.2"],\
+          ["picomatch", "npm:2.3.1"]\
+        ],\
+        "linkType": "HARD"\
+      }]\
+    ]],\
     ["@rollup/rollup-android-arm-eabi", [\
       ["npm:4.53.0", {\
         "packageLocation": "./.yarn/unplugged/@rollup-rollup-android-arm-eabi-npm-4.53.0-02ce8764cd/node_modules/@rollup/rollup-android-arm-eabi/",\
@@ -6560,6 +6572,17 @@ const RAW_RUNTIME_STATE =
         "packageDependencies": [\
           ["@types/cors", "npm:2.8.17"],\
           ["@types/node", "npm:20.11.28"]\
+        ],\
+        "linkType": "HARD"\
+      }]\
+    ]],\
+    ["@types/eslint", [\
+      ["npm:8.56.12", {\
+        "packageLocation": "./.yarn/cache/@types-eslint-npm-8.56.12-3bfdf2144c-bd998b5d3f.zip/node_modules/@types/eslint/",\
+        "packageDependencies": [\
+          ["@types/eslint", "npm:8.56.12"],\
+          ["@types/estree", "npm:1.0.8"],\
+          ["@types/json-schema", "npm:7.0.15"]\
         ],\
         "linkType": "HARD"\
       }]\
@@ -16406,6 +16429,14 @@ const RAW_RUNTIME_STATE =
       }]\
     ]],\
     ["rollup", [\
+      ["npm:2.79.2", {\
+        "packageLocation": "./.yarn/cache/rollup-npm-2.79.2-1b08e69c0e-095ba0a828.zip/node_modules/rollup/",\
+        "packageDependencies": [\
+          ["fsevents", "patch:fsevents@npm%3A2.3.3#optional!builtin<compat/fsevents>::version=2.3.3&hash=df0bf1"],\
+          ["rollup", "npm:2.79.2"]\
+        ],\
+        "linkType": "HARD"\
+      }],\
       ["npm:4.53.0", {\
         "packageLocation": "./.yarn/unplugged/rollup-npm-4.53.0-2b51f05b6f/node_modules/rollup/",\
         "packageDependencies": [\
@@ -18052,6 +18083,33 @@ const RAW_RUNTIME_STATE =
           "stylus",\
           "sugarss",\
           "terser"\
+        ],\
+        "linkType": "HARD"\
+      }]\
+    ]],\
+    ["vite-plugin-eslint", [\
+      ["npm:1.8.1", {\
+        "packageLocation": "./.yarn/cache/vite-plugin-eslint-npm-1.8.1-844ad445f5-65598893e2.zip/node_modules/vite-plugin-eslint/",\
+        "packageDependencies": [\
+          ["vite-plugin-eslint", "npm:1.8.1"]\
+        ],\
+        "linkType": "SOFT"\
+      }],\
+      ["virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:1.8.1", {\
+        "packageLocation": "./.yarn/__virtual__/vite-plugin-eslint-virtual-93f779b307/0/cache/vite-plugin-eslint-npm-1.8.1-844ad445f5-65598893e2.zip/node_modules/vite-plugin-eslint/",\
+        "packageDependencies": [\
+          ["@rollup/pluginutils", "npm:4.2.1"],\
+          ["@types/eslint", "npm:8.56.12"],\
+          ["@types/vite", null],\
+          ["eslint", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:9.17.0"],\
+          ["rollup", "npm:2.79.2"],\
+          ["vite", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:5.4.21"],\
+          ["vite-plugin-eslint", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:1.8.1"]\
+        ],\
+        "packagePeers": [\
+          "@types/vite",\
+          "eslint",\
+          "vite"\
         ],\
         "linkType": "HARD"\
       }]\
