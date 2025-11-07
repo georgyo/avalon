@@ -19,6 +19,16 @@ export default defineConfig({
       "@": fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
+  build: {
+    sourcemap: true,
+  },
+  optimizeDeps: {
+    exclude: [],
+    esbuildOptions: {
+      // Disable source maps for dependencies to avoid warnings
+      sourcemap: false,
+    },
+  },
   server: {
     proxy: {
       '/api': {

@@ -15,6 +15,8 @@ import TeamVoteAction from './TeamVoteAction.vue'
 import MissionAction from './MissionAction.vue'
 import AssassinationAction from './AssassinationAction.vue'
 
+// Props used in template
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const props = defineProps({
   selectedPlayers: Array
 })

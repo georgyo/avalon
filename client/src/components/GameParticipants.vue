@@ -24,6 +24,8 @@ import { useAvalonStore } from '../stores/avalon'
 import GamePlayerList from './GamePlayerList.vue'
 import RoleList from './RoleList.vue'
 
+// Emit used in template
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const emit = defineEmits(['selected-players'])
 
 const avalonStore = useAvalonStore()

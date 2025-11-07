@@ -14,7 +14,7 @@
       </v-btn>
   </template>
    <template v-else>
-    <v-text-field ref="lobbyTextField"  @input="lobby = lobby.toUpperCase()" label="Lobby" :error-messages='errorMsg' v-model="lobby" @keyup.native.enter="joinLobby()"></v-text-field>
+    <v-text-field ref="lobbyTextField"  @input="lobby = lobby.toUpperCase()" label="Lobby" :error-messages='errorMsg' v-model="lobby" @keyup.enter="joinLobby()"></v-text-field>
     <v-btn :disabled='!lobby' @click='joinLobby()' :loading="isJoiningLobby">
       Join Lobby
     </v-btn>

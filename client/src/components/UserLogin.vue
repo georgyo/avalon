@@ -34,7 +34,7 @@
            type="email"
            autocomplete="email"
            @keyup='clearErrorMessage()'
-           @keyup.native.enter='submitEmailAddress()'
+           @keyup.enter='submitEmailAddress()'
            :error-messages='errorMessage'
            autofocus />
           <v-btn

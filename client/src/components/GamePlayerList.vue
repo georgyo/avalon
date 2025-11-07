@@ -87,7 +87,6 @@ const avalonStore = useAvalonStore()
 const avalon = computed(() => avalonStore.getAvalon())
 
 const selectedPlayers = ref([])
-const allowSelect = ref(true)
 
 const crownColor = computed(() => {
   return (avalon.value.game.currentProposalIdx < 4) ? '#fcfc00' : '#cc0808'

@@ -120,7 +120,6 @@ interface GameOptions {
 const options = ref<GameOptions>({
   inGameLog: false
 })
-const showOptionGameLog = ref<boolean>(false)
 const startingGame = ref<boolean>(false)
 
 const reasonToNotStartGame = computed(() => {
@@ -155,7 +154,7 @@ function startGame(): void {
 }
 
 onMounted(() => {
-  eventBus.on('evt', () => console.log("event in lobby", ...arguments))
+  eventBus.on('evt', (...args: unknown[]) => console.log("event in lobby", ...args))
 })
 
 onBeforeUnmount(() => {

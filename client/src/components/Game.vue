@@ -13,14 +13,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { useAvalonStore } from '@/stores/avalon'
+import { ref } from 'vue'
 import Missions from './Missions.vue'
 import GameParticipants from './GameParticipants.vue'
 import ActionPane from './ActionPane.vue'
-
-const avalonStore = useAvalonStore()
-const avalon = computed(() => avalonStore.getAvalon())
 
 const selectedPlayers = ref<string[]>([])
 
