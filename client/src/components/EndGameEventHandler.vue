@@ -1,13 +1,13 @@
 <template>
      <v-dialog v-model="endGameDialog" fullscreen persistent>
-      <v-card v-if='endGameDialog && avalon.game && avalon.game.outcome' class="cyan lighten-4">
-        <v-card-title class="cyan lighten-2 endGameTitle">
-            <v-layout align-center justify-center fill-height>
+      <v-card v-if='endGameDialog && avalon.game && avalon.game.outcome' class="bg-cyan-lighten-4">
+        <v-card-title class="bg-cyan-lighten-2 endGameTitle">
+            <div class="d-flex align-center justify-center fill-height">
                 <span class='text-h4 font-weight-bold'>{{title}}</span>
-            </v-layout>
+            </div>
         </v-card-title>
         <v-card-text>
-            <v-layout align-center column justify-center>            
+            <div class="d-flex flex-column align-center justify-center">
             <div class='text-h5 font-weight-bold'> {{ avalon.game.outcome.message }}</div>
             <p v-if='avalon.game.outcome.assassinated'>
                 {{ avalon.game.outcome.assassinated}} was assassinated by
@@ -21,23 +21,23 @@
                :missionVotes='avalon.game.outcome.votes' />
             </v-container>
             <Achievements :avalon='avalon' />
-            </v-layout>
+            </div>
         </v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
-          <v-btn light @click="endGameDialogClosed()">Close</v-btn>
+          <v-btn @click="endGameDialogClosed()">Close</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
 </template>
 
 <script>
-import { EventBus } from '@/main.js'
 import Achievements from './Achievements.vue'
 import MissionSummaryTable from './MissionSummaryTable.vue'
 
 export default {
   name: 'EndGameEventHandler',
+  inject: ['eventBus'],
   props: [ 'avalon' ],
   components: {
       Achievements,
@@ -73,13 +73,16 @@ export default {
       }
   },
   mounted() {
-      EventBus.$on('GAME_ENDED', () => {
+      this.eventBus.on('GAME_ENDED', () => {
           this.endGameDialog = true;
       });
-      EventBus.$on('GAME_STARTED', () => {
+      this.eventBus.on('GAME_STARTED', () => {
           // time to start new game!
           this.endGameDialog = false;
-      });      
+      });
+  },
+  beforeUnmount() {
+      // Clean up is handled by parent EventHandler
   }
 }
 </script>

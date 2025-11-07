@@ -25,10 +25,9 @@
 </template>
 
 <script>
-import { EventBus } from '@/main.js'
-
 export default {
   name: 'MissionResultEventHandler',
+  inject: ['eventBus'],
   props: [ 'avalon' ],
   data() {
       return {
@@ -41,20 +40,23 @@ export default {
             this.avalon.lobby.game.missions.length : this.avalon.lobby.game.currentMissionIdx;
           return this.avalon.lobby.game.missions[curMissionIdx - 1];
       },
-      numFails() {          
+      numFails() {
           return this.mission.numFails;
       }
   },
   mounted() {
-      EventBus.$on('GAME_STARTED', () => {
+      this.eventBus.on('GAME_STARTED', () => {
           this.missionDialog = false;
       });
-      EventBus.$on('GAME_ENDED', () => {
+      this.eventBus.on('GAME_ENDED', () => {
           this.missionDialog = false;
       });
-      EventBus.$on('MISSION_RESULT', () => {
+      this.eventBus.on('MISSION_RESULT', () => {
           this.missionDialog = true;
       });
+  },
+  beforeUnmount() {
+      // Clean up is handled by parent EventHandler
   }
 }
 </script>

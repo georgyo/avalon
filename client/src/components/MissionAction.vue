@@ -1,20 +1,20 @@
 <template>
-  <v-card class="blue-grey lighten-4">
-    <v-card-title class="light-blue lighten-4">
+  <v-card class="bg-blue-grey-lighten-4">
+    <v-card-title class="bg-light-blue-lighten-4">
       Mission in Progress
      </v-card-title>
      <v-card-text>
       <div v-if='needsToVote'>
-        <v-layout align-center justify-space-between fill-height>
+        <div class="d-flex align-center justify-space-between fill-height">
         <v-btn @click='missionVote(true)'>
-            <v-icon left color="green">fas fa-check-circle</v-icon>
+            <v-icon start color="green">fas fa-check-circle</v-icon>
                 SUCCESS
             </v-btn>
         <v-btn @click='missionVote(false)'>
-          <v-icon left color="red">fas fa-times-circle</v-icon>
+          <v-icon start color="red">fas fa-times-circle</v-icon>
             FAIL
         </v-btn>
-        </v-layout>
+        </div>
        </div>
        <div v-else>
            <!-- need to make a more dramatic reveal at the end! -->

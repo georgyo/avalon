@@ -1,8 +1,8 @@
 <template>
   <div>
     <v-dialog v-model="kickPlayerDialog" max-width='450'>
-      <v-card class="cyan lighten-4">
-        <v-card-title class="cyan lighten-2">
+      <v-card class="bg-cyan-lighten-4">
+        <v-card-title class="bg-cyan-lighten-2">
           <h3>Kick {{playerToKick}}?</h3>
         </v-card-title>
         <v-card-text>Do you wish to kick {{ playerToKick }} from the lobby?</v-card-text>
@@ -14,29 +14,29 @@
       </v-card>
     </v-dialog>
 
-    <v-list class="blue-grey lighten-4">
+    <v-list class="bg-blue-grey-lighten-4">
       <draggable
         v-model="playerList"
         handle=".handle"
         :disabled=!canDrag
         @end="onReorderList()">
         <v-list-item v-for="player in playerList" :key="player">
-          <v-icon left v-if="canDrag" class="handle">fas fa-bars</v-icon>
-          <v-icon left v-if="player == avalon.lobby.admin.name">star</v-icon>
-          <v-icon left v-else-if="player == avalon.user.name">perm_identity</v-icon>
-          <v-icon left v-else>person</v-icon>
-          <v-flex xs10>{{player}}</v-flex>
-          <v-flex xs1>
-            <v-btn icon right text
+          <v-icon start v-if="canDrag" class="handle">fas fa-bars</v-icon>
+          <v-icon start v-if="player == avalon.lobby.admin.name">star</v-icon>
+          <v-icon start v-else-if="player == avalon.user.name">perm_identity</v-icon>
+          <v-icon start v-else>person</v-icon>
+          <v-col cols="10">{{player}}</v-col>
+          <v-col cols="1">
+            <v-btn
               v-if="(avalon.isAdmin && player != avalon.user.name && !avalon.isGameInProgress)"
               :loading="playersBeingKicked.includes(player)"
               @click.stop="kickPlayerConfirm(player)"
-              slot="activator"
-              color="black"
-              dark>
+              icon
+              variant="text"
+              color="black">
               <v-icon>clear</v-icon>
             </v-btn>
-          </v-flex>
+          </v-col>
         </v-list-item>
       </draggable>
     </v-list>

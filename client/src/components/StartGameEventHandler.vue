@@ -16,10 +16,9 @@
 </template>
 
 <script>
-import { EventBus } from '@/main.js'
-
 export default {
   name: 'StartGameEventHandler',
+  inject: ['eventBus'],
   props: [ 'avalon' ],
   data() {
       return {
@@ -29,16 +28,19 @@ export default {
   methods: {
       startGameDialogClosed() {
           this.startGameDialog = false;
-          EventBus.$emit('show-role');
+          this.eventBus.emit('show-role');
       }
   },
   mounted() {
-      EventBus.$on('GAME_STARTED', () => {
+      this.eventBus.on('GAME_STARTED', () => {
           this.startGameDialog = true;
       });
-      EventBus.$on('GAME_ENDED', () => {
+      this.eventBus.on('GAME_ENDED', () => {
           this.startGameDialog = false;
       });
+  },
+  beforeUnmount() {
+      // Clean up is handled by parent EventHandler
   }
 }
 </script>

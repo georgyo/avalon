@@ -1,43 +1,56 @@
-import Vue from 'vue'
-import Vuetify from 'vuetify'
+import { createApp } from 'vue'
 import App from './App.vue'
-import 'vuetify/dist/vuetify.min.css'
-import Toasted from 'vue-toasted';
+import vuetify from './plugins/vuetify'
+import Toast from 'vue-toastification'
+import 'vue-toastification/dist/index.css'
 import '@mdi/font/css/materialdesignicons.css'
 import '@fortawesome/fontawesome-free/css/all.min.css'
 import { library } from '@fortawesome/fontawesome-svg-core'
-import { FontAwesomeIcon, FontAwesomeLayers, FontAwesomeLayersText} from '@fortawesome/vue-fontawesome'
+import { FontAwesomeIcon, FontAwesomeLayers, FontAwesomeLayersText } from '@fortawesome/vue-fontawesome'
+import mitt from 'mitt'
 
 // importing icons which we need for layering and manipulations
 import { faCrown, faCircle as faSolidCircle, faEllipsisH, faVoteYea } from '@fortawesome/free-solid-svg-icons'
 import { faCircle, faTimesCircle, faCheckCircle, faThumbsUp, faThumbsDown } from '@fortawesome/free-regular-svg-icons'
 
-Vue.component('font-awesome-icon', FontAwesomeIcon); // Register component globally
-Vue.component('font-awesome-layers', FontAwesomeLayers);
-Vue.component('font-awesome-layers-text', FontAwesomeLayersText);
-
 library.add(faCrown, faSolidCircle, faCircle,
   faTimesCircle, faCheckCircle, faThumbsDown, faThumbsUp,
-  faEllipsisH, faVoteYea);
+  faEllipsisH, faVoteYea)
 // the line below would add EVERYTHING, so would bloat the size
 //library.add(far, fas);
 
-const opts = {
-  iconfont: 'mdiSvg',
-  //dark: true,
-}
-Vue.use(Vuetify, opts)
+// Create mitt event emitter for EventBus replacement
+export const eventBus = mitt()
 
-export const EventBus = new Vue();
+const app = createApp(App)
 
-Vue.config.productionTip = false
+// Register FontAwesome components globally
+app.component('font-awesome-icon', FontAwesomeIcon)
+app.component('font-awesome-layers', FontAwesomeLayers)
+app.component('font-awesome-layers-text', FontAwesomeLayersText)
 
-Vue.use(Toasted,
-  { position: 'top-center',
-    fullWidth: true,
-    duration: 2000 });
+// Provide event bus globally
+app.provide('eventBus', eventBus)
 
-new Vue({
-  vuetify: new Vuetify(opts),
-  render: h => h(App),
-}).$mount('#app')
+// Configure toast
+app.use(Toast, {
+  position: 'top-center',
+  timeout: 2000,
+  closeOnClick: true,
+  pauseOnFocusLoss: true,
+  pauseOnHover: true,
+  draggable: true,
+  draggablePercent: 0.6,
+  showCloseButtonOnHover: false,
+  hideProgressBar: false,
+  closeButton: 'button',
+  icon: true,
+  rtl: false,
+  transition: 'Vue-Toastification__bounce',
+  maxToasts: 20,
+  newestOnTop: true
+})
+
+app.use(vuetify)
+
+app.mount('#app')

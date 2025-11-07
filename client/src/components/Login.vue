@@ -1,9 +1,9 @@
 <template>
-  <v-container justify-center class="cyan lighten-5">
-    <v-layout align-center justify-center column fill-height>
+  <v-container justify-center class="bg-cyan-lighten-5">
+    <div class="d-flex flex-column align-center justify-center fill-height">
     <template v-if='!showLobbyInput'>
       <v-text-field
-        label="Your Name" @input="name = name.toUpperCase()" ref='nameTextField' v-model="name" :error-messages='errorMsg' autofocus>          
+        label="Your Name" @input="name = name.toUpperCase()" ref='nameTextField' v-model="name" :error-messages='errorMsg' autofocus>
       </v-text-field>
       <v-btn
        :disabled='!name' @click='createLobby()' :loading="isCreatingLobby">
@@ -24,7 +24,7 @@
    </template>
   <div style='padding-top: 30px'></div>
   <StatsDisplay :stats='avalon.user.stats' :globalStats='avalon.globalStats'></StatsDisplay>
-  </v-layout>
+  </div>
   </v-container>
 </template>
 

@@ -1,31 +1,33 @@
 <template>
   <div id="app">
-    <v-app class="indigo darken-2">
+    <v-app>
       <EventHandler :avalon='avalon'></EventHandler>
-      <v-container fill-height justify-center v-if='!avalon.initialized'>
+      <v-container v-if='!avalon.initialized' class="fill-height d-flex justify-center align-center">
         <v-progress-circular
                indeterminate
                :size="150"
                color="yellow"></v-progress-circular>
       </v-container>
       <template v-else>
-        <v-main class="indigo darken-2">
-        <v-container v-if='!avalon.isLoggedIn' fill-height justify-center>
+        <v-main>
+        <v-container v-if='!avalon.isLoggedIn' class="fill-height d-flex justify-center align-center">
           <UserLogin :avalon='avalon' />
         </v-container>
         <template v-else>
           <Toolbar :avalon='avalon'></Toolbar>
-            <v-container>          
-              <v-layout align-center justify-center column fill-height>
-                <Login
-                  :avalon='avalon'
-                  v-if="!avalon.isInLobby"
-                />
-                <Lobby
-                  v-bind:avalon='avalon'
-                  v-else-if='!avalon.isGameInProgress' />
-                <Game :avalon='avalon' v-else />
-              </v-layout>
+            <v-container>
+              <v-row class="fill-height align-center justify-center">
+                <v-col cols="12" class="d-flex flex-column align-center">
+                  <Login
+                    :avalon='avalon'
+                    v-if="!avalon.isInLobby"
+                  />
+                  <Lobby
+                    v-bind:avalon='avalon'
+                    v-else-if='!avalon.isGameInProgress' />
+                  <Game :avalon='avalon' v-else />
+                </v-col>
+              </v-row>
             </v-container>
         </template>
         </v-main>
@@ -36,7 +38,7 @@
 
 <script>
 import AvalonGame from './avalon.js'
-import { EventBus } from './main.js'
+import { eventBus } from './main.js'
 import Toolbar from './components/Toolbar.vue'
 import EventHandler from './components/EventHandler.vue'
 import Login from './components/Login.vue'
@@ -46,12 +48,13 @@ import UserLogin from './components/UserLogin.vue'
 
 export default {
   name: 'app',
+  inject: ['eventBus'],
   data() {
     return {
       avalon: new AvalonGame(this.eventCallback.bind(this)),
     }
   },
-  created: function() {
+  created() {
     this.avalon.init();
   },
   components: {
@@ -65,7 +68,7 @@ export default {
   methods: {
     eventCallback() {
       console.debug('event callback', ...arguments);
-      EventBus.$emit(...arguments);
+      this.eventBus.emit(...arguments);
     },
   },
 }

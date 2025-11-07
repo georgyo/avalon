@@ -1,6 +1,6 @@
 <template>
-  <v-card class="welcome cyan lighten-5">
-    <v-layout align-center justify-center column fill-height>
+  <v-card class="welcome bg-cyan-lighten-5">
+    <div class="d-flex flex-column align-center justify-center fill-height">
       <v-card-title>
 
        <v-alert
@@ -44,7 +44,7 @@
           </v-btn>
         </template>
         <template v-else>
-          <v-card xs6 md3 class="blue-grey lighten-4">
+          <v-card xs6 md3 class="bg-blue-grey-lighten-4">
             <v-card-text class="text-center">
                 <p>Check your email for the verification link</p>
             </v-card-text>
@@ -63,17 +63,17 @@
     </v-tab-item>
       </v-tabs-items>
 
-        </v-layout>
-      <v-layout column align-end>
-        <v-flex class='mt-4 pt-4'>
+        </div>
+      <div class="d-flex flex-column align-end">
+        <v-col cols="12" class='mt-4 pt-4'>
           <v-btn small href='mailto:avalon@shamm.as' target="_blank" color='grey lighten-2'>
-            <v-icon left small>
+            <v-icon start small>
               fas fa-envelope-square
             </v-icon>
             <span>Email</span>
           </v-btn>
-        </v-flex>
-      </v-layout>
+        </v-col>
+      </div>
   </v-card>
 </template>
 

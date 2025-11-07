@@ -1,9 +1,9 @@
 <template>
-  <v-list class="blue-grey lighten-4">
+  <v-list class="bg-blue-grey-lighten-4">
     <v-list-item
      v-for="(playerName) in avalon.game.players"
       :key="playerName">
-    <v-flex xs2> 
+    <v-col cols="2">
       <v-checkbox
        color="indigo darken-2"
        v-if="enableCheckboxes(playerName)"
@@ -14,12 +14,12 @@
         v-bind:ripple='false'
         color="indigo lighten-1"
         readonly></v-checkbox>
-    </v-flex>
-    <v-flex xs2>
+    </v-col>
+    <v-col cols="2">
       <template v-if='avalon.game.currentProposer == playerName'>
         <v-tooltip bottom>
-          <template v-slot:activator="{ on }">
-            <font-awesome-layers  v-on="on" style="font-size: 1.8em">
+          <template v-slot:activator="{ props }">
+            <font-awesome-layers  v-bind="props" style="font-size: 1.8em">
               <font-awesome-icon :color='crownColor' :icon='["fas", "crown"]'></font-awesome-icon>
               <font-awesome-layers-text style="font-size: 0.5em"
               :value="avalon.game.currentProposalIdx + 1" transform="down-4 right-4"></font-awesome-layers-text>
@@ -29,11 +29,11 @@
         </v-tooltip>
       </template>
       <template v-else-if='playerName == avalon.game.hammer'>
-        <v-layout align-center justify-center fill-height>
-        <v-icon small left>
+        <div class="d-flex align-center justify-center fill-height">
+        <v-icon small start>
           fas fa-hammer
         </v-icon>
-        </v-layout>
+        </div>
         <!-- commenting this out because I can't figure out how to get this to work reliably
              it works after refresh, but the entire element within the v-tooltip disappears after
              a mission gets sent. i cannot figure out why.
@@ -46,15 +46,15 @@
           <span>{{ playerName }} will be the last chance to send a team this round</span>
         </v-tooltip>         -->
       </template>
-    </v-flex>
-      <v-flex xs7>
+    </v-col>
+      <v-col cols="7">
         {{playerName}}
-      </v-flex>
-    <v-flex xs1>
+      </v-col>
+    <v-col cols="1">
         <div>
         <v-tooltip bottom v-if='tooltipText(playerName)'>
-         <template v-slot:activator="{ on }">
-          <font-awesome-layers style="font-size: 1.4em" v-on="on">
+         <template v-slot:activator="{ props }">
+          <font-awesome-layers style="font-size: 1.4em" v-bind="props">
             <font-awesome-icon
              v-if="wasOnLastTeamProposed(playerName)"
              color="#629ec1"
@@ -74,8 +74,8 @@
         <span>{{ tooltipText(playerName) }}</span>
         </v-tooltip>
         </div>
-    </v-flex>
-  </v-list-item> 
+    </v-col>
+  </v-list-item>
   </v-list>
 </template>
 

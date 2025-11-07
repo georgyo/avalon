@@ -1,5 +1,5 @@
 <template>
-  <v-layout align-center column>
+  <div class="d-flex flex-column align-center">
   <table>
     <thead>
       <tr class='stats-header font-weight-medium'>
@@ -42,10 +42,10 @@
         </tr>
     </tbody>
   </table>
-  <v-flex pt-2>
-    <div pt-12>Total Playtime: {{ playtime }} </div>
-  </v-flex>
-  </v-layout>
+  <v-col cols="12" class="pt-2">
+    <div class="pt-12">Total Playtime: {{ playtime }} </div>
+  </v-col>
+  </div>
 </template>
 <script>
 export default {
