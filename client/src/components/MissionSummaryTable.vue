@@ -25,9 +25,9 @@
       </td>
       <td v-if='missionVotes' :key='player + "_mission" + missions.indexOf(mission)' class='mission-result'>
         <template v-if='mission.team.includes(player)'>
-          <v-icon small v-if='missionVotes[missions.indexOf(mission)][player]'
-            color='green'> fas fa-check-circle </v-icon>
-          <v-icon small v-else color="red"> fas fa-times-circle </v-icon>
+          <v-icon size="small" v-if='missionVotes[missions.indexOf(mission)][player]'
+            color='green' icon="fa:fas fa-check-circle"></v-icon>
+          <v-icon size="small" v-else color="red" icon="fa:fas fa-times-circle"></v-icon>
         </template>
       </td>
       </template>

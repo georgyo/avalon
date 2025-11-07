@@ -1,9 +1,7 @@
 <template>
   <v-app-bar class='bg-blue-darken-1' elevation="1">
     <template v-if="avalon.lobby && avalon.lobby.name && avalon.user && avalon.user.name">
-    <v-icon>
-      room
-    </v-icon>
+    <v-icon icon="room"></v-icon>
      <span class="font-weight-bold text-cyan-lighten-5 ml-2">{{ avalon.lobby.name }}</span>
     <v-spacer></v-spacer>
     <ViewRoleButton />

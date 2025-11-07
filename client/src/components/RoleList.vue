@@ -12,12 +12,12 @@
     </v-col>
       <v-col cols="10">
         <!-- setting 'end' property if we allow select to give space between checkbox at the start -->
-        <v-icon :end='allowSelect' v-if='role.team == "good"'>fab fa-old-republic</v-icon>
-        <v-icon :end='allowSelect' v-else color="red">fas fa-empire</v-icon>
+        <v-icon :end='allowSelect' v-if='role.team == "good"' icon="fa:fab fa-old-republic"></v-icon>
+        <v-icon :end='allowSelect' v-else color="red" icon="fa:fas fa-empire"></v-icon>
         {{role.name}}
       </v-col>
     <v-col cols="2">
-      <v-btn icon @click='showRoleInfo(role)'><v-icon>info</v-icon>
+      <v-btn icon @click='showRoleInfo(role)'><v-icon icon="info"></v-icon>
       </v-btn>
     </v-col>
   </v-list-item>
@@ -25,8 +25,8 @@
   <v-dialog v-model="roleInfo" max-width='450'>
     <v-card class="bg-cyan-lighten-4">
         <v-card-title class="bg-cyan-lighten-2">
-          <v-icon start v-if='selectedRole.team == "good"'>fab fa-old-republic</v-icon>
-          <v-icon start v-else color="red">fas fa-empire</v-icon>
+          <v-icon start v-if='selectedRole.team == "good"' icon="fa:fab fa-old-republic"></v-icon>
+          <v-icon start v-else color="red" icon="fa:fas fa-empire"></v-icon>
           <h3>{{ selectedRole.name }}</h3>
         </v-card-title>
         <v-card-text>

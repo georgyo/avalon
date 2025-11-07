@@ -30,9 +30,7 @@
       </template>
       <template v-else-if='playerName == avalon.game.hammer'>
         <div class="d-flex align-center justify-center fill-height">
-        <v-icon small start>
-          fas fa-hammer
-        </v-icon>
+        <v-icon size="small" icon="fa:fas fa-hammer"></v-icon>
         </div>
         <!-- commenting this out because I can't figure out how to get this to work reliably
              it works after refresh, but the entire element within the v-tooltip disappears after

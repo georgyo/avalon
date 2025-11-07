@@ -65,7 +65,7 @@
       Enable in-game log display
     </v-flex>
     <v-flex xs2>
-      <v-btn icon @click='showOptionGameLog = true'><v-icon>info</v-icon>
+      <v-btn icon @click='showOptionGameLog = true'><v-icon icon="info"></v-icon>
       </v-btn>
     </v-flex>
   </v-list-tile> 
@@ -81,9 +81,7 @@
      :loading='startingGame'
      @click='startGame()'
     >
-        <v-icon start>
-          play_arrow
-        </v-icon>
+        <v-icon start icon="play_arrow"></v-icon>
       Start Game
     </v-btn>
     <v-card v-else class="bg-blue-grey-lighten-4" style="max-width: 400px;">
@@ -95,9 +93,7 @@
   <v-row class="pt-12">
     <v-col cols="12" class="d-flex justify-end">
       <v-btn size="small" block href='mailto:avalon@shamm.as' target="_blank" color='grey-lighten-1'>
-        <v-icon start size="small">
-          fas fa-envelope-square
-        </v-icon>
+        <v-icon start size="small" icon="fa:fas fa-envelope-square"></v-icon>
          <span>Send feedback</span>
       </v-btn>
     </v-col>

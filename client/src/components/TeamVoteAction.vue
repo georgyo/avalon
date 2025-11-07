@@ -9,15 +9,15 @@
         <v-btn @click='teamVote(true)'
          v-bind:loading='loadingState.yes'
          v-bind:disabled='disabledState.yes'>
-            <v-icon v-if='votedState.yes' start color='green'>fas fa-vote-yea</v-icon>
-            <v-icon v-else start color="green">far fa-thumbs-up</v-icon>
+            <v-icon v-if='votedState.yes' start color='green' icon="fa:fas fa-vote-yea"></v-icon>
+            <v-icon v-else start color="green" icon="fa:far fa-thumbs-up"></v-icon>
             Approve
         </v-btn>
         <v-btn @click='teamVote(false)'
          v-bind:loading='loadingState.no'
          v-bind:disabled='disabledState.no'>
-          <v-icon v-if='votedState.no' start color='red'>fas fa-vote-yea</v-icon>
-          <v-icon v-else start color="red">far fa-thumbs-down</v-icon>
+          <v-icon v-if='votedState.no' start color='red' icon="fa:fas fa-vote-yea"></v-icon>
+          <v-icon v-else start color="red" icon="fa:far fa-thumbs-down"></v-icon>
             Reject
         </v-btn>
         </div>

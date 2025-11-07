@@ -4,11 +4,11 @@
         <v-card-title class="cyan-lighten-2">
             <div class='text-h5'>
                 <span v-if="mission.state == 'SUCCESS'">
-                    <v-icon left color="green">fas fa-check-circle</v-icon>
+                    <v-icon left color="green" icon="fa:fas fa-check-circle"></v-icon>
                     Mission Succeeded!
                 </span>
                 <span v-else>
-                    <v-icon left color="red">fas fa-times-circle</v-icon>
+                    <v-icon left color="red" icon="fa:fas fa-times-circle"></v-icon>
                     Mission Failed!
                 </span>
             </div>

@@ -23,10 +23,10 @@
         @end="onReorderList()">
         <template #item="{ element }">
         <v-list-item :key="element">
-          <v-icon start v-if="canDrag" class="handle">fas fa-bars</v-icon>
-          <v-icon start v-if="element == avalon.lobby.admin.name">star</v-icon>
-          <v-icon start v-else-if="element == avalon.user.name">perm_identity</v-icon>
-          <v-icon start v-else>person</v-icon>
+          <v-icon start v-if="canDrag" class="handle" icon="fa:fas fa-bars"></v-icon>
+          <v-icon start v-if="element == avalon.lobby.admin.name" icon="star"></v-icon>
+          <v-icon start v-else-if="element == avalon.user.name" icon="perm_identity"></v-icon>
+          <v-icon start v-else icon="person"></v-icon>
           <v-col cols="10">{{element}}</v-col>
           <v-col cols="1">
             <v-btn
@@ -36,7 +36,7 @@
               icon
               variant="text"
               color="black">
-              <v-icon>clear</v-icon>
+              <v-icon icon="clear"></v-icon>
             </v-btn>
           </v-col>
         </v-list-item>

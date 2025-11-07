@@ -7,11 +7,11 @@
       <div v-if='needsToVote'>
         <div class="d-flex align-center justify-space-between fill-height">
         <v-btn @click='missionVote(true)'>
-            <v-icon start color="green">fas fa-check-circle</v-icon>
+            <v-icon start color="green" icon="fa:fas fa-check-circle"></v-icon>
                 SUCCESS
             </v-btn>
         <v-btn @click='missionVote(false)'>
-          <v-icon start color="red">fas fa-times-circle</v-icon>
+          <v-icon start color="red" icon="fa:fas fa-times-circle"></v-icon>
             FAIL
         </v-btn>
         </div>

@@ -2,10 +2,7 @@
   <v-bottom-sheet v-model="sheet">
     <template v-slot:activator="{ props }">
       <v-btn v-bind="props">
-        <v-icon start>
-          perm_identity
-          <!-- person -->
-        </v-icon>
+        <v-icon start icon="perm_identity"></v-icon>
         {{ avalon.user.name }}
       </v-btn>
     </template>
@@ -25,8 +22,8 @@
       </template>
       <template v-else>
       <v-card-title class="bg-cyan-lighten-2">
-          <v-icon start v-if='avalon.lobby.role.role.team == "good"'>fab fa-old-republic</v-icon>
-          <v-icon start v-else color="red">fas fa-empire</v-icon>
+          <v-icon start v-if='avalon.lobby.role.role.team == "good"' icon="fa:fab fa-old-republic"></v-icon>
+          <v-icon start v-else color="red" icon="fa:fas fa-empire"></v-icon>
           <span class='text-h5'>{{ avalon.lobby.role.role.name }}</span>
       </v-card-title>
       <v-card-text>
