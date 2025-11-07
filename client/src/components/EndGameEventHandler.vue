@@ -20,7 +20,7 @@
                :roles='roleAssignments'
                :missionVotes='avalon.game.outcome.votes' />
             </v-container>
-            <Achievements :avalon='avalon' />
+            <Achievements />
             </div>
         </v-card-text>
         <v-card-actions>
@@ -31,60 +31,59 @@
     </v-dialog>
 </template>
 
-<script>
+<script setup>
+import { ref, computed, onMounted, inject } from 'vue'
+import { useAvalonStore } from '../stores/avalon'
 import Achievements from './Achievements.vue'
 import MissionSummaryTable from './MissionSummaryTable.vue'
 
-export default {
-  name: 'EndGameEventHandler',
-  inject: ['eventBus'],
-  props: [ 'avalon' ],
-  components: {
-      Achievements,
-      MissionSummaryTable
-  },
-  data() {
-      return {
-          endGameDialog: false,
-      }
-  },
-  computed: {
-      title() {
-          switch (this.avalon.game.outcome.state) {
-              case 'GOOD_WIN': return 'Good wins!';
-              case 'EVIL_WIN': return 'Evil wins!';
-              case 'CANCELED': return 'Game Canceled';
-              default: return this.avalon.game.outcome.state;
-          }
-      },
-      roleAssignments() {
-        return this.avalon.game.outcome.roles.slice(0).sort((a,b) => {
-          let roleIndexOf = (name) => this.avalon.config.roles.findIndex(r => r.name == name);
-          return roleIndexOf(a.role) - roleIndexOf(b.role);
-        });
-      },
-      missions() {
-          return this.avalon.game.missions.filter(m => m.proposals.filter(p => p.state != 'PENDING').length > 0);
-      }
-  },
-  methods: {
-      endGameDialogClosed() {
-          this.endGameDialog = false;
-      }
-  },
-  mounted() {
-      this.eventBus.on('GAME_ENDED', () => {
-          this.endGameDialog = true;
-      });
-      this.eventBus.on('GAME_STARTED', () => {
-          // time to start new game!
-          this.endGameDialog = false;
-      });
-  },
-  beforeUnmount() {
-      // Clean up is handled by parent EventHandler
+const eventBus = inject('eventBus')
+const avalonStore = useAvalonStore()
+const endGameDialog = ref(false)
+
+const avalon = computed(() => avalonStore.getAvalon())
+
+const title = computed(() => {
+  if (!avalon.value?.game?.outcome) return ''
+
+  switch (avalon.value.game.outcome.state) {
+    case 'GOOD_WIN': return 'Good wins!'
+    case 'EVIL_WIN': return 'Evil wins!'
+    case 'CANCELED': return 'Game Canceled'
+    default: return avalon.value.game.outcome.state
   }
+})
+
+const roleAssignments = computed(() => {
+  if (!avalon.value?.game?.outcome?.roles || !avalon.value?.config?.roles) return []
+
+  return avalon.value.game.outcome.roles.slice(0).sort((a, b) => {
+    const roleIndexOf = (name) => avalon.value.config.roles.findIndex(r => r.name == name)
+    return roleIndexOf(a.role) - roleIndexOf(b.role)
+  })
+})
+
+const missions = computed(() => {
+  if (!avalon.value?.game?.missions) return []
+
+  return avalon.value.game.missions.filter(m =>
+    m.proposals.filter(p => p.state != 'PENDING').length > 0
+  )
+})
+
+const endGameDialogClosed = () => {
+  endGameDialog.value = false
 }
+
+onMounted(() => {
+  eventBus.on('GAME_ENDED', () => {
+    endGameDialog.value = true
+  })
+
+  eventBus.on('GAME_STARTED', () => {
+    endGameDialog.value = false
+  })
+})
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->

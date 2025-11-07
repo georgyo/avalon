@@ -5,21 +5,18 @@
   </v-btn>
 </template>
 
-<script>
-export default {
-  name: 'LogoutButton',
-  props: [ 'avalon' ],
-  data() {
-      return {
-          loggingOut: false
-      };
-  },
-  methods: {
-      logoutButtonClicked() {
-          this.loggingOut = true;
-          this.avalon.logout();
-      }
-  }
+<script setup>
+import { ref, computed } from 'vue'
+import { useAvalonStore } from '../stores/avalon.js'
+
+const avalonStore = useAvalonStore()
+const avalon = computed(() => avalonStore.getAvalon())
+
+const loggingOut = ref(false)
+
+function logoutButtonClicked() {
+  loggingOut.value = true
+  avalon.value.logout()
 }
 </script>
 <!-- Add "scoped" attribute to limit CSS to this component only -->

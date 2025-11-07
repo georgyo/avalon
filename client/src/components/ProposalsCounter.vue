@@ -9,11 +9,12 @@
 </v-container>
 </template>
 
-<script>
-export default {
-  name: 'ProposalCounter',
-  props: [ 'avalon' ],
-}
+<script setup>
+import { computed } from 'vue'
+import { useAvalonStore } from '../stores/avalon.js'
+
+const avalonStore = useAvalonStore()
+const avalon = computed(() => avalonStore.getAvalon())
 </script>
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>

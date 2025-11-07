@@ -44,38 +44,31 @@
     </v-tabs>
 </template>
 
-<script>
+<script setup>
+import { ref, computed, watch } from 'vue'
+import { useAvalonStore } from '../stores/avalon.js'
 import MissionSummaryTable from './MissionSummaryTable.vue'
 
-export default {
-  name: 'Missions',
-  components: {
-      MissionSummaryTable
-  },
-  props: [ 'avalon' ],
-  data() {
-    return {
-      activeMissionTab: 0
-    }
-  },
-  methods: {
-    isFutureMission: function(mission, idx) {
-      return (idx > 0) && (this.avalon.game.missions[idx - 1].state == 'PENDING');
-    },
-    classForMission: function(mission) {
-      if (mission.state == 'FAIL') return 'red lighten-4';
-      if (mission.state == 'SUCCESS') return 'green lighten-4';
-      return 'blue-grey lighten-4';
-    }
-  },
-  watch: {
-    'avalon.lobby.game.currentMissionIdx'(val) {
-      if ((val >= 0) && (val < 5)) {
-        this.activeMissionTab = val;
-      }
-    }
-  }
+const avalonStore = useAvalonStore()
+const avalon = computed(() => avalonStore.getAvalon())
+
+const activeMissionTab = ref(0)
+
+function isFutureMission(mission, idx) {
+  return (idx > 0) && (avalon.value.game.missions[idx - 1].state == 'PENDING')
 }
+
+function classForMission(mission) {
+  if (mission.state == 'FAIL') return 'red lighten-4'
+  if (mission.state == 'SUCCESS') return 'green lighten-4'
+  return 'blue-grey lighten-4'
+}
+
+watch(() => avalon.value.lobby.game.currentMissionIdx, (val) => {
+  if ((val >= 0) && (val < 5)) {
+    activeMissionTab.value = val
+  }
+})
 </script>
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>

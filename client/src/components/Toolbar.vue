@@ -6,32 +6,27 @@
     </v-icon>
      <span class="font-weight-bold text-cyan-lighten-5 ml-2">{{ avalon.lobby.name }}</span>
     <v-spacer></v-spacer>
-    <ViewRoleButton :avalon='avalon'></ViewRoleButton>
+    <ViewRoleButton />
     <v-spacer></v-spacer>
-    <ToolbarQuitButton :avalon='avalon'></ToolbarQuitButton>
+    <ToolbarQuitButton />
     </template>
     <template v-else>
       <span>{{ avalon.user.email }}</span>
       <v-spacer></v-spacer>
-      <LogoutButton :avalon='avalon' />
+      <LogoutButton />
     </template>
   </v-app-bar>
 </template>
 
-<script>
-import ToolbarQuitButton from './ToolbarQuitButton.vue';
+<script setup>
+import { computed } from 'vue'
+import { useAvalonStore } from '@/stores/avalon'
+import ToolbarQuitButton from './ToolbarQuitButton.vue'
 import ViewRoleButton from './ViewRoleButton.vue'
 import LogoutButton from './LogoutButton.vue'
 
-export default {
-  name: 'Toolbar',
-  components: {
-    ToolbarQuitButton,
-    ViewRoleButton,
-    LogoutButton
-  },
-  props: [ 'avalon' ]
- }
+const avalonStore = useAvalonStore()
+const avalon = computed(() => avalonStore.getAvalon())
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->

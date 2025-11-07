@@ -28,75 +28,73 @@
   </v-container>
 </template>
 
-<script>
+<script setup>
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
+import { useAvalonStore } from '@/stores/avalon'
 import StatsDisplay from './StatsDisplay.vue'
 
-export default {
-  name: 'Login',
-  components: {
-    StatsDisplay
-  },
-  data() {
-    return {
-      name: this.avalon.user ? this.avalon.user.name : '',
-      lobby: '',
-      alertTimeoutTimer: null,
-      errorMsg: '',
-      showLobbyInput: false,
-      isJoiningLobby: false,
-      isCreatingLobby: false
-    };
-  },
-  props: {
-    avalon: Object
-  },
-  methods: {
-    genericLogin(loadingValue, loginPromise) {
-      this[loadingValue] = true;
-      loginPromise.catch(
-        (err) => this.showErrorMessage(err)).finally(
-          () => this[loadingValue] = false);
-    },
-    createLobby() {
-      this.genericLogin('isCreatingLobby', this.avalon.createLobby(this.name));
-    },
-    joinLobby() {
-      this.genericLogin('isJoiningLobby', this.avalon.joinLobby(this.name, this.lobby));
-    },
-    showErrorMessage(errMsg) {
-      const vm = this;
-      if (vm.alertTimeoutTimer != null) {
-        clearTimeout(vm.alertTimeoutTimer);
-      }
-      vm.errorMsg = errMsg.toString();
-      this.alertTimeoutTimer = setTimeout(() => {
-        vm.alertTimeoutTimer = null;
-        vm.errorMsg = '';
-      }, 5000);
-    },
-    setInputWidth(field) {
-      const size = 20;
-      this.$refs[field].$el.getElementsByTagName('input')[0].setAttribute('size', size);
-    }
-  },
-  mounted: function() {
-    this.setInputWidth('nameTextField');
-    document.title = 'Avalon - ' + (this.name ? this.name : this.avalon.user.email);
-  },
-  watch: {
-    showLobbyInput: function() {
-      const vm = this;
-      let textField = 'lobbyTextField';
-      if (!this.showLobbyInput) {
-        textField = 'nameTextField';
-      }
-      this.$nextTick(() => {
-        vm.$refs[textField].$el.getElementsByTagName('input')[0].focus();
-        vm.setInputWidth(textField);
-      });
-    }
-  }
+const avalonStore = useAvalonStore()
+const avalon = computed(() => avalonStore.getAvalon())
+
+const nameTextField = ref(null)
+const lobbyTextField = ref(null)
+
+const name = ref(avalon.value.user ? avalon.value.user.name : '')
+const lobby = ref('')
+const alertTimeoutTimer = ref(null)
+const errorMsg = ref('')
+const showLobbyInput = ref(false)
+const isJoiningLobby = ref(false)
+const isCreatingLobby = ref(false)
+
+function genericLogin(loadingValue, loginPromise) {
+  loadingValue.value = true
+  loginPromise.catch(
+    (err) => showErrorMessage(err)).finally(
+      () => loadingValue.value = false)
 }
+
+function createLobby() {
+  genericLogin(isCreatingLobby, avalon.value.createLobby(name.value))
+}
+
+function joinLobby() {
+  genericLogin(isJoiningLobby, avalon.value.joinLobby(name.value, lobby.value))
+}
+
+function showErrorMessage(errMsg) {
+  if (alertTimeoutTimer.value != null) {
+    clearTimeout(alertTimeoutTimer.value)
+  }
+  errorMsg.value = errMsg.toString()
+  alertTimeoutTimer.value = setTimeout(() => {
+    alertTimeoutTimer.value = null
+    errorMsg.value = ''
+  }, 5000)
+}
+
+function setInputWidth(field) {
+  const size = 20
+  const fieldRef = field === 'nameTextField' ? nameTextField : lobbyTextField
+  fieldRef.value.$el.getElementsByTagName('input')[0].setAttribute('size', size)
+}
+
+onMounted(() => {
+  setInputWidth('nameTextField')
+  document.title = 'Avalon - ' + (name.value ? name.value : avalon.value.user.email)
+})
+
+watch(showLobbyInput, () => {
+  let textField = 'lobbyTextField'
+  if (!showLobbyInput.value) {
+    textField = 'nameTextField'
+  }
+  nextTick(() => {
+    const fieldRef = textField === 'nameTextField' ? nameTextField : lobbyTextField
+    fieldRef.value.$el.getElementsByTagName('input')[0].focus()
+    setInputWidth(textField)
+  })
+})
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->

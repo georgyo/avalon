@@ -24,39 +24,35 @@
   </v-card>
 </template>
 
-<script>
-import _ from 'lodash';
+<script setup>
+import { ref, computed } from 'vue'
+import { useAvalonStore } from '../stores/avalon.js'
+import _ from 'lodash'
 
-export default {
-  name: 'MissionAction',
-  props: [ 'avalon' ],
-  data() {
-      return {        
-          needsToVote: this.avalon.game.currentProposal.team.includes(this.avalon.user.name)
-      };
-  },
-  methods: {
-      missionVote(vote) {
-        // no loading state, we want to hide the results as fast as possible
-        this.needsToVote = false;
-        this.avalon.doMission(vote);
-      }
-  },
-  computed: {
-    stillWaitingFor() {
-      return _.difference(this.avalon.game.currentProposal.team,
-                          this.avalon.game.currentMission.team).filter(
-                            n => n != this.avalon.user.name);
-    },
-    waitingForText() {
-      if (this.stillWaitingFor.length > 0) {
-        return 'Waiting for ' + this.stillWaitingFor.joinWithAnd();
-      } else {
-        return 'Waiting for results...';
-      }
-    }
-  }
+const avalonStore = useAvalonStore()
+const avalon = computed(() => avalonStore.getAvalon())
+
+const needsToVote = ref(avalon.value.game.currentProposal.team.includes(avalon.value.user.name))
+
+function missionVote(vote) {
+  // no loading state, we want to hide the results as fast as possible
+  needsToVote.value = false
+  avalon.value.doMission(vote)
 }
+
+const stillWaitingFor = computed(() => {
+  return _.difference(avalon.value.game.currentProposal.team,
+                      avalon.value.game.currentMission.team).filter(
+                        n => n != avalon.value.user.name)
+})
+
+const waitingForText = computed(() => {
+  if (stillWaitingFor.value.length > 0) {
+    return 'Waiting for ' + stillWaitingFor.value.joinWithAnd()
+  } else {
+    return 'Waiting for results...'
+  }
+})
 </script>
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>

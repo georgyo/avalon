@@ -1,4 +1,5 @@
 import { createApp } from 'vue'
+import { createPinia } from 'pinia'
 import App from './App.vue'
 import vuetify from './plugins/vuetify'
 import Toast from 'vue-toastification'
@@ -23,6 +24,7 @@ library.add(faCrown, faSolidCircle, faCircle,
 export const eventBus = mitt()
 
 const app = createApp(App)
+const pinia = createPinia()
 
 // Register FontAwesome components globally
 app.component('font-awesome-icon', FontAwesomeIcon)
@@ -31,6 +33,9 @@ app.component('font-awesome-layers-text', FontAwesomeLayersText)
 
 // Provide event bus globally
 app.provide('eventBus', eventBus)
+
+// Use Pinia
+app.use(pinia)
 
 // Configure toast
 app.use(Toast, {

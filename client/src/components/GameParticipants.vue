@@ -5,7 +5,7 @@
           Players
       </v-tab>
       <v-tab-item>
-          <GamePlayerList :avalon='avalon' @selected-players='$emit("selected-players", $event)'></GamePlayerList>
+          <GamePlayerList @selected-players='$emit("selected-players", $event)'></GamePlayerList>
       </v-tab-item>
       <v-tab class="light-blue lighten-4">
           Roles
@@ -18,13 +18,14 @@
     </v-tabs>
 </template>
 
-<script>
+<script setup>
+import { computed } from 'vue'
+import { useAvalonStore } from '../stores/avalon.js'
 import GamePlayerList from './GamePlayerList.vue'
 import RoleList from './RoleList.vue'
 
-export default {
-  name: 'GameParticipants',
-  props: [ 'avalon' ],
-  components: { GamePlayerList, RoleList },
-}
+const emit = defineEmits(['selected-players'])
+
+const avalonStore = useAvalonStore()
+const avalon = computed(() => avalonStore.getAvalon())
 </script>

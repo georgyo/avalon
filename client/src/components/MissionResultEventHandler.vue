@@ -24,41 +24,40 @@
     </v-dialog>
 </template>
 
-<script>
-export default {
-  name: 'MissionResultEventHandler',
-  inject: ['eventBus'],
-  props: [ 'avalon' ],
-  data() {
-      return {
-          missionDialog: false
-      }
-  },
-  computed: {
-      mission() {
-        const curMissionIdx = (this.avalon.lobby.game.currentMissionIdx < 0) ?
-            this.avalon.lobby.game.missions.length : this.avalon.lobby.game.currentMissionIdx;
-          return this.avalon.lobby.game.missions[curMissionIdx - 1];
-      },
-      numFails() {
-          return this.mission.numFails;
-      }
-  },
-  mounted() {
-      this.eventBus.on('GAME_STARTED', () => {
-          this.missionDialog = false;
-      });
-      this.eventBus.on('GAME_ENDED', () => {
-          this.missionDialog = false;
-      });
-      this.eventBus.on('MISSION_RESULT', () => {
-          this.missionDialog = true;
-      });
-  },
-  beforeUnmount() {
-      // Clean up is handled by parent EventHandler
-  }
-}
+<script setup>
+import { ref, computed, onMounted, inject } from 'vue'
+import { useAvalonStore } from '../stores/avalon'
+
+const eventBus = inject('eventBus')
+const avalonStore = useAvalonStore()
+const missionDialog = ref(false)
+
+const mission = computed(() => {
+  const avalon = avalonStore.getAvalon()
+  if (!avalon?.lobby?.game) return null
+
+  const curMissionIdx = (avalon.lobby.game.currentMissionIdx < 0) ?
+    avalon.lobby.game.missions.length : avalon.lobby.game.currentMissionIdx
+  return avalon.lobby.game.missions[curMissionIdx - 1]
+})
+
+const numFails = computed(() => {
+  return mission.value?.numFails ?? 0
+})
+
+onMounted(() => {
+  eventBus.on('GAME_STARTED', () => {
+    missionDialog.value = false
+  })
+
+  eventBus.on('GAME_ENDED', () => {
+    missionDialog.value = false
+  })
+
+  eventBus.on('MISSION_RESULT', () => {
+    missionDialog.value = true
+  })
+})
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->

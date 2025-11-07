@@ -11,23 +11,22 @@
     </div>
   </div>
 </template>
-<script>
-import GameAnalysis from "@/avalon-analysis.js";
+<script setup>
+import { computed } from 'vue'
+import { useAvalonStore } from '../stores/avalon.js'
+import GameAnalysis from "@/avalon-analysis.js"
 
-export default {
-  name: "Achievements",
-  props: ["avalon"],
-  computed: {
-    badges() {
-      if (this.avalon.lobby.game.outcome.state == 'CANCELED') return [];
-      const gameAnalysis = new GameAnalysis(
-        this.avalon.lobby.game,
-        this.avalon.config.roleMap
-      );
-      return gameAnalysis.getBadges();
-    }
-  }
-};
+const avalonStore = useAvalonStore()
+const avalon = computed(() => avalonStore.getAvalon())
+
+const badges = computed(() => {
+  if (avalon.value.lobby.game.outcome.state == 'CANCELED') return []
+  const gameAnalysis = new GameAnalysis(
+    avalon.value.lobby.game,
+    avalon.value.config.roleMap
+  )
+  return gameAnalysis.getBadges()
+})
 </script>
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>

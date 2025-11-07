@@ -1,65 +1,70 @@
 <template>
   <div>
-      <StartGameEventHandler :avalon='avalon'></StartGameEventHandler>
-      <MissionResultEventHandler :avalon='avalon'></MissionResultEventHandler>
-      <EndGameEventHandler :avalon='avalon'></EndGameEventHandler>
+      <StartGameEventHandler />
+      <MissionResultEventHandler />
+      <EndGameEventHandler />
   </div>
 </template>
 
-<script>
-import { useToast } from 'vue-toastification'
+<script setup>
+import { onMounted, onBeforeUnmount, inject } from 'vue'
+import { useAvalonStore } from '../stores/avalon'
+import { useToast } from '../composables/useToast'
 import StartGameEventHandler from './StartGameEventHandler.vue'
 import EndGameEventHandler from './EndGameEventHandler.vue'
 import MissionResultEventHandler from './MissionResultEventHandler.vue'
 
-export default {
-  name: 'EventHandler',
-  inject: ['eventBus'],
-  props: [ 'avalon' ],
-  components: {
-      StartGameEventHandler,
-      EndGameEventHandler,
-      MissionResultEventHandler,
-  },
-  setup() {
-    const toast = useToast()
-    return { toast }
-  },
-  mounted() {
-    this.eventBus.on('LOBBY_CONNECTED', () => {
-      document.title = `Avalon - ${this.avalon.lobby.name} - ${this.avalon.user.name}`;
-    });
-    this.eventBus.on('LOBBY_NEW_ADMIN', () => {
-      if (this.avalon.isAdmin) {
-        this.toast("You are now lobby administrator");
-      } else {
-        this.toast(`${this.avalon.lobby.admin.name} became lobby administrator`);
-      }
-    });
-    this.eventBus.on('PROPOSAL_REJECTED', () => {
-      this.toast(`${this.avalon.lobby.game.lastProposal.proposer}'s team rejected`);
-    });
-    this.eventBus.on('PROPOSAL_APPROVED', () => {
-      this.toast(`${this.avalon.lobby.game.currentProposal.proposer}'s team approved`);
-    });
-    this.eventBus.on('TEAM_PROPOSED', () => {
-      this.toast(`${this.avalon.lobby.game.currentProposal.proposer} has proposed a team`);
-    });
-    this.eventBus.on('PLAYER_LEFT', (name) => {
-      this.toast(`${name} left the lobby`);
-    });
-    this.eventBus.on('PLAYER_JOINED', (name) => {
-      this.toast(`${name} joined the lobby`);
-    });
-    this.eventBus.on('DISCONNECTED_FROM_LOBBY', (lobby) => {
-      this.toast(`You've been disconnected from ${lobby}`);
-    });
-  },
-  beforeUnmount() {
-    // Clean up event listeners
-    this.eventBus.all.clear()
-  }
-}
+const eventBus = inject('eventBus')
+const avalonStore = useAvalonStore()
+const toast = useToast()
+
+onMounted(() => {
+  eventBus.on('LOBBY_CONNECTED', () => {
+    const avalon = avalonStore.getAvalon()
+    document.title = `Avalon - ${avalon.lobby.name} - ${avalon.user.name}`
+  })
+
+  eventBus.on('LOBBY_NEW_ADMIN', () => {
+    const avalon = avalonStore.getAvalon()
+    if (avalon.isAdmin) {
+      toast.show("You are now lobby administrator")
+    } else {
+      toast.show(`${avalon.lobby.admin.name} became lobby administrator`)
+    }
+  })
+
+  eventBus.on('PROPOSAL_REJECTED', () => {
+    const avalon = avalonStore.getAvalon()
+    toast.show(`${avalon.lobby.game.lastProposal.proposer}'s team rejected`)
+  })
+
+  eventBus.on('PROPOSAL_APPROVED', () => {
+    const avalon = avalonStore.getAvalon()
+    toast.show(`${avalon.lobby.game.currentProposal.proposer}'s team approved`)
+  })
+
+  eventBus.on('TEAM_PROPOSED', () => {
+    const avalon = avalonStore.getAvalon()
+    toast.show(`${avalon.lobby.game.currentProposal.proposer} has proposed a team`)
+  })
+
+  eventBus.on('PLAYER_LEFT', (name) => {
+    toast.show(`${name} left the lobby`)
+  })
+
+  eventBus.on('PLAYER_JOINED', (name) => {
+    toast.show(`${name} joined the lobby`)
+  })
+
+  eventBus.on('DISCONNECTED_FROM_LOBBY', (lobby) => {
+    toast.show(`You've been disconnected from ${lobby}`)
+  })
+})
+
+onBeforeUnmount(() => {
+  // Clean up event listeners
+  eventBus.all.clear()
+})
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->

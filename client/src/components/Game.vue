@@ -1,40 +1,31 @@
 <template>
 <div>
  <v-container>
-  <Missions :avalon='avalon'></Missions>
+  <Missions></Missions>
  </v-container>
  <v-container>
-  <GameParticipants v-on:selected-players='updateSelectedPlayers($event)' :avalon='avalon'></GameParticipants>
+  <GameParticipants v-on:selected-players='updateSelectedPlayers($event)'></GameParticipants>
  </v-container>
  <v-container>
-  <ActionPane :avalon='avalon' :selectedPlayers='selectedPlayers'></ActionPane>  
+  <ActionPane :selectedPlayers='selectedPlayers'></ActionPane>
   </v-container>
   </div>
 </template>
 
-<script>
+<script setup>
+import { ref, computed } from 'vue'
+import { useAvalonStore } from '@/stores/avalon'
 import Missions from './Missions.vue'
 import GameParticipants from './GameParticipants.vue'
 import ActionPane from './ActionPane.vue'
 
-export default {
-  name: 'Game',
-  components: {
-    Missions,
-    GameParticipants,
-    ActionPane,
-  },
-  props: [ 'avalon'],
-  data() {
-    return {
-      selectedPlayers: []
-    };
-  },
-  methods: {
-    updateSelectedPlayers(newList) {
-      this.selectedPlayers = newList;
-    },
-  },
+const avalonStore = useAvalonStore()
+const avalon = computed(() => avalonStore.getAvalon())
+
+const selectedPlayers = ref([])
+
+function updateSelectedPlayers(newList) {
+  selectedPlayers.value = newList
 }
 </script>
 

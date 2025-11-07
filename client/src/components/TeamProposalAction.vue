@@ -24,28 +24,27 @@
   </v-card>
 </template>
 
-<script>
-export default {
-  name: 'TeamProposalAction',
-  props: [ 'avalon', 'playerList' ],
-  data() {
-      return {
-          isProposing: false
-      };
-  },
-  computed: {
-      isValidSelection() {
-          return this.playerList.length == this.avalon.game.currentMission.teamSize;
-      }
-  },
-  methods: {
-      proposeTeam() {
-        this.isProposing = true;
-        this.avalon.proposeTeam(this.playerList);
-      }
-  }
-}
+<script setup>
+import { ref, computed } from 'vue'
+import { useAvalonStore } from '../stores/avalon.js'
 
+const props = defineProps({
+  playerList: Array
+})
+
+const avalonStore = useAvalonStore()
+const avalon = computed(() => avalonStore.getAvalon())
+
+const isProposing = ref(false)
+
+const isValidSelection = computed(() => {
+  return props.playerList.length == avalon.value.game.currentMission.teamSize
+})
+
+function proposeTeam() {
+  isProposing.value = true
+  avalon.value.proposeTeam(props.playerList)
+}
 </script>
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>

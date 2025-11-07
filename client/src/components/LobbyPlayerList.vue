@@ -43,52 +43,45 @@
   </div>
 </template>
 
-<script>
-import draggable from "vuedraggable";
+<script setup>
+import { ref, computed, watch } from 'vue'
+import { useAvalonStore } from '../stores/avalon.js'
+import draggable from "vuedraggable"
 
-export default {
-  name: "LobbyPlayerList",
-  components: {
-    draggable
-  },
-  props: ["avalon"],
-  computed: {
-    canDrag() {
-      return this.avalon.isAdmin && !this.avalon.isGameInProgress;
-    }
-  },
-  data() {
-    return {
-      playerList: this.avalon.config.playerList,
-      kickPlayerDialog: false,
-      playerToKick: "",
-      playersBeingKicked: []
-    };
-  },
-  methods: {
-    onReorderList() {
-      this.avalon.config.sortList(this.playerList);
-    },
-    kickPlayerConfirm(player) {
-      this.playerToKick = player;
-      this.kickPlayerDialog = true;
-    },
-    kickPlayer(player) {
-      this.kickPlayerDialog = false;
-      this.playersBeingKicked.push(player);
-      this.avalon.kickPlayer(player).finally(() =>
-          this.playersBeingKicked.splice(
-            this.playersBeingKicked.indexOf(player)
-          )
-        );
-    }
-  },
-  watch: {
-    "avalon.config.playerList": function(list) {
-      this.playerList = list;
-    }
-  }
-};
+const avalonStore = useAvalonStore()
+const avalon = computed(() => avalonStore.getAvalon())
+
+const playerList = ref(avalon.value.config.playerList)
+const kickPlayerDialog = ref(false)
+const playerToKick = ref("")
+const playersBeingKicked = ref([])
+
+const canDrag = computed(() => {
+  return avalon.value.isAdmin && !avalon.value.isGameInProgress
+})
+
+function onReorderList() {
+  avalon.value.config.sortList(playerList.value)
+}
+
+function kickPlayerConfirm(player) {
+  playerToKick.value = player
+  kickPlayerDialog.value = true
+}
+
+function kickPlayer(player) {
+  kickPlayerDialog.value = false
+  playersBeingKicked.value.push(player)
+  avalon.value.kickPlayer(player).finally(() =>
+    playersBeingKicked.value.splice(
+      playersBeingKicked.value.indexOf(player), 1
+    )
+  )
+}
+
+watch(() => avalon.value.config.playerList, (list) => {
+  playerList.value = list
+})
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->

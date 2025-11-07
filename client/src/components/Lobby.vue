@@ -16,7 +16,7 @@
     <v-col cols="12" sm="6">
       <v-container>
       <p class="text-cyan-lighten-4">Players</p>
-      <LobbyPlayerList v-bind:avalon='avalon' />
+      <LobbyPlayerList />
       <p v-if='avalon.isAdmin && avalon.config.playerList.length > 2'
         class="text-cyan-lighten-4 text-caption">Drag names to specify seating order</p>
       </v-container>
@@ -105,65 +105,61 @@
   </v-container>
 </template>
 
-<script>
+<script setup>
+import { ref, computed, inject, onMounted, onBeforeUnmount } from 'vue'
+import { useAvalonStore } from '@/stores/avalon'
 import avalonLib from '@/../../server/common/avalonlib.cjs'
 import LobbyPlayerList from './LobbyPlayerList.vue'
 import RoleList from './RoleList.vue'
 
-export default {
-  name: 'Lobby',
-  inject: ['eventBus'],
-  components: {
-    LobbyPlayerList,
-    RoleList
-  },
-  props: [ 'avalon' ],
-  data() {
-    return {
-      options: {
-        inGameLog: false
-      },
-      showOptionGameLog: false,
-      startingGame: false
-    }
-  },
-  created() {
-    this.eventBus.on('evt', () => console.log("event in lobby", ...arguments));
-  },
-  beforeUnmount() {
-      // Clean up is handled by parent EventHandler
-  },
-  computed: {
-    reasonToNotStartGame: function() {
-      if (this.avalon.config.playerList.length < 5) {
-        return 'Need at least 5 players! Invite your friends to lobby ' + this.avalon.lobby.name;
-      }
-      if (this.avalon.config.playerList.length > 10) {
-        return 'Cannot start game with more than 10 players';
-      }
-      if (!this.avalon.isAdmin) {
-        return 'Waiting for ' + this.avalon.lobby.admin.name + ' to start game...';
-      }
+const avalonStore = useAvalonStore()
+const avalon = computed(() => avalonStore.getAvalon())
+const eventBus = inject('eventBus')
 
-      return null;
-    },
-    canStartGame: function() {
-      return this.reasonToNotStartGame == null;
-    },
-    validTeamSize() {
-      return (this.avalon.config.playerList.length >= 5) && (this.avalon.config.playerList.length <= 10);
-    },
-    numEvilPlayers() {
-      return avalonLib.getNumEvilForGameSize(this.avalon.config.playerList.length);
-    }
-  },
-  methods: {
-    startGame: function() {
-      this.startingGame = true;
-      this.avalon.startGame(this.options);
-    }
+const options = ref({
+  inGameLog: false
+})
+const showOptionGameLog = ref(false)
+const startingGame = ref(false)
+
+const reasonToNotStartGame = computed(() => {
+  if (avalon.value.config.playerList.length < 5) {
+    return 'Need at least 5 players! Invite your friends to lobby ' + avalon.value.lobby.name
   }
- }
+  if (avalon.value.config.playerList.length > 10) {
+    return 'Cannot start game with more than 10 players'
+  }
+  if (!avalon.value.isAdmin) {
+    return 'Waiting for ' + avalon.value.lobby.admin.name + ' to start game...'
+  }
+
+  return null
+})
+
+const canStartGame = computed(() => {
+  return reasonToNotStartGame.value == null
+})
+
+const validTeamSize = computed(() => {
+  return (avalon.value.config.playerList.length >= 5) && (avalon.value.config.playerList.length <= 10)
+})
+
+const numEvilPlayers = computed(() => {
+  return avalonLib.getNumEvilForGameSize(avalon.value.config.playerList.length)
+})
+
+function startGame() {
+  startingGame.value = true
+  avalon.value.startGame(options.value)
+}
+
+onMounted(() => {
+  eventBus.on('evt', () => console.log("event in lobby", ...arguments))
+})
+
+onBeforeUnmount(() => {
+  // Clean up is handled by parent EventHandler
+})
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->

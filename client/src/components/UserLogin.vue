@@ -77,51 +77,52 @@
   </v-card>
 </template>
 
-<script>
+<script setup>
+import { ref, computed, onMounted } from 'vue'
+import { useAvalonStore } from '@/stores/avalon'
 
-export default {
-  name: 'UserLogin',
-  data() {
-    return {
-      tab: null,
-      emailAddr: '',
-      errorMessage: '',
-      isSubmittingEmailAddr: false,
-      emailSubmitted: false
-    };
-  },
-  props: {
-    avalon: Object
-  },
-  mounted() {
-    document.title = 'Avalon (Not Logged In)'
-  },  
-  methods: {
-    clearErrorMessage() {
-        this.errorMessage = '';
-    },
-    submitEmailAddress() {
-        this.isSubmittingEmailAddr = true;
-        this.clearErrorMessage();
-        this.avalon.confirmingEmailError = ''; // this is not very clean but eh
-        this.avalon.submitEmailAddr(this.emailAddr).then(function() {
-            this.emailSubmitted = true;
-        }.bind(this)).catch(function(err) {
-            this.errorMessage = err.message;
-        }.bind(this)).finally(function() {
-            this.isSubmittingEmailAddr = false;
-        }.bind(this));
-    },
-    signInAnonymously() {
-      this.clearErrorMessage();
-      this.avalon.signInAnonymously()
-      .then()
-      .catch((err) => this.errorMessage = err.message)
-    },
-    resetForm() {
-        this.emailSubmitted = false;
-    }
-  }
+const avalonStore = useAvalonStore()
+const avalon = computed(() => avalonStore.getAvalon())
+
+const tab = ref(null)
+const emailAddr = ref('')
+const errorMessage = ref('')
+const isSubmittingEmailAddr = ref(false)
+const emailSubmitted = ref(false)
+
+onMounted(() => {
+  document.title = 'Avalon (Not Logged In)'
+})
+
+function clearErrorMessage() {
+  errorMessage.value = ''
+}
+
+function submitEmailAddress() {
+  isSubmittingEmailAddr.value = true
+  clearErrorMessage()
+  avalon.value.confirmingEmailError = '' // this is not very clean but eh
+  avalon.value.submitEmailAddr(emailAddr.value)
+    .then(() => {
+      emailSubmitted.value = true
+    })
+    .catch((err) => {
+      errorMessage.value = err.message
+    })
+    .finally(() => {
+      isSubmittingEmailAddr.value = false
+    })
+}
+
+function signInAnonymously() {
+  clearErrorMessage()
+  avalon.value.signInAnonymously()
+    .then()
+    .catch((err) => errorMessage.value = err.message)
+}
+
+function resetForm() {
+  emailSubmitted.value = false
 }
 </script>
 

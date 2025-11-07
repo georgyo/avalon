@@ -19,34 +19,35 @@
   </v-card>
 </template>
 
-<script>
-export default {
-  name: 'AssassinationAction',
-  props: [ 'avalon', 'playerList' ],
-  data() {
-      return {
-          isAssassinating: false
-      }
-  },
-  methods: {
-      assassinate() {
-        this.isAssassinating = true;
-        this.avalon.assassinate(this.playerList[0]);
-      }
-  },
-  computed: {
-    isValidSelection() {
-        return (this.playerList.length == 1) &&
-                (this.playerList[0] != this.avalon.user.name);
-    },
-    assassinateButtonText() {
-        if (this.isValidSelection) {
-            return "Assassinate " + this.playerList[0];
-        } else {
-            return "Select target"
-        }
-    }
+<script setup>
+import { ref, computed } from 'vue'
+import { useAvalonStore } from '../stores/avalon.js'
+
+const props = defineProps({
+  playerList: Array
+})
+
+const avalonStore = useAvalonStore()
+const avalon = computed(() => avalonStore.getAvalon())
+
+const isAssassinating = ref(false)
+
+const isValidSelection = computed(() => {
+  return (props.playerList.length == 1) &&
+          (props.playerList[0] != avalon.value.user.name)
+})
+
+const assassinateButtonText = computed(() => {
+  if (isValidSelection.value) {
+    return "Assassinate " + props.playerList[0]
+  } else {
+    return "Select target"
   }
+})
+
+function assassinate() {
+  isAssassinating.value = true
+  avalon.value.assassinate(props.playerList[0])
 }
 </script>
 <!-- Add "scoped" attribute to limit CSS to this component only -->

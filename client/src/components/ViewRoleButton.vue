@@ -47,29 +47,25 @@
   </v-bottom-sheet>
 </template>
 
-<script>
+<script setup>
+import { ref, computed, inject, onMounted, onBeforeUnmount } from 'vue'
+import { useAvalonStore } from '@/stores/avalon'
 import StatsDisplay from './StatsDisplay.vue'
 
-export default {
-  name: 'ViewRoleButton',
-  inject: ['eventBus'],
-  components: {
-    StatsDisplay
-  },
-  props: [ 'avalon' ],
-  mounted() {
-      this.eventBus.on('show-role', () => this.sheet = true);
-      this.eventBus.on('GAME_ENDED', () => this.sheet = false);
-  },
-  beforeUnmount() {
-      // Clean up is handled by parent EventHandler
-  },
-  data() {
-      return {
-          sheet: false,
-      };
-  },
-}
+const avalonStore = useAvalonStore()
+const avalon = computed(() => avalonStore.getAvalon())
+const eventBus = inject('eventBus')
+
+const sheet = ref(false)
+
+onMounted(() => {
+  eventBus.on('show-role', () => sheet.value = true)
+  eventBus.on('GAME_ENDED', () => sheet.value = false)
+})
+
+onBeforeUnmount(() => {
+  // Clean up is handled by parent EventHandler
+})
 </script>
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>

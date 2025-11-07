@@ -15,34 +15,26 @@
     </v-dialog>
 </template>
 
-<script>
-export default {
-  name: 'StartGameEventHandler',
-  inject: ['eventBus'],
-  props: [ 'avalon' ],
-  data() {
-      return {
-          startGameDialog: false
-      }
-  },
-  methods: {
-      startGameDialogClosed() {
-          this.startGameDialog = false;
-          this.eventBus.emit('show-role');
-      }
-  },
-  mounted() {
-      this.eventBus.on('GAME_STARTED', () => {
-          this.startGameDialog = true;
-      });
-      this.eventBus.on('GAME_ENDED', () => {
-          this.startGameDialog = false;
-      });
-  },
-  beforeUnmount() {
-      // Clean up is handled by parent EventHandler
-  }
+<script setup>
+import { ref, onMounted, inject } from 'vue'
+
+const eventBus = inject('eventBus')
+const startGameDialog = ref(false)
+
+const startGameDialogClosed = () => {
+  startGameDialog.value = false
+  eventBus.emit('show-role')
 }
+
+onMounted(() => {
+  eventBus.on('GAME_STARTED', () => {
+    startGameDialog.value = true
+  })
+
+  eventBus.on('GAME_ENDED', () => {
+    startGameDialog.value = false
+  })
+})
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->

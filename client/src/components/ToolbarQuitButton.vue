@@ -28,41 +28,38 @@
   </v-dialog>
 </template>
 
-<script>
-export default {
-  name: 'ToolbarQuitButton',
-  props: [ 'avalon' ],
-  data() {
-      return {
-          quitting: false,
-          dialog: false
-      };
-  },
-  computed: {
-      actionDescription() {
-        if (this.avalon.isGameInProgress) {
-            return 'Cancel Game';
-        }
-        return 'Leave Lobby';
-      },
-      gameInProgressText() {
-          if (this.avalon.isGameInProgress) {
-              return 'The current game will be canceled!'
-          } else {
-              return '';
-          }
-      }
-  },
-  methods: {
-      quitButtonClicked() {
-          this.quitting = true;
-          this.dialog = false;
-          if (this.avalon.isGameInProgress) {
-              this.avalon.cancelGame().finally(() => this.quitting = false);
-          } else {
-              this.avalon.leaveLobby();
-          }
-      }
+<script setup>
+import { ref, computed } from 'vue'
+import { useAvalonStore } from '../stores/avalon.js'
+
+const avalonStore = useAvalonStore()
+const avalon = computed(() => avalonStore.getAvalon())
+
+const quitting = ref(false)
+const dialog = ref(false)
+
+const actionDescription = computed(() => {
+  if (avalon.value.isGameInProgress) {
+    return 'Cancel Game'
+  }
+  return 'Leave Lobby'
+})
+
+const gameInProgressText = computed(() => {
+  if (avalon.value.isGameInProgress) {
+    return 'The current game will be canceled!'
+  } else {
+    return ''
+  }
+})
+
+function quitButtonClicked() {
+  quitting.value = true
+  dialog.value = false
+  if (avalon.value.isGameInProgress) {
+    avalon.value.cancelGame().finally(() => quitting.value = false)
+  } else {
+    avalon.value.leaveLobby()
   }
 }
 </script>

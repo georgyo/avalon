@@ -25,41 +25,36 @@
     </v-card>
 </template>
 
-<script>
-export default {
-  name: 'TeamVoteAction',
-  props: [ 'avalon' ],
-  data() {
-      const hasVoted = this.avalon.game.currentProposal.votes.includes(this.avalon.user.name);
-      return {
-          // TODO: can use simple array as long as you use Vue.set (not direct assignment)
-          // see: https://vuejs.org/v2/guide/list.html#Caveats
-          loadingState: { yes: false, no: false } ,
-          disabledState: { yes: hasVoted, no: hasVoted },
-          votedState: { yes: false, no: false }          
-      };
-  },
-  computed: {
-      proposer() {
-          return (this.avalon.game.currentProposer == this.avalon.user.name) ?
-            'your' : this.avalon.game.currentProposer + "'s ";
-      },
-  },
-  methods: {
-      teamVote(vote) {
-          const myState = vote ? 'yes' : 'no';
-          const otherState = vote ? 'no' : 'yes';
-          this.loadingState[myState] = true;
-          this.disabledState[otherState] = true;
-          this.avalon.voteTeam(vote).finally(() => {
-              this.loadingState[myState] = false;
-              this.disabledState[myState] = true;
-              this.disabledState[otherState] = false;
-              this.votedState[myState] = true;
-              this.votedState[otherState] = false;
-          });
-      }
-  }
+<script setup>
+import { reactive, computed } from 'vue'
+import { useAvalonStore } from '../stores/avalon.js'
+
+const avalonStore = useAvalonStore()
+const avalon = computed(() => avalonStore.getAvalon())
+
+const hasVoted = avalon.value.game.currentProposal.votes.includes(avalon.value.user.name)
+
+const loadingState = reactive({ yes: false, no: false })
+const disabledState = reactive({ yes: hasVoted, no: hasVoted })
+const votedState = reactive({ yes: false, no: false })
+
+const proposer = computed(() => {
+  return (avalon.value.game.currentProposer == avalon.value.user.name) ?
+    'your' : avalon.value.game.currentProposer + "'s "
+})
+
+function teamVote(vote) {
+  const myState = vote ? 'yes' : 'no'
+  const otherState = vote ? 'no' : 'yes'
+  loadingState[myState] = true
+  disabledState[otherState] = true
+  avalon.value.voteTeam(vote).finally(() => {
+    loadingState[myState] = false
+    disabledState[myState] = true
+    disabledState[otherState] = false
+    votedState[myState] = true
+    votedState[otherState] = false
+  })
 }
 </script>
 <!-- Add "scoped" attribute to limit CSS to this component only -->
