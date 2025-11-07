@@ -1,13 +1,13 @@
 <template>
   <v-dialog v-model="dialog" max-width='450'>
-    <template v-slot:activator="{ on }">
-        <v-btn slot="activator" v-on="on" light :loading='quitting'>
-        <v-icon left>exit_to_app</v-icon>
+    <template v-slot:activator="{ props }">
+        <v-btn v-bind="props" light :loading='quitting'>
+        <v-icon>exit_to_app</v-icon>
         Quit
         </v-btn>
     </template>
-    <v-card class="cyan lighten-4">
-      <v-card-title class="cyan lighten-2">
+    <v-card class="cyan-lighten-4">
+      <v-card-title class="cyan-lighten-2">
           <h3>{{ actionDescription }}?</h3>
       </v-card-title>
       <v-card-text>
@@ -28,7 +28,7 @@
   </v-dialog>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useAvalonStore } from '../stores/avalon'
 
@@ -53,7 +53,7 @@ const gameInProgressText = computed(() => {
   }
 })
 
-function quitButtonClicked() {
+function quitButtonClicked(): void {
   quitting.value = true
   dialog.value = false
   if (avalon.value.isGameInProgress) {

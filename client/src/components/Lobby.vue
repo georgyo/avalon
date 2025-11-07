@@ -45,8 +45,8 @@
     <v-flex xs12 sm6 v-if='canStartGame'>
       <v-container>
     <v-dialog v-model="showOptionGameLog" max-width='450'>
-      <v-card class="cyan lighten-4">
-        <v-card-title class="cyan lighten-2">
+      <v-card class="cyan-lighten-4">
+        <v-card-title class="cyan-lighten-2">
           <h3>Enable in-game log display</h3>
         </v-card-title>
         <v-card-text>
@@ -56,7 +56,7 @@
         </v-card-text>
       </v-card>
     </v-dialog>
- <v-list class="blue-grey lighten-4">
+ <v-list class="blue-grey-lighten-4">
     <v-list-tile>
     <v-flex xs1>
       <v-checkbox v-model='options.inGameLog' color="black"></v-checkbox>

@@ -65,7 +65,7 @@
         </div>
       <div class="d-flex flex-column align-end">
         <v-col cols="12" class='mt-4 pt-4'>
-          <v-btn small href='mailto:avalon@shamm.as' target="_blank" color='grey lighten-2'>
+          <v-btn size="small" href='mailto:avalon@shamm.as' target="_blank" color='grey-lighten-2'>
             <v-icon start small>
               fas fa-envelope-square
             </v-icon>

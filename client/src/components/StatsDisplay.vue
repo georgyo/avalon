@@ -47,34 +47,57 @@
   </v-col>
   </div>
 </template>
-<script>
-export default {
-  name: 'StatsDisplay',
-  props: [ 'stats', 'globalStats' ],
-  computed: {
-      games() { return this.stats.games ? this.stats.games : 0 },
-      good() { return this.stats.good ? this.stats.good : 0 },
-      evil() { return this.games - this.good },
-      wins() { return this.stats.wins ? this.stats.wins : 0 },
-      good_wins() { return this.stats.good_wins ? this.stats.good_wins : 0 },
-      evil_wins() { return this.wins - this.good_wins },
-      win_rate() { return this.games ? (100 * this.wins / this.games).toFixed(0)  + '%' : 'N/A' },
-      good_win_rate() { return this.good ? (100 * this.good_wins / this.good).toFixed(0) + '%' : 'N/A' },
-      evil_win_rate() { return this.evil ? (100 * this.evil_wins / this.evil).toFixed(0) + '%' : 'N/A' },
-      global_good_win_rate() { return (100 * this.globalStats.good_wins / this.globalStats.games).toFixed(0) + '%' },
-      global_evil_win_rate() { return (100 * (this.globalStats.games - this.globalStats.good_wins) / this.globalStats.games).toFixed(0) + '%' },
-      playtime() {
-        const hours = this.stats.playtimeSeconds / 60 / 60;
-        if (hours > 1) {
-          return hours.toFixed(1) + " hours";
-        } else if (this.stats.playtimeSeconds > 60) {
-          return (this.stats.playtimeSeconds / 60).toFixed(0) + " minutes";
-        } else {
-          return "Not enough";
-        }
-      }
-  }
+<script setup lang="ts">
+import { computed } from 'vue'
+
+interface Stats {
+  games?: number
+  good?: number
+  wins?: number
+  good_wins?: number
+  playtimeSeconds?: number
 }
+
+interface GlobalStats {
+  games: number
+  good_wins: number
+}
+
+interface Props {
+  stats?: Stats
+  globalStats?: GlobalStats
+}
+
+const props = defineProps<Props>()
+
+const games = computed(() => props.stats?.games || 0)
+const good = computed(() => props.stats?.good || 0)
+const evil = computed(() => games.value - good.value)
+const wins = computed(() => props.stats?.wins || 0)
+const good_wins = computed(() => props.stats?.good_wins || 0)
+const evil_wins = computed(() => wins.value - good_wins.value)
+const win_rate = computed(() => games.value ? (100 * wins.value / games.value).toFixed(0) + '%' : 'N/A')
+const good_win_rate = computed(() => good.value ? (100 * good_wins.value / good.value).toFixed(0) + '%' : 'N/A')
+const evil_win_rate = computed(() => evil.value ? (100 * evil_wins.value / evil.value).toFixed(0) + '%' : 'N/A')
+const global_good_win_rate = computed(() => {
+  if (!props.globalStats) return 'N/A'
+  return (100 * props.globalStats.good_wins / props.globalStats.games).toFixed(0) + '%'
+})
+const global_evil_win_rate = computed(() => {
+  if (!props.globalStats) return 'N/A'
+  return (100 * (props.globalStats.games - props.globalStats.good_wins) / props.globalStats.games).toFixed(0) + '%'
+})
+const playtime = computed(() => {
+  const seconds = props.stats?.playtimeSeconds || 0
+  const hours = seconds / 60 / 60
+  if (hours > 1) {
+    return hours.toFixed(1) + " hours"
+  } else if (seconds > 60) {
+    return (seconds / 60).toFixed(0) + " minutes"
+  } else {
+    return "Not enough"
+  }
+})
 </script>
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>

@@ -17,20 +17,22 @@
     <v-list class="bg-blue-grey-lighten-4">
       <draggable
         v-model="playerList"
+        item-key="player"
         handle=".handle"
         :disabled=!canDrag
         @end="onReorderList()">
-        <v-list-item v-for="player in playerList" :key="player">
+        <template #item="{ element }">
+        <v-list-item :key="element">
           <v-icon start v-if="canDrag" class="handle">fas fa-bars</v-icon>
-          <v-icon start v-if="player == avalon.lobby.admin.name">star</v-icon>
-          <v-icon start v-else-if="player == avalon.user.name">perm_identity</v-icon>
+          <v-icon start v-if="element == avalon.lobby.admin.name">star</v-icon>
+          <v-icon start v-else-if="element == avalon.user.name">perm_identity</v-icon>
           <v-icon start v-else>person</v-icon>
-          <v-col cols="10">{{player}}</v-col>
+          <v-col cols="10">{{element}}</v-col>
           <v-col cols="1">
             <v-btn
-              v-if="(avalon.isAdmin && player != avalon.user.name && !avalon.isGameInProgress)"
-              :loading="playersBeingKicked.includes(player)"
-              @click.stop="kickPlayerConfirm(player)"
+              v-if="(avalon.isAdmin && element != avalon.user.name && !avalon.isGameInProgress)"
+              :loading="playersBeingKicked.includes(element)"
+              @click.stop="kickPlayerConfirm(element)"
               icon
               variant="text"
               color="black">
@@ -38,12 +40,13 @@
             </v-btn>
           </v-col>
         </v-list-item>
+        </template>
       </draggable>
     </v-list>
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { useAvalonStore } from '../stores/avalon'
 import draggable from "vuedraggable"
@@ -60,16 +63,16 @@ const canDrag = computed(() => {
   return avalon.value.isAdmin && !avalon.value.isGameInProgress
 })
 
-function onReorderList() {
+function onReorderList(): void {
   avalon.value.config.sortList(playerList.value)
 }
 
-function kickPlayerConfirm(player) {
+function kickPlayerConfirm(player: string): void {
   playerToKick.value = player
   kickPlayerDialog.value = true
 }
 
-function kickPlayer(player) {
+function kickPlayer(player: string): void {
   kickPlayerDialog.value = false
   playersBeingKicked.value.push(player)
   avalon.value.kickPlayer(player).finally(() =>

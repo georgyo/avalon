@@ -5,14 +5,14 @@
       :key="playerName">
     <v-col cols="2">
       <v-checkbox
-       color="indigo darken-2"
+       color="indigo-darken-2"
        v-if="enableCheckboxes(playerName)"
        v-model="selectedPlayers" :value='playerName'></v-checkbox>
        <v-checkbox
         v-if="selectedForMission(playerName)"
         v-bind:input-value="true"
         v-bind:ripple='false'
-        color="indigo lighten-1"
+        color="indigo-lighten-1"
         readonly></v-checkbox>
     </v-col>
     <v-col cols="2">

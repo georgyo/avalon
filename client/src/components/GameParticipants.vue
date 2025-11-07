@@ -1,13 +1,13 @@
 <template>
     <v-tabs fixed-tabs grow centered
-      active-class="blue lighten-2">
-      <v-tab class="light-blue lighten-4">
+      active-class="blue-lighten-2">
+      <v-tab class="light-blue-lighten-4">
           Players
       </v-tab>
       <v-tab-item>
           <GamePlayerList @selected-players='$emit("selected-players", $event)'></GamePlayerList>
       </v-tab-item>
-      <v-tab class="light-blue lighten-4">
+      <v-tab class="light-blue-lighten-4">
           Roles
       </v-tab>
       <v-tab-item>

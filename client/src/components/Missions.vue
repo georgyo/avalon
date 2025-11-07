@@ -3,8 +3,8 @@
       <v-tab
        v-for="(mission, idx) in avalon.game.missions"
        :key="'missionTab' + idx"
-       class="light-blue lighten-4"
-       active-class="blue lighten-2">
+       class="light-blue-lighten-4"
+       active-class="blue-lighten-2">
         <font-awesome-layers style="font-size: 2.5em">
           <template v-if='mission.state == "PENDING"'>
             <font-awesome-icon :icon='["far", "circle"]' :color='isFutureMission(mission, idx) ? "gray" : "black"' />
@@ -59,9 +59,9 @@ function isFutureMission(mission, idx) {
 }
 
 function classForMission(mission) {
-  if (mission.state == 'FAIL') return 'red lighten-4'
-  if (mission.state == 'SUCCESS') return 'green lighten-4'
-  return 'blue-grey lighten-4'
+  if (mission.state == 'FAIL') return 'red-lighten-4'
+  if (mission.state == 'SUCCESS') return 'green-lighten-4'
+  return 'blue-grey-lighten-4'
 }
 
 watch(() => avalon.value.lobby.game.currentMissionIdx, (val) => {
