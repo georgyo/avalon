@@ -203,10 +203,6 @@ const RAW_RUNTIME_STATE =
           ["vite-plugin-vue-devtools", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:8.0.3"],\
           ["vite-plugin-vuetify", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:2.1.2"],\
           ["vitest", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:4.0.8"],\
-          ["volar-service-css", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:0.0.67"],\
-          ["volar-service-html", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:0.0.67"],\
-          ["volar-service-json", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:0.0.67"],\
-          ["volar-service-prettier", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:0.0.67"],\
           ["vue", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:3.5.24"],\
           ["vue-eslint-parser", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:10.2.0"],\
           ["vue-toastification", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:2.0.0-rc.5"],\
@@ -9468,15 +9464,6 @@ const RAW_RUNTIME_STATE =
         "linkType": "HARD"\
       }]\
     ]],\
-    ["@vscode/l10n", [\
-      ["npm:0.0.18", {\
-        "packageLocation": "./.yarn/cache/@vscode-l10n-npm-0.0.18-8a12efe4b5-82e2d02ab2.zip/node_modules/@vscode/l10n/",\
-        "packageDependencies": [\
-          ["@vscode/l10n", "npm:0.0.18"]\
-        ],\
-        "linkType": "HARD"\
-      }]\
-    ]],\
     ["@vue/babel-helper-vue-jsx-merge-props", [\
       ["npm:1.4.0", {\
         "packageLocation": "./.yarn/cache/@vue-babel-helper-vue-jsx-merge-props-npm-1.4.0-fb594a8ba5-2383ff7719.zip/node_modules/@vue/babel-helper-vue-jsx-merge-props/",\
@@ -17361,15 +17348,6 @@ const RAW_RUNTIME_STATE =
         "linkType": "HARD"\
       }]\
     ]],\
-    ["jsonc-parser", [\
-      ["npm:3.3.1", {\
-        "packageLocation": "./.yarn/cache/jsonc-parser-npm-3.3.1-f57c3cdcf5-9b0dc391f2.zip/node_modules/jsonc-parser/",\
-        "packageDependencies": [\
-          ["jsonc-parser", "npm:3.3.1"]\
-        ],\
-        "linkType": "HARD"\
-      }]\
-    ]],\
     ["jsonfile", [\
       ["npm:6.1.0", {\
         "packageLocation": "./.yarn/cache/jsonfile-npm-6.1.0-20a4796cee-03014769e7.zip/node_modules/jsonfile/",\
@@ -22947,172 +22925,6 @@ const RAW_RUNTIME_STATE =
           "@vitest/ui",\
           "happy-dom",\
           "jsdom"\
-        ],\
-        "linkType": "HARD"\
-      }]\
-    ]],\
-    ["volar-service-css", [\
-      ["npm:0.0.67", {\
-        "packageLocation": "./.yarn/cache/volar-service-css-npm-0.0.67-737a8417f3-bf3a186f78.zip/node_modules/volar-service-css/",\
-        "packageDependencies": [\
-          ["volar-service-css", "npm:0.0.67"]\
-        ],\
-        "linkType": "SOFT"\
-      }],\
-      ["virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:0.0.67", {\
-        "packageLocation": "./.yarn/__virtual__/volar-service-css-virtual-bbee73b998/0/cache/volar-service-css-npm-0.0.67-737a8417f3-bf3a186f78.zip/node_modules/volar-service-css/",\
-        "packageDependencies": [\
-          ["@types/volar__language-service", null],\
-          ["@volar/language-service", null],\
-          ["volar-service-css", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:0.0.67"],\
-          ["vscode-css-languageservice", "npm:6.3.1"],\
-          ["vscode-languageserver-textdocument", "npm:1.0.11"],\
-          ["vscode-uri", "npm:3.0.8"]\
-        ],\
-        "packagePeers": [\
-          "@types/volar__language-service",\
-          "@volar/language-service"\
-        ],\
-        "linkType": "HARD"\
-      }]\
-    ]],\
-    ["volar-service-html", [\
-      ["npm:0.0.67", {\
-        "packageLocation": "./.yarn/cache/volar-service-html-npm-0.0.67-b5f1619e1a-8b95eb105f.zip/node_modules/volar-service-html/",\
-        "packageDependencies": [\
-          ["volar-service-html", "npm:0.0.67"]\
-        ],\
-        "linkType": "SOFT"\
-      }],\
-      ["virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:0.0.67", {\
-        "packageLocation": "./.yarn/__virtual__/volar-service-html-virtual-92ec6ceb2f/0/cache/volar-service-html-npm-0.0.67-b5f1619e1a-8b95eb105f.zip/node_modules/volar-service-html/",\
-        "packageDependencies": [\
-          ["@types/volar__language-service", null],\
-          ["@volar/language-service", null],\
-          ["volar-service-html", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:0.0.67"],\
-          ["vscode-html-languageservice", "npm:5.3.1"],\
-          ["vscode-languageserver-textdocument", "npm:1.0.11"],\
-          ["vscode-uri", "npm:3.0.8"]\
-        ],\
-        "packagePeers": [\
-          "@types/volar__language-service",\
-          "@volar/language-service"\
-        ],\
-        "linkType": "HARD"\
-      }]\
-    ]],\
-    ["volar-service-json", [\
-      ["npm:0.0.67", {\
-        "packageLocation": "./.yarn/cache/volar-service-json-npm-0.0.67-6c79720b26-67be4558c6.zip/node_modules/volar-service-json/",\
-        "packageDependencies": [\
-          ["volar-service-json", "npm:0.0.67"]\
-        ],\
-        "linkType": "SOFT"\
-      }],\
-      ["virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:0.0.67", {\
-        "packageLocation": "./.yarn/__virtual__/volar-service-json-virtual-6d645dff5a/0/cache/volar-service-json-npm-0.0.67-6c79720b26-67be4558c6.zip/node_modules/volar-service-json/",\
-        "packageDependencies": [\
-          ["@types/volar__language-service", null],\
-          ["@volar/language-service", null],\
-          ["volar-service-json", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:0.0.67"],\
-          ["vscode-json-languageservice", "npm:5.4.1"],\
-          ["vscode-uri", "npm:3.0.8"]\
-        ],\
-        "packagePeers": [\
-          "@types/volar__language-service",\
-          "@volar/language-service"\
-        ],\
-        "linkType": "HARD"\
-      }]\
-    ]],\
-    ["volar-service-prettier", [\
-      ["npm:0.0.67", {\
-        "packageLocation": "./.yarn/cache/volar-service-prettier-npm-0.0.67-f46b7b3609-6676748878.zip/node_modules/volar-service-prettier/",\
-        "packageDependencies": [\
-          ["volar-service-prettier", "npm:0.0.67"]\
-        ],\
-        "linkType": "SOFT"\
-      }],\
-      ["virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:0.0.67", {\
-        "packageLocation": "./.yarn/__virtual__/volar-service-prettier-virtual-92134097e6/0/cache/volar-service-prettier-npm-0.0.67-f46b7b3609-6676748878.zip/node_modules/volar-service-prettier/",\
-        "packageDependencies": [\
-          ["@types/prettier", null],\
-          ["@types/volar__language-service", null],\
-          ["@volar/language-service", null],\
-          ["prettier", null],\
-          ["volar-service-prettier", "virtual:72317fc24132b0dfc6fb58738ca290a67319a03b6d103f7bc51125559648f6a8b269569c980259fc873c383282f7a0e2337aa6d97ccebc2f6c5667ef5691ebd8#npm:0.0.67"],\
-          ["vscode-uri", "npm:3.0.8"]\
-        ],\
-        "packagePeers": [\
-          "@types/prettier",\
-          "@types/volar__language-service",\
-          "@volar/language-service",\
-          "prettier"\
-        ],\
-        "linkType": "HARD"\
-      }]\
-    ]],\
-    ["vscode-css-languageservice", [\
-      ["npm:6.3.1", {\
-        "packageLocation": "./.yarn/cache/vscode-css-languageservice-npm-6.3.1-f684ae2c4d-f0f2dc84ae.zip/node_modules/vscode-css-languageservice/",\
-        "packageDependencies": [\
-          ["@vscode/l10n", "npm:0.0.18"],\
-          ["vscode-css-languageservice", "npm:6.3.1"],\
-          ["vscode-languageserver-textdocument", "npm:1.0.12"],\
-          ["vscode-languageserver-types", "npm:3.17.5"],\
-          ["vscode-uri", "npm:3.0.8"]\
-        ],\
-        "linkType": "HARD"\
-      }]\
-    ]],\
-    ["vscode-html-languageservice", [\
-      ["npm:5.3.1", {\
-        "packageLocation": "./.yarn/cache/vscode-html-languageservice-npm-5.3.1-0ab47a52c0-2bc7e1c205.zip/node_modules/vscode-html-languageservice/",\
-        "packageDependencies": [\
-          ["@vscode/l10n", "npm:0.0.18"],\
-          ["vscode-html-languageservice", "npm:5.3.1"],\
-          ["vscode-languageserver-textdocument", "npm:1.0.12"],\
-          ["vscode-languageserver-types", "npm:3.17.5"],\
-          ["vscode-uri", "npm:3.0.8"]\
-        ],\
-        "linkType": "HARD"\
-      }]\
-    ]],\
-    ["vscode-json-languageservice", [\
-      ["npm:5.4.1", {\
-        "packageLocation": "./.yarn/cache/vscode-json-languageservice-npm-5.4.1-082dbb79d5-90e4e601ed.zip/node_modules/vscode-json-languageservice/",\
-        "packageDependencies": [\
-          ["@vscode/l10n", "npm:0.0.18"],\
-          ["jsonc-parser", "npm:3.3.1"],\
-          ["vscode-json-languageservice", "npm:5.4.1"],\
-          ["vscode-languageserver-textdocument", "npm:1.0.12"],\
-          ["vscode-languageserver-types", "npm:3.17.5"],\
-          ["vscode-uri", "npm:3.0.8"]\
-        ],\
-        "linkType": "HARD"\
-      }]\
-    ]],\
-    ["vscode-languageserver-textdocument", [\
-      ["npm:1.0.11", {\
-        "packageLocation": "./.yarn/cache/vscode-languageserver-textdocument-npm-1.0.11-6fc94d2b7b-6096d2a855.zip/node_modules/vscode-languageserver-textdocument/",\
-        "packageDependencies": [\
-          ["vscode-languageserver-textdocument", "npm:1.0.11"]\
-        ],\
-        "linkType": "HARD"\
-      }],\
-      ["npm:1.0.12", {\
-        "packageLocation": "./.yarn/cache/vscode-languageserver-textdocument-npm-1.0.12-5bc25d204a-2bc0fde952.zip/node_modules/vscode-languageserver-textdocument/",\
-        "packageDependencies": [\
-          ["vscode-languageserver-textdocument", "npm:1.0.12"]\
-        ],\
-        "linkType": "HARD"\
-      }]\
-    ]],\
-    ["vscode-languageserver-types", [\
-      ["npm:3.17.5", {\
-        "packageLocation": "./.yarn/cache/vscode-languageserver-types-npm-3.17.5-aca3b71a5a-900d0b81df.zip/node_modules/vscode-languageserver-types/",\
-        "packageDependencies": [\
-          ["vscode-languageserver-types", "npm:3.17.5"]\
         ],\
         "linkType": "HARD"\
       }]\
