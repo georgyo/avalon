@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect } from 'vitest'
 
 // Extend Array prototype for tests (as done in the app)
 declare global {

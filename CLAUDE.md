@@ -48,6 +48,7 @@ This is a **multiplayer Avalon card game** with three main components:
 ### Client (`/client/`)
 - **Vue 3.5** SPA with **Vuetify 3.7** UI framework
 - **TypeScript** for type safety
+- **Firebase 12.5** for authentication and real-time database (using compat API)
 - Real-time game state via Firebase Firestore listeners
 - REST API calls to Express server for game actions
 - Build tool: **Vite 5.4**
@@ -76,10 +77,18 @@ This is a **multiplayer Avalon card game** with three main components:
 - Prevents cheating by validating all game actions server-side
 
 ### Firebase (`/firebase/`)
+- **Firebase JS SDK 12.5** (client-side, using compat API for backward compatibility)
 - **Firestore** database for game state storage
 - **Cloud Functions** for post-game statistics computation
 - **Authentication** and real-time data sync
 - Functions: `onLogCreate` triggers after games to compute player stats
+
+**Recent Updates (Firebase 9.23 → 12.5):**
+- Security patches for CVE-2024-30260 and CVE-2024-24758
+- Performance improvements: memory LRU garbage collection, UTF-8 string ordering
+- Authentication enhancements: TOTP MFA support, cookie persistence
+- Firestore features: vector support, sum/average aggregations, auto-index creation
+- Using compat API (`firebase/compat/*`) ensures zero breaking changes during upgrade
 
 ## Game Logic Structure
 

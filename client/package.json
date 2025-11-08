@@ -18,7 +18,7 @@
     "@fortawesome/free-solid-svg-icons": "6.6.0",
     "@fortawesome/vue-fontawesome": "3.0.8",
     "axios": "1.7.7",
-    "firebase": "9.23.0",
+    "firebase": "12.5.0",
     "lodash": "4.17.21",
     "mitt": "3.0.1",
     "pinia": "2.3.1",
