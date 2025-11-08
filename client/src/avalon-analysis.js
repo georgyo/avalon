@@ -24,6 +24,7 @@ export default class GameAnalysis {
         }
       }
     }
+    return false;
   }
 
   roleApprovesRole(approverRole, roleProposed) {
