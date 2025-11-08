@@ -72,37 +72,35 @@
   </table>
 </template>
 
-<script>
-export default {
-  name: 'MissionSummaryTable',
-  props: {
-    players: {
-      type: Array,
-      required: true
-    },
-    missions: {
-      type: Array,
-      required: true
-    },
-    roles: {
-      type: Array,
-      required: true
-    },
-    missionVotes: {
-      type: Array,
-      required: true
-    }
-  },
-  data() {
-      return {
-      }
-  },
-  methods: {
-      isCurrentProposal(mission, proposal) {
-          return mission.state == 'PENDING' && mission.proposal.mission.proposals.indexOf(proposal) == mission.proposals.length - 1;
-      }
-  }
+<script setup lang="ts">
+interface Proposal {
+  proposer: string
+  team: string[]
+  state: string
+  votes: string[]
 }
+
+interface Mission {
+  proposals: Proposal[]
+  team: string[]
+  state: string
+}
+
+interface Role {
+  name: string
+  role: string
+}
+
+interface MissionVotes {
+  [player: string]: boolean
+}
+
+defineProps<{
+  players: string[]
+  missions: Mission[]
+  roles: Role[]
+  missionVotes: MissionVotes[]
+}>()
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->

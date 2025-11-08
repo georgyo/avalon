@@ -66,32 +66,32 @@
   </div>
 </template>
 
-<script>
-export default {
-  name: 'RoleList',
-  props: {
-    roles: {
-      type: Array,
-      required: true
-    },
-    allowSelect: {
-      type: Boolean,
-      required: true
-    }
-  },
-  data() {
-    return {
-      roleInfo: false,
-      selectedRole: 'blah'
-    }
-  },
-  methods: {
-    showRoleInfo(role) {
-      this.roleInfo = true;
-      this.selectedRole = role;
-    }
-  }
- }
+<script setup lang="ts">
+import { ref } from 'vue'
+
+interface Role {
+  name: string
+  team: 'good' | 'evil'
+  description: string
+  selected?: boolean
+}
+
+defineProps<{
+  roles: Role[]
+  allowSelect: boolean
+}>()
+
+const roleInfo = ref(false)
+const selectedRole = ref<Role>({
+  name: '',
+  team: 'good',
+  description: ''
+})
+
+function showRoleInfo(role: Role): void {
+  roleInfo.value = true
+  selectedRole.value = role
+}
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->

@@ -1,0 +1,43 @@
+import { describe, it, expect } from 'vitest'
+import { mount } from '@vue/test-utils'
+import RoleList from '../components/RoleList.vue'
+
+describe('RoleList', () => {
+  const mockRoles = [
+    {
+      name: 'Merlin',
+      team: 'good' as const,
+      description: 'Knows who the evil players are',
+      selected: false,
+    },
+    {
+      name: 'Morgana',
+      team: 'evil' as const,
+      description: 'Appears as Merlin to Percival',
+      selected: false,
+    },
+  ]
+
+  it('renders roles list', () => {
+    const wrapper = mount(RoleList, {
+      props: {
+        roles: mockRoles,
+        allowSelect: false,
+      },
+    })
+
+    expect(wrapper.text()).toContain('Merlin')
+    expect(wrapper.text()).toContain('Morgana')
+  })
+
+  it('renders correct number of roles', () => {
+    const wrapper = mount(RoleList, {
+      props: {
+        roles: mockRoles,
+        allowSelect: false,
+      },
+    })
+
+    expect(wrapper.props('roles')).toHaveLength(2)
+  })
+})
