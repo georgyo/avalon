@@ -6,15 +6,15 @@
     "lint": "eslint *.js"
   },
   "dependencies": {
-    "express": "5.1.0",
+    "express": "4.21.2",
     "express-promise-router": "4.1.1",
-    "firebase-admin": "13.4.0",
+    "firebase-admin": "13.6.0",
     "lodash": "4.17.21",
     "read-env": "^2.0.0"
   },
   "devDependencies": {
     "@firebase/app-types": "^0.9.3",
-    "eslint": "9.27.0",
+    "eslint": "9.39.1",
     "nodemon": "3.1.10"
   }
 }
