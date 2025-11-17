@@ -5292,7 +5292,7 @@ const RAW_RUNTIME_STATE =
           ["camelcase", "npm:5.3.1"],\
           ["find-up", "npm:4.1.0"],\
           ["get-package-type", "npm:0.1.0"],\
-          ["js-yaml", "npm:3.14.1"],\
+          ["js-yaml", "npm:3.14.2"],\
           ["resolve-from", "npm:5.0.0"]\
         ],\
         "linkType": "HARD"\
@@ -11318,7 +11318,7 @@ const RAW_RUNTIME_STATE =
           ["google-auth-library", "npm:9.14.0"],\
           ["inquirer", "npm:8.2.6"],\
           ["inquirer-autocomplete-prompt", "virtual:a997d0646887f3b614e9a559124a7c613e30aae486064034b0c88106293542a4c8c8464355d6641a7e6ff108d9e3e6efe370011d1450d3409ce08cbf1efe018f#npm:2.0.1"],\
-          ["js-yaml", "npm:3.14.1"],\
+          ["js-yaml", "npm:3.14.2"],\
           ["jsonwebtoken", "npm:9.0.2"],\
           ["leven", "npm:3.1.0"],\
           ["libsodium-wrappers", "npm:0.7.13"],\
@@ -13447,12 +13447,12 @@ const RAW_RUNTIME_STATE =
       }]\
     ]],\
     ["js-yaml", [\
-      ["npm:3.14.1", {\
-        "packageLocation": "./.yarn/cache/js-yaml-npm-3.14.1-b968c6095e-9e22d80b4d.zip/node_modules/js-yaml/",\
+      ["npm:3.14.2", {\
+        "packageLocation": "./.yarn/cache/js-yaml-npm-3.14.2-debd9d20c3-172e0b6007.zip/node_modules/js-yaml/",\
         "packageDependencies": [\
           ["argparse", "npm:1.0.10"],\
           ["esprima", "npm:4.0.1"],\
-          ["js-yaml", "npm:3.14.1"]\
+          ["js-yaml", "npm:3.14.2"]\
         ],\
         "linkType": "HARD"\
       }],\
