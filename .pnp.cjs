@@ -11212,7 +11212,7 @@ const RAW_RUNTIME_STATE =
           ["firebase-admin", "virtual:1c48d6fc54bd63a4a7a92b825c3188ce017de7b96310c12c0672c1faf971fb61632a4b939610bf601aced2f901d0649c6fb175a44219174f74f248e1599d043d#npm:11.11.1"],\
           ["jsonwebtoken", "npm:9.0.2"],\
           ["jwks-rsa", "npm:3.1.0"],\
-          ["node-forge", "npm:1.3.1"],\
+          ["node-forge", "npm:1.3.2"],\
           ["uuid", "npm:9.0.1"]\
         ],\
         "packagePeers": [\
@@ -11903,7 +11903,7 @@ const RAW_RUNTIME_STATE =
         "packageLocation": "./.yarn/cache/google-p12-pem-npm-4.0.1-606064b3d4-27937440d7.zip/node_modules/google-p12-pem/",\
         "packageDependencies": [\
           ["google-p12-pem", "npm:4.0.1"],\
-          ["node-forge", "npm:1.3.1"]\
+          ["node-forge", "npm:1.3.2"]\
         ],\
         "linkType": "HARD"\
       }]\
@@ -15029,10 +15029,10 @@ const RAW_RUNTIME_STATE =
       }]\
     ]],\
     ["node-forge", [\
-      ["npm:1.3.1", {\
-        "packageLocation": "./.yarn/cache/node-forge-npm-1.3.1-f31fd566cc-05bab68686.zip/node_modules/node-forge/",\
+      ["npm:1.3.2", {\
+        "packageLocation": "./.yarn/cache/node-forge-npm-1.3.2-39b26c0214-dcc54aaffe.zip/node_modules/node-forge/",\
         "packageDependencies": [\
-          ["node-forge", "npm:1.3.1"]\
+          ["node-forge", "npm:1.3.2"]\
         ],\
         "linkType": "HARD"\
       }]\
