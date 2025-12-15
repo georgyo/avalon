@@ -8,6 +8,10 @@ const path = require("path");
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [vue()],
+  build: {
+    outDir: '../server/dist',
+    emptyOutDir: true,
+  },
   resolve: {
     extensions: ['.mjs', '.js', '.ts', '.jsx', '.tsx', '.json', '.vue'],
     alias: {

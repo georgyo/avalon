@@ -29,7 +29,6 @@ project.overrideAttrs (oldAttrs: {
 
   buildPhase = ''
     yarn build
-    (cd server && ln -s ../client/dist .)
   '';
 
 })
