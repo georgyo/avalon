@@ -1,4 +1,4 @@
-runtime: nodejs10
+runtime: nodejs20
 
 #XXX DEV ONLY
 # default_expiration: 1m
