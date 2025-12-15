@@ -1,11 +1,10 @@
 const config = {
-  apiKey: "AIzaSyCwhCvO8NbTusBaHmHHnNT7yC0_11UL2RI",
-  authDomain: "georgyo-avalon.firebaseapp.com",
-  databaseURL: "https://georgyo-avalon-default-rtdb.firebaseio.com",
-  projectId: "georgyo-avalon",
-  storageBucket: "georgyo-avalon.appspot.com",
-  messagingSenderId: "1000859874531",
-  appId: "1:1000859874531:web:789f785c58c574bff181d6"
+  apiKey: "AIzaSyARX8d_fjzy7_wd4JUdFuOyxA9EwTICodc",
+  authDomain: "avalon-cool.firebaseapp.com",
+  projectId: "avalon-cool",
+  storageBucket: "avalon-cool.firebasestorage.app",
+  messagingSenderId: "266781145190",
+  appId: "1:266781145190:web:2e53b3df46819d5ec2d5a7"
 };
 
 export default config;
