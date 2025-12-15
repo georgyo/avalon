@@ -3,8 +3,7 @@ const serviceAccount = require("./firebaseKey.js");
 const _ = require('lodash');
 
 firebaseAdmin.initializeApp({
-  credential: firebaseAdmin.credential.cert(serviceAccount),
-  databaseURL: "https://georgyo-avalon-default-rtdb.firebaseio.com"
+  credential: firebaseAdmin.credential.cert(serviceAccount)
 });
 
 const db = firebaseAdmin.firestore();

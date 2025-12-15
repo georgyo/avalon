@@ -3,8 +3,7 @@ const firebaseAdmin = require('firebase-admin');
 const serviceAccount = require('./firebaseKey.js');
 
 firebaseAdmin.initializeApp({
-  credential: firebaseAdmin.credential.cert(serviceAccount),
-  databaseURL: "https://georgyo-avalon-default-rtdb.firebaseio.com"
+  credential: firebaseAdmin.credential.cert(serviceAccount)
 });
 
 const avalon = require('./avalon-server.js');
