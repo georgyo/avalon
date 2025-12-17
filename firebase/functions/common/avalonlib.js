@@ -8,7 +8,7 @@
 exports.ROLES = [
     { name: 'MERLIN',
       team: 'good',
-      sees: ['MORGANA', 'OBERON', 'EVIL MINION'],
+      sees: ['MORGANA', 'OBERON', 'ASSASSIN', 'EVIL MINION'],
       description: 'Merlin sees all evil people (except for Mordred), but can also be assassinated.',
       selected: true,
       selectable: true
@@ -31,7 +31,7 @@ exports.ROLES = [
     { name: 'MORGANA',
       team: 'evil',
       assassinationPriority: 2,
-      sees: [ 'MORDRED', 'EVIL MINION' ],
+      sees: [ 'MORDRED', 'ASSASSIN', 'EVIL MINION' ],
       description: "Morgana appears indistinguishable from Merlin to Percival. She sees other evil people (except Oberon)",
       selected: true,
       selectable: true,
@@ -40,7 +40,7 @@ exports.ROLES = [
       team: 'evil',
       description: "Mordred is invisible to Merlin. Mordred can see other evil people (except Oberon)",
       assassinationPriority: 3,
-      sees: ['MORGANA', 'EVIL MINION'],
+      sees: ['MORGANA', 'ASSASSIN', 'EVIL MINION'],
       selected: false,
       selectable: true
     },
@@ -57,12 +57,20 @@ exports.ROLES = [
       team: 'evil',
       assassinationPriority: 4,
       filler: true,
-      sees: ['MORGANA', 'MORDRED', 'EVIL MINION'],
+      sees: ['MORGANA', 'MORDRED', 'ASSASSIN', 'EVIL MINION'],
       selected: false,
       selectable: false
-     }
+    },
+    { name: 'ASSASSIN',
+      description: 'The same as Evil Minion, but guaranteed to be the Assassin. They can see other evil people (except Oberon)',
+      team: 'evil',
+      assassinationPriority: 10,
+      sees: ['MORGANA', 'MORDRED', 'EVIL MINION'],
+      selected: false,
+      selectable: true
+    }
 ];
 
 exports.getNumEvilForGameSize = function(numPlayers) {
     return { 5: 2, 6: 2, 7: 3, 8: 3, 9: 3, 10: 4 }[numPlayers];
-}
+};
