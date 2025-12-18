@@ -52,11 +52,11 @@ export default {
   name: 'StatsDisplay',
   props: [ 'stats', 'globalStats' ],
   computed: {
-      games() { return this.stats.games ? this.stats.games : 0 },
-      good() { return this.stats.good ? this.stats.good : 0 },
+      games() { return this.stats?.games ?? 0 },
+      good() { return this.stats?.good ?? 0 },
       evil() { return this.games - this.good },
-      wins() { return this.stats.wins ? this.stats.wins : 0 },
-      good_wins() { return this.stats.good_wins ? this.stats.good_wins : 0 },
+      wins() { return this.stats?.wins ?? 0 },
+      good_wins() { return this.stats?.good_wins ?? 0 },
       evil_wins() { return this.wins - this.good_wins },
       win_rate() { return this.games ? (100 * this.wins / this.games).toFixed(0)  + '%' : 'N/A' },
       good_win_rate() { return this.good ? (100 * this.good_wins / this.good).toFixed(0) + '%' : 'N/A' },
@@ -64,11 +64,12 @@ export default {
       global_good_win_rate() { return (100 * this.globalStats.good_wins / this.globalStats.games).toFixed(0) + '%' },
       global_evil_win_rate() { return (100 * (this.globalStats.games - this.globalStats.good_wins) / this.globalStats.games).toFixed(0) + '%' },
       playtime() {
-        const hours = this.stats.playtimeSeconds / 60 / 60;
+        const seconds = this.stats?.playtimeSeconds ?? 0;
+        const hours = seconds / 60 / 60;
         if (hours > 1) {
           return hours.toFixed(1) + " hours";
-        } else if (this.stats.playtimeSeconds > 60) {
-          return (this.stats.playtimeSeconds / 60).toFixed(0) + " minutes";
+        } else if (seconds > 60) {
+          return (seconds / 60).toFixed(0) + " minutes";
         } else {
           return "Not enough";
         }
