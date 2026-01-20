@@ -9822,10 +9822,10 @@ const RAW_RUNTIME_STATE =
       }]\
     ]],\
     ["diff", [\
-      ["npm:5.2.0", {\
-        "packageLocation": "./.yarn/cache/diff-npm-5.2.0-f523a581f3-01b7b440f8.zip/node_modules/diff/",\
+      ["npm:5.2.2", {\
+        "packageLocation": "./.yarn/cache/diff-npm-5.2.2-8338a97b62-8a885b3811.zip/node_modules/diff/",\
         "packageDependencies": [\
-          ["diff", "npm:5.2.0"]\
+          ["diff", "npm:5.2.2"]\
         ],\
         "linkType": "HARD"\
       }]\
@@ -13856,7 +13856,7 @@ const RAW_RUNTIME_STATE =
           ["@npmcli/arborist", "npm:8.0.0"],\
           ["@npmcli/installed-package-contents", "npm:3.0.0"],\
           ["binary-extensions", "npm:2.3.0"],\
-          ["diff", "npm:5.2.0"],\
+          ["diff", "npm:5.2.2"],\
           ["libnpmdiff", "npm:7.0.0"],\
           ["minimatch", "npm:9.0.5"],\
           ["npm-package-arg", "npm:12.0.0"],\
