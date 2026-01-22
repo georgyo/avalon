@@ -55,7 +55,7 @@ __metadata:
     eslint-plugin-vue: "npm:^9.29.0"
     firebase: "npm:9.23.0"
     i: "npm:0.3.7"
-    lodash: "npm:4.17.21"
+    lodash: "npm:4.17.23"
     npm: "npm:10.9.0"
     postcss: "npm:^8.4.47"
     seedrandom: "npm:3.0.5"
@@ -82,7 +82,7 @@ __metadata:
     express: "npm:4.21.1"
     express-promise-router: "npm:4.1.1"
     firebase-admin: "npm:11.11.1"
-    lodash: "npm:4.17.21"
+    lodash: "npm:4.17.23"
     nodemon: "npm:3.1.7"
     read-env: "npm:^2.0.0"
   languageName: unknown
@@ -10369,7 +10369,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lodash@npm:4.17.21, lodash@npm:^4.17.10, lodash@npm:^4.17.11, lodash@npm:^4.17.14, lodash@npm:^4.17.15, lodash@npm:^4.17.19, lodash@npm:^4.17.21, lodash@npm:^4.17.5":
+"lodash@npm:4.17.23":
+  version: 4.17.23
+  resolution: "lodash@npm:4.17.23"
+  checksum: 10/82504c88250f58da7a5a4289f57a4f759c44946c005dd232821c7688b5fcfbf4a6268f6a6cdde4b792c91edd2f3b5398c1d2a0998274432cff76def48735e233
+  languageName: node
+  linkType: hard
+
+"lodash@npm:^4.17.10, lodash@npm:^4.17.11, lodash@npm:^4.17.14, lodash@npm:^4.17.15, lodash@npm:^4.17.19, lodash@npm:^4.17.21, lodash@npm:^4.17.5":
   version: 4.17.21
   resolution: "lodash@npm:4.17.21"
   checksum: 10/c08619c038846ea6ac754abd6dd29d2568aa705feb69339e836dfa8d8b09abbb2f859371e86863eda41848221f9af43714491467b5b0299122431e202bb0c532
