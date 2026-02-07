@@ -77,9 +77,10 @@
   </v-card>
 </template>
 
-<script>
+<script lang="ts">
+import Vue from 'vue'
 
-export default {
+export default Vue.extend({
   name: 'UserLogin',
   data() {
     return {
@@ -122,7 +123,7 @@ export default {
         this.emailSubmitted = false;
     }
   }
-}
+})
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->

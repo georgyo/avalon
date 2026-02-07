@@ -28,10 +28,11 @@
   </v-container>
 </template>
 
-<script>
+<script lang="ts">
+import Vue from 'vue'
 import StatsDisplay from './StatsDisplay.vue'
 
-export default {
+export default Vue.extend({
   name: 'Login',
   components: {
     StatsDisplay
@@ -96,7 +97,7 @@ export default {
       });
     }
   }
-}
+})
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->

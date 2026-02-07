@@ -24,10 +24,11 @@
     </v-dialog>
 </template>
 
-<script>
+<script lang="ts">
+import Vue from 'vue'
 import { EventBus } from '@/main'
 
-export default {
+export default Vue.extend({
   name: 'MissionResultEventHandler',
   props: [ 'avalon' ],
   data() {
@@ -56,7 +57,7 @@ export default {
           this.missionDialog = true;
       });
   }
-}
+})
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->

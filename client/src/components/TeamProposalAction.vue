@@ -24,8 +24,10 @@
   </v-card>
 </template>
 
-<script>
-export default {
+<script lang="ts">
+import Vue from 'vue'
+
+export default Vue.extend({
   name: 'TeamProposalAction',
   props: [ 'avalon', 'playerList' ],
   data() {
@@ -44,7 +46,7 @@ export default {
         this.avalon.proposeTeam(this.playerList);
       }
   }
-}
+})
 
 </script>
 <!-- Add "scoped" attribute to limit CSS to this component only -->

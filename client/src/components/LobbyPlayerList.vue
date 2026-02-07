@@ -43,10 +43,11 @@
   </div>
 </template>
 
-<script>
+<script lang="ts">
+import Vue from 'vue'
 import draggable from "vuedraggable";
 
-export default {
+export default Vue.extend({
   name: "LobbyPlayerList",
   components: {
     draggable
@@ -88,7 +89,7 @@ export default {
       this.playerList = list;
     }
   }
-};
+});
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->

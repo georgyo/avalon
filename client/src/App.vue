@@ -34,7 +34,8 @@
   </div>
 </template>
 
-<script>
+<script lang="ts">
+import Vue from 'vue'
 import AvalonGame from './avalon'
 import { EventBus } from './main'
 import Toolbar from './components/Toolbar.vue'
@@ -44,7 +45,7 @@ import Lobby from './components/Lobby.vue'
 import Game from './components/Game.vue'
 import UserLogin from './components/UserLogin.vue'
 
-export default {
+export default Vue.extend({
   name: 'app',
   data() {
     return {
@@ -63,12 +64,12 @@ export default {
     UserLogin
   },
   methods: {
-    eventCallback() {
-      console.debug('event callback', ...arguments);
-      EventBus.$emit(...arguments);
+    eventCallback(...args: any[]) {
+      console.debug('event callback', ...args);
+      EventBus.$emit(...args);
     },
   },
-}
+})
 </script>
 <style>
 

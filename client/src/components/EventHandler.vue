@@ -6,13 +6,14 @@
   </div>
 </template>
 
-<script>
+<script lang="ts">
+import Vue from 'vue'
 import { EventBus } from '@/main'
 import StartGameEventHandler from './StartGameEventHandler.vue'
 import EndGameEventHandler from './EndGameEventHandler.vue'
 import MissionResultEventHandler from './MissionResultEventHandler.vue'
 
-export default {
+export default Vue.extend({
   name: 'EventHandler',
   props: [ 'avalon' ],
   components: {
@@ -50,7 +51,7 @@ export default {
       this.$toasted.show(`You've been disconnected from ${lobby}`);
     });
   }
-}
+})
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->

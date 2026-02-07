@@ -35,8 +35,10 @@
   </table>
 </template>
 
-<script>
-export default {
+<script lang="ts">
+import Vue from 'vue'
+
+export default Vue.extend({
   name: 'MissionSummaryTable',
   props: [ 'players', 'missions', 'roles', 'missionVotes' ],
   data() {
@@ -48,7 +50,7 @@ export default {
           return mission.state == 'PENDING' && mission.proposal.mission.proposals.indexOf(proposal) == mission.proposals.length - 1;
       }
   }
-}
+})
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
