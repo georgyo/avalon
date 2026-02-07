@@ -411,7 +411,18 @@ export default class AvalonGame {
     this._authStateInitialized = true;
 
     if (!userDoc.exists) {
-      console.warn('user doc does not exist');
+      // User doc doesn't exist yet (server may be offline)
+      // Create a minimal user object from Firebase auth to allow the app to proceed
+      const authUser = firebase.auth().currentUser;
+      if (authUser) {
+        console.warn('user doc does not exist, using Firebase auth user');
+        this.user = {
+          uid: authUser.uid,
+          name: authUser.displayName || 'Anonymous',
+          email: authUser.email,
+          lobby: null
+        };
+      }
       return;
     }
 
@@ -544,11 +555,16 @@ export default class AvalonGame {
       } else {
         // we have user credentials
         console.debug('I am', userCred.uid);
-        this.api.login(userCred.email).then(function() {
-          this.userDocUnsubscribe = db.collection('users').doc(userCred.uid).onSnapshot(
-            this.userDocUpdated.bind(this),
-            onFirebaseError);
-          }.bind(this));
+
+        // Call login API (best-effort, don't block initialization if it fails)
+        this.api.login(userCred.email).catch(function(err) {
+          console.warn('API login failed (server may be offline):', err.message);
+        });
+
+        // Set up Firestore listener regardless of API login status
+        this.userDocUnsubscribe = db.collection('users').doc(userCred.uid).onSnapshot(
+          this.userDocUpdated.bind(this),
+          onFirebaseError);
 
           db.collection('stats').doc('global').get().then(doc => {
             this.globalStats = doc.data();
