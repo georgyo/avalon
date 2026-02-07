@@ -3,9 +3,16 @@
   "version": "1.0.0",
   "description": "Shared game logic for Avalon",
   "main": "index.js",
+  "types": "index.ts",
   "private": true,
   "exports": {
-    ".": "./index.js",
-    "./avalonlib": "./avalonlib.js"
+    ".": {
+      "types": "./index.ts",
+      "default": "./index.js"
+    },
+    "./avalonlib": {
+      "types": "./avalonlib.ts",
+      "default": "./avalonlib.js"
+    }
   }
 }
