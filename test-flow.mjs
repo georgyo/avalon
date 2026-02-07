@@ -1,4 +1,4 @@
-import { chromium } from '/opt/node22/lib/node_modules/playwright/index.mjs';
+import { chromium } from 'playwright';
 
 async function testFlow() {
   const browser = await chromium.launch({ headless: true });

@@ -1,4 +1,4 @@
-import { chromium } from '/opt/node22/lib/node_modules/playwright/index.mjs';
+import { chromium } from 'playwright';
 import { execSync } from 'child_process';
 
 // Use curl for Firebase requests since Node.js DNS doesn't resolve googleapis.com
