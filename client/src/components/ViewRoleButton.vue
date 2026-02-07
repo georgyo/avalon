@@ -47,11 +47,12 @@
   </v-bottom-sheet>
 </template>
 
-<script>
+<script lang="ts">
+import Vue from 'vue'
 import { EventBus } from '../main'
 import StatsDisplay from './StatsDisplay.vue'
 
-export default {
+export default Vue.extend({
   name: 'ViewRoleButton',
   components: {
     StatsDisplay
@@ -66,7 +67,7 @@ export default {
           sheet: false,
       };
   },
-}
+})
 </script>
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>

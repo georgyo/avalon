@@ -18,13 +18,14 @@
     </v-tabs>
 </template>
 
-<script>
+<script lang="ts">
+import Vue from 'vue'
 import GamePlayerList from './GamePlayerList.vue'
 import RoleList from './RoleList.vue'
 
-export default {
+export default Vue.extend({
   name: 'GameParticipants',
   props: [ 'avalon' ],
   components: { GamePlayerList, RoleList },
-}
+})
 </script>

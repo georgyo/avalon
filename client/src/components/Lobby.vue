@@ -105,13 +105,14 @@
   </v-container>
 </template>
 
-<script>
+<script lang="ts">
+import Vue from 'vue'
 import { EventBus } from '@/main'
 import * as avalonLib from '@avalon/common/avalonlib'
 import LobbyPlayerList from './LobbyPlayerList.vue'
 import RoleList from './RoleList.vue'
 
-export default {
+export default Vue.extend({
   name: 'Lobby',
   components: {
     LobbyPlayerList,
@@ -160,7 +161,7 @@ export default {
       this.avalon.startGame(this.options);
     }
   }
- }
+ })
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->

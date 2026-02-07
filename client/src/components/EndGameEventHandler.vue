@@ -31,12 +31,13 @@
     </v-dialog>
 </template>
 
-<script>
+<script lang="ts">
+import Vue from 'vue'
 import { EventBus } from '@/main'
 import Achievements from './Achievements.vue'
 import MissionSummaryTable from './MissionSummaryTable.vue'
 
-export default {
+export default Vue.extend({
   name: 'EndGameEventHandler',
   props: [ 'avalon' ],
   components: {
@@ -81,13 +82,13 @@ export default {
           this.endGameDialog = false;
       });      
   }
-}
+})
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
 
- table { 
+ table {
     border-collapse: collapse;
  }
 

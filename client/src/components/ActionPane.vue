@@ -7,13 +7,14 @@
     </div>
 </template>
 
-<script>
+<script lang="ts">
+import Vue from 'vue'
 import TeamProposalAction from './TeamProposalAction.vue'
 import TeamVoteAction from './TeamVoteAction.vue'
 import MissionAction from './MissionAction.vue'
 import AssassinationAction from './AssassinationAction.vue'
 
-export default {
+export default Vue.extend({
   name: 'ActionPane',
   components: {
     TeamProposalAction,
@@ -36,7 +37,7 @@ export default {
         return this.avalon.game.phase == 'ASSASSINATION'
     },
   },
-}
+})
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->

@@ -11,10 +11,11 @@
     </div>
   </div>
 </template>
-<script>
+<script lang="ts">
+import Vue from 'vue'
 import GameAnalysis from "@/avalon-analysis";
 
-export default {
+export default Vue.extend({
   name: "Achievements",
   props: ["avalon"],
   computed: {
@@ -27,7 +28,7 @@ export default {
       return gameAnalysis.getBadges();
     }
   }
-};
+});
 </script>
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>

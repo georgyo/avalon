@@ -12,12 +12,13 @@
   </div>
 </template>
 
-<script>
+<script lang="ts">
+import Vue from 'vue'
 import Missions from './Missions.vue'
 import GameParticipants from './GameParticipants.vue'
 import ActionPane from './ActionPane.vue'
 
-export default {
+export default Vue.extend({
   name: 'Game',
   components: {
     Missions,
@@ -35,7 +36,7 @@ export default {
       this.selectedPlayers = newList;
     },
   },
-}
+})
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->

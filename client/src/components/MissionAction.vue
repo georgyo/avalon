@@ -24,10 +24,11 @@
   </v-card>
 </template>
 
-<script>
+<script lang="ts">
+import Vue from 'vue'
 import _ from 'lodash';
 
-export default {
+export default Vue.extend({
   name: 'MissionAction',
   props: [ 'avalon' ],
   data() {
@@ -56,7 +57,7 @@ export default {
       }
     }
   }
-}
+})
 </script>
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>

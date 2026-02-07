@@ -5,8 +5,10 @@
   </v-btn>
 </template>
 
-<script>
-export default {
+<script lang="ts">
+import Vue from 'vue'
+
+export default Vue.extend({
   name: 'LogoutButton',
   props: [ 'avalon' ],
   data() {
@@ -20,7 +22,7 @@ export default {
           this.avalon.logout();
       }
   }
-}
+})
 </script>
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
