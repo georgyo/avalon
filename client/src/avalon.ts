@@ -3,29 +3,50 @@ import 'firebase/compat/auth'
 import 'firebase/compat/firestore'
 import _ from 'lodash'
 import * as avalonLib from '@avalon/common/avalonlib';
+import type { Role } from '@avalon/common/avalonlib';
 import {AvalonApi} from './avalon-api-rest';
 import firebaseConfig from './firebase-config';
 
 import axios from 'axios';
+
+declare global {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  interface Array<T> {
+    joinWithAnd(): string;
+  }
+}
 
 const HOSTNAME = window.location.origin + '/';
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-function onFirebaseError(err) {
+function onFirebaseError(err: Error): void {
   console.error(err);
 }
 
 class Game {
-  constructor(game, config) {
+  game: any;
+  roleInfos: Role[] | undefined;
+  numPlayers!: number;
+  currentMissionIdx!: number;
+  currentMission: any;
+  currentProposalIdx!: number;
+  currentProposal: any;
+  currentProposer: string | null = null;
+  hammer: string | null = null;
+
+  // Dynamic properties assigned via Object.assign
+  [key: string]: any;
+
+  constructor(game: any, config: GameConfig) {
     this.game = game;
     if (game.roles) {
       this.roleInfos = game.roles.sort(
-        (a,b) => {
-          let roleIndexOf = (name) => config.roles.findIndex(r => r.name == name);
+        (a: string, b: string) => {
+          const roleIndexOf = (name: string) => config.roles.findIndex(r => r.name == name);
           return roleIndexOf(a) - roleIndexOf(b);
-        }).map(r => config.roleMap[r]);
+        }).map((r: string) => config.roleMap[r]);
     }
     Object.assign(this, game);
 
@@ -33,7 +54,7 @@ class Game {
       return;
     }
     this.numPlayers = this.game.players.length;
-    this.currentMissionIdx = this.missions.findIndex(m => m.state == 'PENDING');
+    this.currentMissionIdx = this.missions.findIndex((m: any) => m.state == 'PENDING');
     if (this.currentMissionIdx < 0) {
       this.currentMission = null;
       this.currentProposalIdx = -1;
@@ -42,7 +63,7 @@ class Game {
       this.hammer = null;
     } else {
       this.currentMission = this.missions[this.currentMissionIdx];
-      this.currentProposalIdx = this.currentMission.proposals.findIndex(p => p.state == 'PENDING');
+      this.currentProposalIdx = this.currentMission.proposals.findIndex((p: any) => p.state == 'PENDING');
       if (this.currentProposalIdx < 0) {
         // no pending proposals, so must be latest one
         this.currentProposalIdx = this.currentMission.proposals.length - 1;
@@ -51,7 +72,7 @@ class Game {
       this.currentProposer = (this.currentProposal ? this.currentProposal.proposer : null);
 
       if (this.currentProposal != null) {
-        const proposerIdx = this.game.players.findIndex(p => p == this.currentProposer);
+        const proposerIdx = this.game.players.findIndex((p: string) => p == this.currentProposer);
         const hammerIdx = (proposerIdx + (4 - this.currentProposalIdx)) % this.numPlayers;
         this.hammer = this.game.players[hammerIdx];
       } else {
@@ -60,36 +81,45 @@ class Game {
     }
   }
 
-  get lastProposal() {
+  get lastProposal(): any {
     if (this.currentProposalIdx > 0) {
       return this.missions[this.currentMissionIdx].proposals[this.currentProposalIdx - 1];
     }
     if (this.currentMissionIdx <= 0) {
       return null;
     }
-    return this.missions[this.currentMissionIdx - 1].proposals.find(p => p.state == 'APPROVED');
+    return this.missions[this.currentMissionIdx - 1].proposals.find((p: any) => p.state == 'APPROVED');
   }
 
-  getNumTeam(team) {
-    return this.game.roles.filter(r => this.roleMap[r].team == team).length;
+  getNumTeam(team: string): number {
+    return this.game.roles.filter((r: string) => this.roleMap[r].team == team).length;
   }
 
-  get numEvil() {
+  get numEvil(): number {
     return this.getNumTeam('evil');
   }
 
-  get numGood() {
+  get numGood(): number {
     return this.getNumTeam('good');
   }
 }
 
 class LobbySubscription {
+  name: string;
+  connected: boolean;
+  private _uid: string;
+  private _doc: any;
+  private _roleDoc: any;
+  private _game: Game | null;
+  private _config: GameConfig;
+  private _eventHandler: (evt: string) => void;
+  private _subscriptions: Record<string, (() => void) | undefined>;
 
-  constructor(uid, lobbyName, config, eventHandler) {
+  constructor(uid: string, lobbyName: string, config: GameConfig, eventHandler: (evt: string) => void) {
     this.name = lobbyName;
     this._uid = uid;
     this._doc = null;
-    this._roleDoc = null;    
+    this._roleDoc = null;
     this._game = null;
     this._config = config;
     this.connected = false;
@@ -97,27 +127,27 @@ class LobbySubscription {
     this._subscriptions = { };
   }
 
-  get data() {
+  get data(): any {
     return this._doc;
   }
 
-  get users() {
+  get users(): any {
     return this.data.users;
   }
 
-  get admin() {
+  get admin(): any {
     return this.data.admin;
   }
 
-  get game() {
+  get game(): any {
     return this._game;
   }
 
-  get role() {
+  get role(): any {
     return this._roleDoc;
   }
 
-  start() {
+  start(): void {
     this._subscriptions.lobbyDoc =
       db.collection('lobbies').doc(this.name).onSnapshot(
         this._lobbyDocUpdated.bind(this),
@@ -127,20 +157,20 @@ class LobbySubscription {
         this._roleDocUpdated.bind(this));
   }
 
-  stop() {
+  stop(): void {
     if (this._subscriptions.lobbyDoc) {
       this._subscriptions.lobbyDoc();
     }
 
     if (this._subscriptions.roleDoc) {
-      this._subscriptions.roleDoc();    
+      this._subscriptions.roleDoc();
     }
 
     this._subscriptions = { };
     this.connected = false;
   }
 
-  _roleDocUpdated(roleDoc) {
+  private _roleDocUpdated(roleDoc: firebase.firestore.DocumentSnapshot): void {
     this._roleDoc = roleDoc.data();
     // enhance role
     if (this._roleDoc) {
@@ -148,7 +178,7 @@ class LobbySubscription {
     }
   }
 
-  _lobbyDocUpdated(newDoc) {
+  private _lobbyDocUpdated(newDoc: firebase.firestore.DocumentSnapshot): void {
     const oldDoc = this._doc;
 
     if (!newDoc.exists) {
@@ -174,14 +204,14 @@ class LobbySubscription {
         console.log('got ', doc.data());
         this._game = doc.data();
         this._game.players = this._game.players.map(p => p.name); // flatten it to just names
-        this._eventHandler('GAME_ENDED');    
+        this._eventHandler('GAME_ENDED');
       }); /* */
 
       /* -- debug -- view random lobby
       const lobbyName = 'WDR';
       db.collection('lobbies').doc(lobbyName).get().then((lobbyDoc) => {
         this._game = lobbyDoc.get('game');
-        
+
         this._eventHandler('GAME_ENDED');
       });
       */
@@ -189,20 +219,20 @@ class LobbySubscription {
       return;
     }
 
-    if (oldDoc.admin.uid != newDoc.data().admin.uid) {
+    if (oldDoc.admin.uid != newDoc.data()!.admin.uid) {
       this._eventHandler('LOBBY_NEW_ADMIN');
     }
 
-    if ((_.keys(oldDoc.users).length != _.keys(newDoc.data().users).length) ||
-        !_.keys(oldDoc.users).every(u => newDoc.data().users[u])) {
+    if ((_.keys(oldDoc.users).length != _.keys(newDoc.data()!.users).length) ||
+        !_.keys(oldDoc.users).every(u => newDoc.data()!.users[u])) {
       this._eventHandler('PLAYER_LIST_CHANGED');
     }
 
-    if (oldDoc.game.state != newDoc.data().game.state) {
+    if (oldDoc.game.state != newDoc.data()!.game.state) {
       this._eventHandler(
-        newDoc.data().game.state == 'ACTIVE' ? 'GAME_STARTED' : 'GAME_ENDED'
+        newDoc.data()!.game.state == 'ACTIVE' ? 'GAME_STARTED' : 'GAME_ENDED'
       );
-    } else if (oldDoc.game.phase != newDoc.data().game.phase) {
+    } else if (oldDoc.game.phase != newDoc.data()!.game.phase) {
       if (this.game.phase == 'TEAM_PROPOSAL') {
         if (this.game.currentProposalIdx > 0) {
           this._eventHandler('PROPOSAL_REJECTED');
@@ -223,36 +253,41 @@ class LobbySubscription {
 }
 
 class GameConfig {
+  playerList: string[];
+  roles!: Role[];
+  selectableRoles!: Role[];
+  roleMap!: Record<string, Role>;
+  notifyEvent: (...args: any[]) => void;
 
-  constructor(notificationCallback) {
+  constructor(notificationCallback: (...args: any[]) => void) {
     this.playerList = [];
     this.setupRoles();
     this.notifyEvent = notificationCallback;
   }
 
-  get selectedRoleList() {
+  get selectedRoleList(): string[] {
     return this.roles.filter(r => r.selected).map(r => r.name);
   }
 
-  sortList(newList) {
+  sortList(newList: string[]): void {
     console.assert(newList.length == this.playerList.length);
     this.playerList = newList;
   }
 
-  roleDescription(role) {
+  roleDescription(role: string): Role {
     return this.roleMap[role];
   }
 
-  updatePlayerList(newList, notifyForEachPlayer) {
-    newList = _.values(newList).map(u => u.name);
+  updatePlayerList(newList: any, notifyForEachPlayer: boolean): void {
+    const nameList: string[] = _.values(newList).map((u: any) => u.name);
 
     if (this.playerList.length == 0) {
-      this.playerList = newList;
+      this.playerList = nameList;
       return;
     }
 
-    const removedPlayers = _.difference(this.playerList, newList);
-    const newPlayers = _.difference(newList, this.playerList);
+    const removedPlayers = _.difference(this.playerList, nameList);
+    const newPlayers = _.difference(nameList, this.playerList);
 
     removedPlayers.forEach(r => {
       this.playerList.splice(this.playerList.indexOf(r), 1);
@@ -265,21 +300,31 @@ class GameConfig {
     }
   }
 
-  updateRoles(roles) {
+  updateRoles(roles: string[]): void {
     this.roles.forEach(r => r.selected = false);
     roles.forEach(r => this.roleMap[r].selected = true);
   }
 
-  setupRoles() {
+  setupRoles(): void {
     this.roles = avalonLib.ROLES;
     this.selectableRoles = this.roles.filter(r => r.selectable);
-    this.roleMap = _.keyBy(this.roles, r => r.name);
+    this.roleMap = _.keyBy(this.roles, r => r.name) as Record<string, Role>;
   }
 }
 
 export default class AvalonGame {
+  api: AvalonApi;
+  lobby: LobbySubscription | null;
+  user: any;
+  userDocUnsubscribe: (() => void) | null;
+  globalStats: any;
+  hostname: string;
+  config: GameConfig;
+  confirmingEmailError: string | null;
+  private _authStateInitialized: boolean;
+  private _eventCallback: ((...args: any[]) => void) | null;
 
-  constructor(eventCallback) {
+  constructor(eventCallback: (...args: any[]) => void) {
     // XXX TODO: find a better place for this:
     Array.prototype.joinWithAnd = function() {
       if (this.length == 0) return '';
@@ -302,83 +347,83 @@ export default class AvalonGame {
     _.bindAll(this);
 
     this._eventCallback = eventCallback;
-    this.config = new GameConfig(this.notifyEvent.bind(this));    
+    this.config = new GameConfig(this.notifyEvent.bind(this));
   }
 
-  notifyEvent() {
+  notifyEvent(...args: any[]): void {
     if (this._eventCallback) {
-      this._eventCallback(...arguments);
+      this._eventCallback(...args);
     } else {
-      console.warn("(no event callback)", ...arguments);
+      console.warn("(no event callback)", ...args);
     }
   }
 
-  joinLobbyImpl(joinLobbyPromise) {
-    return joinLobbyPromise.then(function(resp) {
+  joinLobbyImpl(joinLobbyPromise: Promise<any>): Promise<void> {
+    return joinLobbyPromise.then(function(this: AvalonGame, resp: any) {
       this.subscribeToLobby(resp.data.lobby);
     }.bind(this));
   }
 
-  joinLobby(name, lobby) {
+  joinLobby(name: string, lobby: string): Promise<void> {
     return this.joinLobbyImpl(this.api.joinLobby(name, lobby));
   }
 
-  createLobby(name) {    
+  createLobby(name: string): Promise<void> {
     return this.joinLobbyImpl(this.api.createLobby(name));
     //return new Promise((resolve, reject) => setTimeout(() => resolve(name), 3000));
   }
 
-  leaveLobby() {
-    return this.api.leaveLobby(this.lobby.name).then(() => this.unsubscribeFromLobby());
+  leaveLobby(): Promise<void> {
+    return this.api.leaveLobby(this.lobby!.name).then(() => this.unsubscribeFromLobby());
   }
 
-  kickPlayer(name) {
-    return this.api.kickPlayer(this.lobby.name, name);
+  kickPlayer(name: string): Promise<any> {
+    return this.api.kickPlayer(this.lobby!.name, name);
   }
 
-  cancelGame() {
-    return this.api.cancelGame(this.lobby.name, this.user.name);
+  cancelGame(): Promise<any> {
+    return this.api.cancelGame(this.lobby!.name, this.user.name);
   }
 
-  voteTeam(vote) {
+  voteTeam(vote: boolean): Promise<any> {
     return this.api.voteTeam(
-      this.lobby.name,
-      this.user.name,      
+      this.lobby!.name,
+      this.user.name,
       this.game.currentMissionIdx,
       this.game.currentProposalIdx,
       vote);
   }
 
-  startGame(options) {
-    return this.api.startGame(this.lobby.name, this.config.playerList, this.config.selectedRoleList, options);
+  startGame(options: Record<string, any>): Promise<any> {
+    return this.api.startGame(this.lobby!.name, this.config.playerList, this.config.selectedRoleList, options);
   }
 
-  proposeTeam(playerList) {
+  proposeTeam(playerList: string[]): Promise<any> {
     return this.api.proposeTeam(
-      this.lobby.name,
+      this.lobby!.name,
       this.user.name,
       this.game.currentMissionIdx,
       this.game.currentProposalIdx,
       playerList);
   }
 
-  doMission(vote) {
+  doMission(vote: boolean): Promise<any> {
     return this.api.doMission(
-      this.lobby.name,
+      this.lobby!.name,
       this.user.name,
       this.game.currentMissionIdx,
       this.game.currentProposalIdx,
       vote);
   }
 
-  assassinate(target) {
+  assassinate(target: string): Promise<any> {
     return this.api.assassinate(
-      this.lobby.name,
+      this.lobby!.name,
       this.user.name,
       target);
   }
 
-  get initialized() {
+  get initialized(): boolean {
     if (!this._authStateInitialized) {
       return false;
     }
@@ -387,27 +432,27 @@ export default class AvalonGame {
     return (this.user == null) || !this.user.lobby || this.isInLobby;
   }
 
-  get isLoggedIn() {
+  get isLoggedIn(): boolean {
     return (this.initialized && (this.user != null));
   }
 
-  get isAdmin() {
-    return this.isInLobby && (this.lobby.admin.uid == this.user.uid);
+  get isAdmin(): boolean {
+    return this.isInLobby && (this.lobby!.admin.uid == this.user.uid);
   }
 
-  get isInLobby() {
+  get isInLobby(): boolean {
     return this.user && this.user.lobby && this.lobby && this.lobby.connected;
   }
 
-  get isGameInProgress() {
-    return this.isInLobby && this.lobby.game.state == 'ACTIVE' && this.lobby.role;
+  get isGameInProgress(): boolean {
+    return this.isInLobby && this.lobby!.game.state == 'ACTIVE' && this.lobby!.role;
   }
 
-  get game() {
-    return this.lobby.game;
+  get game(): any {
+    return this.lobby!.game;
   }
 
-  userDocUpdated(userDoc) {
+  userDocUpdated(userDoc: firebase.firestore.DocumentSnapshot): void {
     this._authStateInitialized = true;
 
     if (!userDoc.exists) {
@@ -429,7 +474,7 @@ export default class AvalonGame {
     this.user = userDoc.data();
 
     if (!this.user.lobby && (this.lobby != null)) {
-      const oldLobby = this.lobby.name;      
+      const oldLobby = this.lobby.name;
       this.unsubscribeFromLobby();
       this.notifyEvent('DISCONNECTED_FROM_LOBBY', oldLobby);
     }
@@ -439,29 +484,29 @@ export default class AvalonGame {
     }
   }
 
-  unsubscribeFromLobby() {
+  unsubscribeFromLobby(): void {
     if (this.lobby != null) {
       this.lobby.stop();
       this.lobby = null;
     }
   }
 
-  subscribeToLobby(lobby) {
+  subscribeToLobby(lobby: string): void {
     if (this.lobby != null) {
       // want to avoid double-subscriptions (from user doc and create/join func calls)
       return;
     }
     this.lobby = new LobbySubscription(this.user.uid, lobby, this.config,
-      function(evt) {
+      function(this: AvalonGame, evt: string) {
         switch(evt) {
           case 'LOBBY_CONNECTED':
             this.lobbyConnected();
-            break;            
+            break;
           case 'GAME_STARTED':
-            this.config.updateRoles(this.lobby.game.roles);
+            this.config.updateRoles(this.lobby!.game.roles);
             break;
           case 'PLAYER_LIST_CHANGED':
-            this.config.updatePlayerList(this.lobby.users, true);
+            this.config.updatePlayerList(this.lobby!.users, true);
             break;
           default:
             console.debug('received', evt, 'in avalon game engine');
@@ -472,18 +517,18 @@ export default class AvalonGame {
     this.lobby.start();
   }
 
-  lobbyConnected() {
-    this.config.updatePlayerList(this.lobby.users, false);
-    if (this.lobby.game.roles) {
-      this.config.updateRoles(this.lobby.game.roles);
+  lobbyConnected(): void {
+    this.config.updatePlayerList(this.lobby!.users, false);
+    if (this.lobby!.game.roles) {
+      this.config.updateRoles(this.lobby!.game.roles);
     }
   }
 
-  logout() {
+  logout(): void {
     firebase.auth().signOut();
   }
 
-  async validateEmailAddr(email) {
+  async validateEmailAddr(email: string): Promise<boolean> {
     // best-effort email address parsing
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       throw new Error("Not a valid email address");
@@ -505,7 +550,7 @@ export default class AvalonGame {
     }
   }
 
-  async submitEmailAddr(emailAddr) {
+  async submitEmailAddr(emailAddr: string): Promise<void> {
     const isValidAddr = await this.validateEmailAddr(emailAddr);
     if (!isValidAddr) return;
     return firebase.auth().sendSignInLinkToEmail(emailAddr, {
@@ -514,39 +559,39 @@ export default class AvalonGame {
     });
   }
 
-  async signInAnonymously() {
+  async signInAnonymously(): Promise<firebase.auth.UserCredential> {
     return firebase.auth().signInAnonymously()
   }
 
-  init() {
-    let urlParams = new URLSearchParams(window.location.search);
+  init(): void {
+    const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.has("purchaseSuccess")) {
       alert('Thank you. Your support means a lot.');
     } else if (urlParams.has('purchaseCanceled')) {
       alert('Maybe next time?');
     }
 
-    firebase.auth().onAuthStateChanged(function (userCred) {
+    firebase.auth().onAuthStateChanged(function (this: AvalonGame, userCred: firebase.User | null) {
       if (userCred == null) {
         // not logged in
         // maybe there's an email link?
-        let urlParams = new URLSearchParams(window.location.search);
+        const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.has("confirmEmail")) {
-          const emailAddr = urlParams.get("confirmEmail");
-          return firebase.auth().signInWithEmailLink(emailAddr, window.location.href).then(function() {
+          const emailAddr = urlParams.get("confirmEmail")!;
+          return firebase.auth().signInWithEmailLink(emailAddr, window.location.href).then(function(this: AvalonGame) {
             this.confirmingEmailError = null;
-          }.bind(this)).catch(function(err) {
+          }.bind(this)).catch(function(this: AvalonGame, err: Error) {
             this.confirmingEmailError = err.message;
             this._authStateInitialized = true;
-          }.bind(this)).finally(function() {
+          }.bind(this)).finally(function(this: AvalonGame) {
             // strip params from URL
-            window.history.replaceState(null, null, window.location.pathname);
+            window.history.replaceState(null, '', window.location.pathname);
           }.bind(this));
         } else {
           // no email link, so we are not logged in for real
           this._authStateInitialized = true;
         }
-    
+
         if (this.userDocUnsubscribe != null) {
           this.userDocUnsubscribe();
           this.userDocUnsubscribe = null;
@@ -557,7 +602,7 @@ export default class AvalonGame {
         console.debug('I am', userCred.uid);
 
         // Call login API (best-effort, don't block initialization if it fails)
-        this.api.login(userCred.email).catch(function(err) {
+        this.api.login(userCred.email!).catch(function(err: Error) {
           console.warn('API login failed (server may be offline):', err.message);
         });
 
@@ -571,7 +616,7 @@ export default class AvalonGame {
           });
 
           // strip params from URL (if we followed a confirmEmail link but we're already logged in)
-          window.history.replaceState(null, null, window.location.pathname);
+          window.history.replaceState(null, '', window.location.pathname);
         }
     }.bind(this));
   }

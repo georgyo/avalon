@@ -1,19 +1,32 @@
 import _ from 'lodash'
+import type { Role } from '@avalon/common/avalonlib';
+
+interface Badge {
+  title: string;
+  body: string;
+}
 
 export default class GameAnalysis {
-  constructor(game, roleMap) {
+  game: any;
+  rolesByName: Record<string, any>;
+  namesByRole: Record<string, string>;
+  evilPlayers: string[];
+  goodPlayers: string[];
+  missions: any[];
+
+  constructor(game: any, roleMap: Record<string, Role>) {
     this.game = game;
     this.rolesByName = _.keyBy(game.outcome.roles, 'name');
     this.namesByRole = _.invert(_.mapValues(this.rolesByName, r => r.role)); // this is lossy for non-unique roles!
-    this.evilPlayers = game.outcome.roles.filter(r => roleMap[r.role].team == 'evil').map(r => r.name);
-    this.goodPlayers = game.outcome.roles.filter(r => roleMap[r.role].team == 'good').map(r => r.name);
-    this.missions = game.missions.map(m => {
-      m.evilOnTeam = m.team.filter(n => this.evilPlayers.includes(n));
+    this.evilPlayers = game.outcome.roles.filter((r: any) => roleMap[r.role].team == 'evil').map((r: any) => r.name);
+    this.goodPlayers = game.outcome.roles.filter((r: any) => roleMap[r.role].team == 'good').map((r: any) => r.name);
+    this.missions = game.missions.map((m: any) => {
+      m.evilOnTeam = m.team.filter((n: string) => this.evilPlayers.includes(n));
       return m;
     });
   }
 
-  roleProposesRole(proposerRole, roleProposed) {
+  roleProposesRole(proposerRole: string, roleProposed: string): boolean | undefined {
     if (!this.namesByRole[proposerRole] || !this.namesByRole[roleProposed]) return false;
 
     for (const mission of this.missions) {
@@ -26,7 +39,7 @@ export default class GameAnalysis {
     }
   }
 
-  roleApprovesRole(approverRole, roleProposed) {
+  roleApprovesRole(approverRole: string, roleProposed: string): boolean {
     if (!this.namesByRole[approverRole] || !this.namesByRole[roleProposed]) return false;
 
     for (const mission of this.missions) {
@@ -41,7 +54,7 @@ export default class GameAnalysis {
     return false;
   }
 
-  roleTrustsRole(sourceRole, destRole, badgeGenerator) {
+  roleTrustsRole(sourceRole: string, destRole: string, badgeGenerator: (msg: string) => Badge): Badge | false {
     const proposed = this.roleProposesRole(sourceRole, destRole);
     const approved = this.roleApprovesRole(sourceRole, destRole);
     if (proposed || approved) {
@@ -58,12 +71,12 @@ export default class GameAnalysis {
     return false;
   }
 
-  badges = {
+  badges: Record<string, () => Badge | false | undefined> = {
     merlinSendsEvilTeam() {
       if (!this.namesByRole['MERLIN']) return false;
 
       for (const mission of this.missions) {
-        const approvedProposal = mission.proposals.find(p => p.state == 'APPROVED');
+        const approvedProposal = mission.proposals.find((p: any) => p.state == 'APPROVED');
         if (approvedProposal &&
             (this.namesByRole['MERLIN'] == approvedProposal.proposer) &&
             (mission.evilOnTeam.length >= mission.failsRequired)) {
@@ -81,7 +94,7 @@ export default class GameAnalysis {
         for (const proposal of mission.proposals) {
           if ((proposal.proposer == this.namesByRole['MERLIN']) &&
                proposal.votes.includes(this.namesByRole['MERLIN']) &&
-               proposal.team.filter(p => this.evilPlayers.includes(p) && this.rolesByName[p].role != 'MORDRED').length > mission.failsRequired) {
+               proposal.team.filter((p: string) => this.evilPlayers.includes(p) && this.rolesByName[p].role != 'MORDRED').length > mission.failsRequired) {
             return {
               title: 'Advanced Merlin',
               body: `Merlin proposed and approved a team with ${mission.evilOnTeam.joinWithAnd()}`
@@ -135,7 +148,7 @@ export default class GameAnalysis {
       }
     },
     noEvilPlayersOnMissions() {
-      if (_.tail(this.missions).every(m => m.evilOnTeam.length == 0)) {
+      if (_.tail(this.missions).every((m: any) => m.evilOnTeam.length == 0)) {
         return {
           title: 'Lockdown',
           body: 'No evil players went on any missions' +
@@ -179,7 +192,7 @@ export default class GameAnalysis {
       }
     },
     trustingBunch() {
-      const approvedIdx = this.missions[0].proposals.findIndex(p => p.state == 'APPROVED');
+      const approvedIdx = this.missions[0].proposals.findIndex((p: any) => p.state == 'APPROVED');
       if ((approvedIdx >= 0) && (approvedIdx < 4)) {
         return {
           title: 'What a trusting bunch',
@@ -213,8 +226,8 @@ export default class GameAnalysis {
     },
     stillWaiting() {
       // evil player only went on good missions
-      let evilPlayersOnGoodMissions = [];
-      let evilPlayersOnBadMissions = [];
+      let evilPlayersOnGoodMissions: string[] = [];
+      let evilPlayersOnBadMissions: string[] = [];
       for(const mission of this.missions) {
         if (mission.state == 'SUCCESS') {
           evilPlayersOnGoodMissions = evilPlayersOnGoodMissions.concat(mission.evilOnTeam);
@@ -251,7 +264,7 @@ export default class GameAnalysis {
       if ((this.missions[0].state == this.missions[1].state) &&
           (this.missions[1].state != this.missions[2].state) &&
           (this.missions[2].state == this.missions[3].state) &&
-          (this.missions[3].state == this.missions[4].state)) {        
+          (this.missions[3].state == this.missions[4].state)) {
         if ((this.missions[0].state == 'FAIL') &&
             (this.game.outcome.state == 'GOOD_WIN')) {
           return {
@@ -267,7 +280,7 @@ export default class GameAnalysis {
       }
     },
     sameTeam() {
-      let lastTeam = [];
+      let lastTeam: string[] = [];
       let teamProposalCount = 0;
       outer: for (const mission of this.missions) {
         for(const proposal of mission.proposals) {
@@ -289,7 +302,7 @@ export default class GameAnalysis {
     },
     playerDoesntGoOnMissions() {
       let players = this.game.players.slice(0);
-      const completedMissions = this.missions.filter(m => m.state != 'PENDING');
+      const completedMissions = this.missions.filter((m: any) => m.state != 'PENDING');
       if (completedMissions.length == 0) return false;
       for(const mission of _.initial(completedMissions)) {
         players = _.difference(players, mission.team);
@@ -308,7 +321,7 @@ export default class GameAnalysis {
             body: `${player} did not go on a single mission`
           };
         }
-      }      
+      }
     },
     almostLost() {
       if (this.game.outcome.state != 'GOOD_WIN') return false;
@@ -316,14 +329,14 @@ export default class GameAnalysis {
       for(const [missionIdx, mission] of this.missions.entries()) {
         if ((numFails == 2) && (mission.proposals.length < 5)) {
           const numPlayersBehind = 5 - mission.proposals.length;
-          const playersBehind = [];
+          const playersBehind: string[] = [];
           let proposer = mission.proposals[mission.proposals.length - 1].proposer;
           for (let idx = 0; idx < numPlayersBehind; idx++) {
             const proposerIdx = this.game.players.indexOf(proposer);
             proposer = this.game.players[(proposerIdx + 1) % this.game.players.length];
             playersBehind.push(proposer);
           }
-          if (!playersBehind.every(p => this.evilPlayers.includes(p))) {
+          if (!playersBehind.every((p: string) => this.evilPlayers.includes(p))) {
             return {
               title: 'By the skin of our teeth',
               body: `Good came close to losing on mission ${missionIdx + 1} when evil team had hammer`
@@ -336,7 +349,7 @@ export default class GameAnalysis {
       }
     },
     psychicPowers() {
-      const players = _.keyBy(this.game.players.map(name => ({
+      const players = _.keyBy(this.game.players.map((name: string) => ({
           name,
           goodProposals: 0,
           badProposals: 0
@@ -344,7 +357,7 @@ export default class GameAnalysis {
       for (const mission of this.missions) {
         for(const proposal of mission.proposals) {
           if (players[proposal.proposer]) {
-            if (proposal.team.filter(n => this.evilPlayers.includes(n)).length < mission.failsRequired) {
+            if (proposal.team.filter((n: string) => this.evilPlayers.includes(n)).length < mission.failsRequired) {
               players[proposal.proposer].goodProposals += 1;
             } else {
               players[proposal.proposer].badProposals += 1;
@@ -352,30 +365,30 @@ export default class GameAnalysis {
           }
         }
       }
-      const perfectProposers = Object.values(players).filter(p => p.badProposals == 0 && p.goodProposals >= 2);
-      perfectProposers.sort((a,b) => b.goodProposals - a.goodProposals);
-      if (perfectProposers.length > 0) {        
+      const perfectProposers = Object.values(players).filter((p: any) => p.badProposals == 0 && p.goodProposals >= 2);
+      perfectProposers.sort((a: any, b: any) => b.goodProposals - a.goodProposals);
+      if (perfectProposers.length > 0) {
         return {
           title: 'Actual Merlin',
-          body: `${perfectProposers[0].name} proposed ${perfectProposers[0].goodProposals} perfect teams and no bad teams`
+          body: `${(perfectProposers[0] as any).name} proposed ${(perfectProposers[0] as any).goodProposals} perfect teams and no bad teams`
         }
       }
     },
     morganaTrustsMerlin() {
-      return this.roleTrustsRole('MORGANA', 'MERLIN', (msg) => ({
+      return this.roleTrustsRole('MORGANA', 'MERLIN', (msg: string) => ({
         title: 'Cover blown',
         body: `Morgana ${msg} with Merlin`
       }));
     },
     merlinTrustsMorgana() {
-      return this.roleTrustsRole('MERLIN', 'MORGANA', (msg) => ({        
+      return this.roleTrustsRole('MERLIN', 'MORGANA', (msg: string) => ({
         title: 'Good luck, Percival',
         body: `Merlin ${msg} with Morgana`
         })
       );
     },
     percivalTrustsMorgana() {
-      return this.roleTrustsRole('PERCIVAL', 'MORGANA', (msg) => ({        
+      return this.roleTrustsRole('PERCIVAL', 'MORGANA', (msg: string) => ({
         title: 'Got you fooled',
         body: `Percival ${msg} with Morgana`
         })
@@ -383,9 +396,9 @@ export default class GameAnalysis {
     },
   }
 
-  getBadges() {
+  getBadges(): Badge[] {
     return Object.values(this.badges).map(func => {
       return func.bind(this)();
-    }).filter(badge => badge);
+    }).filter((badge): badge is Badge => !!badge);
   }
 }
