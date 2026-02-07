@@ -27,6 +27,9 @@ project.overrideAttrs (oldAttrs: {
 
   name = "avalon";
 
+  # Add python3 for node-gyp native module builds (e.g., re2)
+  nativeBuildInputs = (oldAttrs.nativeBuildInputs or []) ++ [ pkgs.python3 ];
+
   buildPhase = ''
     yarn build
   '';
