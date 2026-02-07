@@ -48,7 +48,7 @@
 </template>
 
 <script>
-import { EventBus } from '../main.js'
+import { EventBus } from '../main'
 import StatsDisplay from './StatsDisplay.vue'
 
 export default {

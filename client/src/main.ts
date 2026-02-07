@@ -23,7 +23,7 @@ library.add(faCrown, faSolidCircle, faCircle,
 //library.add(far, fas);
 
 const opts = {
-  iconfont: 'mdiSvg',
+  iconfont: 'mdiSvg' as const,
   //dark: true,
 }
 Vue.use(Vuetify, opts)

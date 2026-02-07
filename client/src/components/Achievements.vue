@@ -12,7 +12,7 @@
   </div>
 </template>
 <script>
-import GameAnalysis from "@/avalon-analysis.js";
+import GameAnalysis from "@/avalon-analysis";
 
 export default {
   name: "Achievements",

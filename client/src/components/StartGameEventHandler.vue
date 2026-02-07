@@ -16,7 +16,7 @@
 </template>
 
 <script>
-import { EventBus } from '@/main.js'
+import { EventBus } from '@/main'
 
 export default {
   name: 'StartGameEventHandler',
