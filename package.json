@@ -14,7 +14,9 @@
   "scripts": {
     "build": "yarn workspace @avalon/client build",
     "start": "yarn workspace @avalon/server start",
-    "admin": "avalon-admin"
+    "admin": "avalon-admin",
+    "test": "node test-flow-v5.mjs",
+    "test:browser": "node test-browser.mjs"
   },
   "devDependencies": {
     "@babel/core": "^7.29.0",
