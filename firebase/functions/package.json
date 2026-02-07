@@ -13,6 +13,7 @@
     "node": "20"
   },
   "dependencies": {
+    "@avalon/common": "workspace:*",
     "firebase-admin": "11.11.1",
     "firebase-functions": "4.9.0"
   },

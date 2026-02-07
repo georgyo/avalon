@@ -19,6 +19,10 @@ const RAW_RUNTIME_STATE =
       "reference": "workspace:client"\
     },\
     {\
+      "name": "@avalon/common",\
+      "reference": "workspace:common"\
+    },\
+    {\
       "name": "functions",\
       "reference": "workspace:firebase/functions"\
     },\
@@ -32,6 +36,7 @@ const RAW_RUNTIME_STATE =
   "pnpZipBackend": "libzip",\
   "fallbackExclusionList": [\
     ["@avalon/client", ["workspace:client"]],\
+    ["@avalon/common", ["workspace:common"]],\
     ["@avalon/server", ["workspace:server"]],\
     ["avalon-workspace", ["workspace:."]],\
     ["functions", ["workspace:firebase/functions"]]\
@@ -128,10 +133,20 @@ const RAW_RUNTIME_STATE =
         "linkType": "SOFT"\
       }]\
     ]],\
+    ["@avalon/common", [\
+      ["workspace:common", {\
+        "packageLocation": "./common/",\
+        "packageDependencies": [\
+          ["@avalon/common", "workspace:common"]\
+        ],\
+        "linkType": "SOFT"\
+      }]\
+    ]],\
     ["@avalon/server", [\
       ["workspace:server", {\
         "packageLocation": "./server/",\
         "packageDependencies": [\
+          ["@avalon/common", "workspace:common"],\
           ["@avalon/server", "workspace:server"],\
           ["@firebase/app-types", "npm:0.9.2"],\
           ["eslint", "virtual:307f0f0a0f6bbe419b2892b2adbeb625075054c34bce101c7493ba00895524625ed865e532e293b325047e347afc45f9c2b2b1217a78ed253b0c25afd92ce307#npm:9.17.0"],\
@@ -11560,6 +11575,7 @@ const RAW_RUNTIME_STATE =
       ["workspace:firebase/functions", {\
         "packageLocation": "./firebase/functions/",\
         "packageDependencies": [\
+          ["@avalon/common", "workspace:common"],\
           ["@firebase/app-types", "npm:0.9.2"],\
           ["eslint", "npm:8.57.1"],\
           ["eslint-plugin-promise", "virtual:1c48d6fc54bd63a4a7a92b825c3188ce017de7b96310c12c0672c1faf971fb61632a4b939610bf601aced2f901d0649c6fb175a44219174f74f248e1599d043d#npm:6.6.0"],\

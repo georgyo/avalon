@@ -73,10 +73,17 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@avalon/common@workspace:*, @avalon/common@workspace:common":
+  version: 0.0.0-use.local
+  resolution: "@avalon/common@workspace:common"
+  languageName: unknown
+  linkType: soft
+
 "@avalon/server@workspace:server":
   version: 0.0.0-use.local
   resolution: "@avalon/server@workspace:server"
   dependencies:
+    "@avalon/common": "workspace:*"
     "@firebase/app-types": "npm:^0.9.2"
     eslint: "npm:9.17.0"
     express: "npm:4.21.1"
@@ -8034,6 +8041,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "functions@workspace:firebase/functions"
   dependencies:
+    "@avalon/common": "workspace:*"
     "@firebase/app-types": "npm:^0.9.0"
     eslint: "npm:8.57.1"
     eslint-plugin-promise: "npm:6.6.0"

@@ -6,6 +6,7 @@
     "lint": "eslint *.js"
   },
   "dependencies": {
+    "@avalon/common": "workspace:*",
     "express": "4.21.1",
     "express-promise-router": "4.1.1",
     "firebase-admin": "11.11.1",

@@ -1,9 +1,3 @@
-/* TODO:
-
-  This is a copy of server/common/avalonlib.js
-
-  I can't figure out how to combine them
-*/
 
 exports.ROLES = [
     { name: 'MERLIN',
@@ -25,8 +19,8 @@ exports.ROLES = [
       description: 'Loyal Follower is a genuinely good person.',
       filler: true,
       sees: [],
-      selectable: false,    
-      selected: false  
+      selectable: false,
+      selected: false
     },
     { name: 'MORGANA',
       team: 'evil',

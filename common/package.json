@@ -1,0 +1,11 @@
+{
+  "name": "@avalon/common",
+  "version": "1.0.0",
+  "description": "Shared game logic for Avalon",
+  "main": "index.js",
+  "private": true,
+  "exports": {
+    ".": "./index.js",
+    "./avalonlib": "./avalonlib.js"
+  }
+}

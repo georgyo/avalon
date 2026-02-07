@@ -2,6 +2,7 @@
   "name": "avalon-workspace",
   "packageManager": "yarn@4.9.1",
   "workspaces": [
+    "common",
     "client",
     "server",
     "firebase/functions"

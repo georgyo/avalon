@@ -1,4 +1,4 @@
-const avalonLib = require('./avalonlib');
+const avalonLib = require('@avalon/common');
 
 exports.computeStats = function(game) {
     const stats =  {

@@ -29,6 +29,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a **multiplayer Avalon card game** with three main components:
 
+### Common (`/common/`)
+- Shared game logic workspace package (`@avalon/common`)
+- Role definitions and game rules
+- Used by both server and Firebase functions
+- Main file: `avalonlib.js`
+
 ### Client (`/client/`)
 - Vue.js 2.7 SPA with Vuetify UI framework
 - Real-time game state via Firebase Firestore listeners
@@ -62,14 +68,15 @@ This is a **multiplayer Avalon card game** with three main components:
 5. Firebase Functions compute stats after game completion
 
 **Key Files:**
-- `server/common/avalonlib.cjs` - Core game logic (roles, rules)
-- `firebase/functions/common/avalonlib.js` - Shared game utilities
+- `common/avalonlib.js` - Core game logic (roles, rules) - shared by server and Firebase
 - `client/src/avalon-api-rest.js` - API client wrapper
 - `client/src/components/Game.vue` - Main game interface
+- `firebase/functions/common/stats.js` - Post-game statistics computation
 
 ## Workspace Structure
 
-This is a Yarn workspace with three packages:
+This is a Yarn workspace with four packages:
+- `@avalon/common` - Shared game logic library
 - `@avalon/client` - Frontend application
 - `@avalon/server` - Backend API
 - `functions` - Firebase Cloud Functions
