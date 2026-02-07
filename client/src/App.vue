@@ -35,8 +35,8 @@
 </template>
 
 <script>
-import AvalonGame from './avalon.js'
-import { EventBus } from './main.js'
+import AvalonGame from './avalon'
+import { EventBus } from './main'
 import Toolbar from './components/Toolbar.vue'
 import EventHandler from './components/EventHandler.vue'
 import Login from './components/Login.vue'

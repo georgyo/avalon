@@ -7,7 +7,7 @@
 </template>
 
 <script>
-import { EventBus } from '@/main.js'
+import { EventBus } from '@/main'
 import StartGameEventHandler from './StartGameEventHandler.vue'
 import EndGameEventHandler from './EndGameEventHandler.vue'
 import MissionResultEventHandler from './MissionResultEventHandler.vue'

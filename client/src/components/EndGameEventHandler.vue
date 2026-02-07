@@ -32,7 +32,7 @@
 </template>
 
 <script>
-import { EventBus } from '@/main.js'
+import { EventBus } from '@/main'
 import Achievements from './Achievements.vue'
 import MissionSummaryTable from './MissionSummaryTable.vue'
 
