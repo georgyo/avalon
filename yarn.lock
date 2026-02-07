@@ -38,6 +38,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@avalon/client@workspace:client"
   dependencies:
+    "@avalon/common": "npm:*"
     "@babel/core": "npm:^7.25.8"
     "@babel/eslint-parser": "npm:7.25.8"
     "@fortawesome/fontawesome-free": "npm:6.6.0"
@@ -73,7 +74,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@avalon/common@workspace:*, @avalon/common@workspace:common":
+"@avalon/common@npm:*, @avalon/common@workspace:*, @avalon/common@workspace:common":
   version: 0.0.0-use.local
   resolution: "@avalon/common@workspace:common"
   languageName: unknown

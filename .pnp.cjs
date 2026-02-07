@@ -97,6 +97,7 @@ const RAW_RUNTIME_STATE =
         "packageLocation": "./client/",\
         "packageDependencies": [\
           ["@avalon/client", "workspace:client"],\
+          ["@avalon/common", "workspace:common"],\
           ["@babel/core", "npm:7.25.8"],\
           ["@babel/eslint-parser", "virtual:307f0f0a0f6bbe419b2892b2adbeb625075054c34bce101c7493ba00895524625ed865e532e293b325047e347afc45f9c2b2b1217a78ed253b0c25afd92ce307#npm:7.25.8"],\
           ["@fortawesome/fontawesome-free", "npm:6.6.0"],\

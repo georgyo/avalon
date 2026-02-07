@@ -107,7 +107,7 @@
 
 <script>
 import { EventBus } from '@/main.js'
-import avalonLib from '@/../../server/common/avalonlib.cjs'
+import * as avalonLib from '@avalon/common/avalonlib'
 import LobbyPlayerList from './LobbyPlayerList.vue'
 import RoleList from './RoleList.vue'
 
