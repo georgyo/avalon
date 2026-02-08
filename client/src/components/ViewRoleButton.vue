@@ -58,8 +58,14 @@ export default defineComponent({
   },
   props: [ 'avalon' ],
   mounted() {
-      EventBus.on('show-role', () => this.sheet = true);
-      EventBus.on('GAME_ENDED', () => this.sheet = false);
+      this._onShowRole = () => { this.sheet = true; };
+      this._onGameEnded = () => { this.sheet = false; };
+      EventBus.on('show-role', this._onShowRole);
+      EventBus.on('GAME_ENDED', this._onGameEnded);
+  },
+  beforeUnmount() {
+      EventBus.off('show-role', this._onShowRole);
+      EventBus.off('GAME_ENDED', this._onGameEnded);
   },
   data() {
       return {
