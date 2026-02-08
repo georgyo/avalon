@@ -14,7 +14,7 @@
   "scripts": {
     "build:common": "yarn workspace @avalon/common build",
     "build": "yarn build:common && yarn workspace @avalon/client build",
-    "bundle:server": "yarn build:common && esbuild server/server.ts --bundle --platform=node --target=node20 --outfile=dist-server/server.js --format=esm --define:__BUNDLED__=true",
+    "bundle:server": "yarn build:common && esbuild server/server.ts --bundle --platform=node --target=node20 --outfile=dist-server/server.js --format=esm --define:__BUNDLED__=true --banner:js=\"import{createRequire}from'module';import{fileURLToPath as _f}from'url';import{dirname as _d}from'path';const require=createRequire(import.meta.url);const __filename=_f(import.meta.url);const __dirname=_d(__filename);\"",
     "start": "yarn workspace @avalon/server start",
     "admin": "yarn workspace @avalon/server tsx admin.ts",
     "test": "node tests/e2e-flow.mjs",
