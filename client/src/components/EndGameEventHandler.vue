@@ -20,7 +20,7 @@
                :roles='roleAssignments'
                :missionVotes='avalon.game.outcome.votes' />
             </v-container>
-            <Achievements :avalon='avalon' />
+            <GameAchievements :avalon='avalon' />
             </div>
         </v-card-text>
         <v-card-actions>
@@ -34,14 +34,14 @@
 <script lang="ts">
 import { defineComponent } from 'vue'
 import { EventBus } from '@/eventBus'
-import Achievements from './Achievements.vue'
+import GameAchievements from './GameAchievements.vue'
 import MissionSummaryTable from './MissionSummaryTable.vue'
 
 export default defineComponent({
   name: 'EndGameEventHandler',
   props: [ 'avalon' ],
   components: {
-      Achievements,
+      GameAchievements,
       MissionSummaryTable
   },
   data() {

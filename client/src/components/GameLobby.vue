@@ -75,7 +75,7 @@ import LobbyPlayerList from './LobbyPlayerList.vue'
 import RoleList from './RoleList.vue'
 
 export default defineComponent({
-  name: 'Lobby',
+  name: 'GameLobby',
   components: {
     LobbyPlayerList,
     RoleList

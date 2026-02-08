@@ -14,17 +14,17 @@
           <UserLogin :avalon='avalon' />
         </v-container>
         <template v-else>
-          <Toolbar :avalon='avalon'></Toolbar>
+          <GameToolbar :avalon='avalon'></GameToolbar>
             <v-container>
               <v-row align="center" justify="center" class="flex-column fill-height">
-                <Login
+                <LobbySelect
                   :avalon='avalon'
                   v-if="!avalon.isInLobby"
                 />
-                <Lobby
+                <GameLobby
                   v-bind:avalon='avalon'
                   v-else-if='!avalon.isGameInProgress' />
-                <Game :avalon='avalon' v-else />
+                <GameBoard :avalon='avalon' v-else />
               </v-row>
             </v-container>
         </template>
@@ -38,11 +38,11 @@
 import { defineComponent } from 'vue'
 import AvalonGame from './avalon'
 import { EventBus } from './eventBus'
-import Toolbar from './components/Toolbar.vue'
+import GameToolbar from './components/GameToolbar.vue'
 import EventHandler from './components/EventHandler.vue'
-import Login from './components/Login.vue'
-import Lobby from './components/Lobby.vue'
-import Game from './components/Game.vue'
+import LobbySelect from './components/LobbySelect.vue'
+import GameLobby from './components/GameLobby.vue'
+import GameBoard from './components/GameBoard.vue'
 import UserLogin from './components/UserLogin.vue'
 
 export default defineComponent({
@@ -56,11 +56,11 @@ export default defineComponent({
     this.avalon.init();
   },
   components: {
-    Login,
-    Lobby,
-    Toolbar,
+    LobbySelect,
+    GameLobby,
+    GameToolbar,
     EventHandler,
-    Game,
+    GameBoard,
     UserLogin
   },
   methods: {

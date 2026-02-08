@@ -16,7 +16,7 @@ import { defineComponent } from 'vue'
 import GameAnalysis from "@/avalon-analysis";
 
 export default defineComponent({
-  name: "Achievements",
+  name: "GameAchievements",
   props: ["avalon"],
   computed: {
     badges() {
