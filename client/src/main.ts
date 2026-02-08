@@ -1,6 +1,8 @@
 import { createApp } from 'vue'
 import { createVuetify } from 'vuetify'
 import 'vuetify/styles'
+import { aliases, fa } from 'vuetify/iconsets/fa'
+import { mdi } from 'vuetify/iconsets/mdi'
 import App from './App.vue'
 import Toast from 'vue-toastification'
 import 'vue-toastification/dist/index.css'
@@ -12,14 +14,20 @@ import { FontAwesomeIcon, FontAwesomeLayers, FontAwesomeLayersText } from '@fort
 // importing icons which we need for layering and manipulations
 import { faCrown, faCircle as faSolidCircle, faEllipsisH, faVoteYea } from '@fortawesome/free-solid-svg-icons'
 import { faCircle, faTimesCircle, faCheckCircle, faThumbsUp, faThumbsDown } from '@fortawesome/free-regular-svg-icons'
+import { faOldRepublic, faEmpire } from '@fortawesome/free-brands-svg-icons'
 
 library.add(faCrown, faSolidCircle, faCircle,
   faTimesCircle, faCheckCircle, faThumbsDown, faThumbsUp,
-  faEllipsisH, faVoteYea);
+  faEllipsisH, faVoteYea, faOldRepublic, faEmpire);
 
 const vuetify = createVuetify({
   icons: {
     defaultSet: 'mdi',
+    aliases,
+    sets: {
+      mdi,
+      fa,
+    },
   },
   theme: {
     defaultTheme: 'light',

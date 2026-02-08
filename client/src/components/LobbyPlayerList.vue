@@ -24,7 +24,7 @@
         <template #item="{element}">
           <v-list-item>
             <template v-slot:prepend>
-              <v-icon v-if="canDrag" class="handle mr-2">fas fa-bars</v-icon>
+              <v-icon v-if="canDrag" class="handle mr-2" icon="fa:fas fa-bars" />
               <v-icon v-if="element == avalon.lobby.admin.name" class="mr-2">mdi-star</v-icon>
               <v-icon v-else-if="element == avalon.user.name" class="mr-2">mdi-account</v-icon>
               <v-icon v-else class="mr-2">mdi-account-outline</v-icon>

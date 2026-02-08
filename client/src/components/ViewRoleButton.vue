@@ -23,8 +23,8 @@
     </v-card>
     <v-card v-else class="bg-cyan-lighten-4">
       <v-card-title class="bg-cyan-lighten-2">
-          <v-icon start v-if='avalon.lobby.role.role.team == "good"'>fab fa-old-republic</v-icon>
-          <v-icon start v-else color="red">fas fa-empire</v-icon>
+          <v-icon start v-if='avalon.lobby.role.role.team == "good"' icon="fa:fab fa-old-republic" />
+          <v-icon start v-else color="red" icon="fa:fas fa-empire" />
           <span class='text-h5'>{{ avalon.lobby.role.role.name }}</span>
       </v-card-title>
       <v-card-text>

@@ -70,9 +70,7 @@
       <div class="d-flex flex-column align-end">
         <div class='mt-4 pt-4'>
           <v-btn size="small" href='mailto:avalon@shamm.as' target="_blank" color='grey-lighten-2'>
-            <v-icon start size="small">
-              fas fa-envelope-square
-            </v-icon>
+            <v-icon start size="small" icon="fa:fas fa-envelope-square" />
             <span>Email</span>
           </v-btn>
         </div>

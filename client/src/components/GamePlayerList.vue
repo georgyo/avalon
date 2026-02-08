@@ -34,9 +34,7 @@
           </v-tooltip>
         </template>
         <template v-else-if='playerName == avalon.game.hammer'>
-          <v-icon size="small">
-            fas fa-hammer
-          </v-icon>
+          <v-icon size="small" icon="fa:fas fa-hammer" />
         </template>
       </div>
       <div class="flex-grow-1">

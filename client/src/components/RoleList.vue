@@ -13,8 +13,8 @@
          density="compact"
          class="mr-2"
          ></v-checkbox>
-        <v-icon v-if='role.team == "good"'>fab fa-old-republic</v-icon>
-        <v-icon v-else color="red">fas fa-empire</v-icon>
+        <v-icon v-if='role.team == "good"' icon="fa:fab fa-old-republic" />
+        <v-icon v-else color="red" icon="fa:fas fa-empire" />
       </template>
       <v-list-item-title>{{role.name}}</v-list-item-title>
       <template v-slot:append>
@@ -25,8 +25,8 @@
   <v-dialog v-model="roleInfo" max-width='450'>
     <v-card class="bg-cyan-lighten-4">
         <v-card-title class="bg-cyan-lighten-2">
-          <v-icon start v-if='selectedRole.team == "good"'>fab fa-old-republic</v-icon>
-          <v-icon start v-else color="red">fas fa-empire</v-icon>
+          <v-icon start v-if='selectedRole.team == "good"' icon="fa:fab fa-old-republic" />
+          <v-icon start v-else color="red" icon="fa:fas fa-empire" />
           <h3>{{ selectedRole.name }}</h3>
         </v-card-title>
         <v-card-text>

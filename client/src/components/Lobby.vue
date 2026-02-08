@@ -60,9 +60,7 @@
 <div class="d-flex flex-column align-end pt-12">
   <div>
     <v-btn size="small" block href='mailto:avalon@shamm.as' target="_blank" color='grey-lighten-1'>
-      <v-icon start size="small">
-        fas fa-envelope-square
-      </v-icon>
+      <v-icon start size="small" icon="fa:fas fa-envelope-square" />
        <span>Send feedback</span>
     </v-btn>
   </div>
