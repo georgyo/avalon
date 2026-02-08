@@ -1,7 +1,6 @@
 import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import pluginVue from 'eslint-plugin-vue';
-import { fixupPluginRules } from '@eslint/compat';
 import globals from 'globals';
 
 export default tseslint.config(
@@ -35,21 +34,13 @@ export default tseslint.config(
     ...config,
     files: ['client/**/*.{js,ts,vue}'],
   })),
-  {
-    files: ['client/**/*.{js,ts,vue}'],
-    plugins: {
-      vue: fixupPluginRules(pluginVue),
-    },
-    rules: {
-      ...pluginVue.configs['flat/essential'].reduce((acc, config) => {
-        return { ...acc, ...config.rules };
-      }, {}),
-    },
-  },
+  ...pluginVue.configs['flat/essential'].map(config => ({
+    ...config,
+    files: config.files ? ['client/**/*.vue'] : ['client/**/*.{js,ts,vue}'],
+  })),
   {
     files: ['client/**/*.vue'],
     languageOptions: {
-      parser: pluginVue.configs['flat/essential'].find(c => c.languageOptions?.parser)?.languageOptions.parser,
       parserOptions: {
         parser: tseslint.parser,
       },
@@ -65,7 +56,6 @@ export default tseslint.config(
     },
     rules: {
       'no-debugger': process.env.NODE_ENV === 'production' ? 'error' : 'off',
-      'vue/comment-directive': 'off',
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
       'no-unused-vars': 'off',
