@@ -30,6 +30,7 @@
     "@babel/eslint-parser": "7.28.6",
     "@fortawesome/fontawesome-free": "7.1.0",
     "@mdi/font": "7.4.47",
+    "@types/node": "^25.2.2",
     "@vitejs/plugin-vue": "^6.0.4",
     "eslint": "^9.39.0",
     "eslint-plugin-promise": "7.2.1",

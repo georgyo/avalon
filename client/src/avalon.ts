@@ -455,7 +455,7 @@ export default class AvalonGame {
   }
 
   get isGameInProgress(): boolean {
-    return this.isInLobby && this.lobby!.game.state == 'ACTIVE' && this.lobby!.role;
+    return this.isInLobby && this.lobby!.game.state == 'ACTIVE' && (this.lobby!.role != null);
   }
 
   get game(): Game {

@@ -1,7 +1,7 @@
 <template>
   <v-bottom-sheet v-model="sheet">
     <template v-slot:activator="{ props }">
-      <v-btn v-bind="props">
+      <v-btn v-bind="props" variant="outlined">
         <v-icon start>
           mdi-account
         </v-icon>
