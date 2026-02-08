@@ -62,10 +62,10 @@ export default defineComponent({
     }
   },
   methods: {
-    isFutureMission: function(_mission: any, idx: number) {
+    isFutureMission: function(_mission: {state: string}, idx: number) {
       return (idx > 0) && (this.avalon.game.missions[idx - 1].state == 'PENDING');
     },
-    classForMission: function(mission: any) {
+    classForMission: function(mission: {state: string}) {
       if (mission.state == 'FAIL') return 'bg-red-lighten-4';
       if (mission.state == 'SUCCESS') return 'bg-green-lighten-4';
       return 'bg-blue-grey-lighten-4';

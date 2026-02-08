@@ -8,7 +8,7 @@ export class AvalonApi {
     axios.defaults.baseURL = "/api";
   }
 
-  post(endPoint: string, data: Record<string, any>): Promise<AxiosResponse> {
+  post(endPoint: string, data: Record<string, unknown>): Promise<AxiosResponse> {
     return firebase.auth().currentUser!.getIdToken(false).then(function(idToken: string) {
       console.debug("Calling", endPoint, 'with', data);
       return axios.post(endPoint, data, {
@@ -58,7 +58,7 @@ export class AvalonApi {
       });
   }
 
-  startGame(lobby: string, playerList: string[], roles: string[], options: Record<string, any>): Promise<AxiosResponse> {
+  startGame(lobby: string, playerList: string[], roles: string[], options: Record<string, unknown>): Promise<AxiosResponse> {
     return this.post('startGame', {lobby, playerList, roles, options });
   }
 

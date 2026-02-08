@@ -64,9 +64,9 @@ export default defineComponent({
     UserLogin
   },
   methods: {
-    eventCallback(...args: any[]) {
-      console.debug('event callback', ...args);
-      EventBus.emit(args[0], args[1]);
+    eventCallback(event: string, data?: string) {
+      console.debug('event callback', event, data);
+      EventBus.emit(event, data);
     },
   },
 })

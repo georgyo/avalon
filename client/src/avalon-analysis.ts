@@ -1,5 +1,5 @@
 import _ from 'lodash'
-import type { Role } from '@avalon/common/avalonlib';
+import type { Role, GameData, Mission, RoleAssignment, ProposerStats } from './types';
 
 interface Badge {
   title: string;
@@ -7,22 +7,21 @@ interface Badge {
 }
 
 export default class GameAnalysis {
-  game: any;
-  rolesByName: Record<string, any>;
+  game: GameData;
+  rolesByName: Record<string, RoleAssignment>;
   namesByRole: Record<string, string>;
   evilPlayers: string[];
   goodPlayers: string[];
-  missions: any[];
+  missions: (Mission & { evilOnTeam: string[] })[];
 
-  constructor(game: any, roleMap: Record<string, Role>) {
+  constructor(game: GameData, roleMap: Record<string, Role>) {
     this.game = game;
-    this.rolesByName = _.keyBy(game.outcome.roles, 'name');
+    this.rolesByName = _.keyBy(game.outcome!.roles, 'name');
     this.namesByRole = _.invert(_.mapValues(this.rolesByName, r => r.role)); // this is lossy for non-unique roles!
-    this.evilPlayers = game.outcome.roles.filter((r: any) => roleMap[r.role].team == 'evil').map((r: any) => r.name);
-    this.goodPlayers = game.outcome.roles.filter((r: any) => roleMap[r.role].team == 'good').map((r: any) => r.name);
-    this.missions = game.missions.map((m: any) => {
-      m.evilOnTeam = m.team.filter((n: string) => this.evilPlayers.includes(n));
-      return m;
+    this.evilPlayers = game.outcome!.roles.filter(r => roleMap[r.role].team == 'evil').map(r => r.name);
+    this.goodPlayers = game.outcome!.roles.filter(r => roleMap[r.role].team == 'good').map(r => r.name);
+    this.missions = game.missions.map(m => {
+      return { ...m, evilOnTeam: m.team.filter((n: string) => this.evilPlayers.includes(n)) };
     });
   }
 
@@ -76,7 +75,7 @@ export default class GameAnalysis {
       if (!this.namesByRole['MERLIN']) return false;
 
       for (const mission of this.missions) {
-        const approvedProposal = mission.proposals.find((p: any) => p.state == 'APPROVED');
+        const approvedProposal = mission.proposals.find(p => p.state == 'APPROVED');
         if (approvedProposal &&
             (this.namesByRole['MERLIN'] == approvedProposal.proposer) &&
             (mission.evilOnTeam.length >= mission.failsRequired)) {
@@ -148,7 +147,7 @@ export default class GameAnalysis {
       }
     },
     noEvilPlayersOnMissions() {
-      if (_.tail(this.missions).every((m: any) => m.evilOnTeam.length == 0)) {
+      if (_.tail(this.missions).every(m => m.evilOnTeam.length == 0)) {
         return {
           title: 'Lockdown',
           body: 'No evil players went on any missions' +
@@ -192,7 +191,7 @@ export default class GameAnalysis {
       }
     },
     trustingBunch() {
-      const approvedIdx = this.missions[0].proposals.findIndex((p: any) => p.state == 'APPROVED');
+      const approvedIdx = this.missions[0].proposals.findIndex(p => p.state == 'APPROVED');
       if ((approvedIdx >= 0) && (approvedIdx < 4)) {
         return {
           title: 'What a trusting bunch',
@@ -302,7 +301,7 @@ export default class GameAnalysis {
     },
     playerDoesntGoOnMissions() {
       let players = this.game.players.slice(0);
-      const completedMissions = this.missions.filter((m: any) => m.state != 'PENDING');
+      const completedMissions = this.missions.filter(m => m.state != 'PENDING');
       if (completedMissions.length == 0) return false;
       for(const mission of _.initial(completedMissions)) {
         players = _.difference(players, mission.team);
@@ -365,12 +364,12 @@ export default class GameAnalysis {
           }
         }
       }
-      const perfectProposers = Object.values(players).filter((p: any) => p.badProposals == 0 && p.goodProposals >= 2);
-      perfectProposers.sort((a: any, b: any) => b.goodProposals - a.goodProposals);
+      const perfectProposers = Object.values(players).filter((p: ProposerStats) => p.badProposals == 0 && p.goodProposals >= 2);
+      perfectProposers.sort((a: ProposerStats, b: ProposerStats) => b.goodProposals - a.goodProposals);
       if (perfectProposers.length > 0) {
         return {
           title: 'Actual Merlin',
-          body: `${(perfectProposers[0] as any).name} proposed ${(perfectProposers[0] as any).goodProposals} perfect teams and no bad teams`
+          body: `${perfectProposers[0].name} proposed ${perfectProposers[0].goodProposals} perfect teams and no bad teams`
         }
       }
     },
