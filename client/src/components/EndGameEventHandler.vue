@@ -74,13 +74,14 @@ export default defineComponent({
       }
   },
   mounted() {
-      EventBus.on('GAME_ENDED', () => {
-          this.endGameDialog = true;
-      });
-      EventBus.on('GAME_STARTED', () => {
-          // time to start new game!
-          this.endGameDialog = false;
-      });
+      this._onGameEnded = () => { this.endGameDialog = true; };
+      this._onGameStarted = () => { this.endGameDialog = false; };
+      EventBus.on('GAME_ENDED', this._onGameEnded);
+      EventBus.on('GAME_STARTED', this._onGameStarted);
+  },
+  beforeUnmount() {
+      EventBus.off('GAME_ENDED', this._onGameEnded);
+      EventBus.off('GAME_STARTED', this._onGameStarted);
   }
 })
 </script>

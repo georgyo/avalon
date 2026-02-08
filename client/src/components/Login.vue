@@ -3,7 +3,7 @@
     <div class="d-flex flex-column align-center justify-center fill-height">
     <template v-if='!showLobbyInput'>
       <v-text-field
-        label="Your Name" @input="name = name.toUpperCase()" ref='nameTextField' v-model="name" :error-messages='errorMsg' autofocus>
+        label="Your Name" @update:model-value="val => name = val.toUpperCase()" ref='nameTextField' v-model="name" :error-messages='errorMsg' autofocus>
       </v-text-field>
       <v-btn
        :disabled='!name' @click='createLobby()' :loading="isCreatingLobby">
@@ -14,7 +14,7 @@
       </v-btn>
   </template>
    <template v-else>
-    <v-text-field ref="lobbyTextField" @input="lobby = lobby.toUpperCase()" label="Lobby" :error-messages='errorMsg' v-model="lobby" @keyup.enter="joinLobby()"></v-text-field>
+    <v-text-field ref="lobbyTextField" @update:model-value="val => lobby = val.toUpperCase()" label="Lobby" :error-messages='errorMsg' v-model="lobby" @keyup.enter="joinLobby()"></v-text-field>
     <v-btn :disabled='!lobby' @click='joinLobby()' :loading="isJoiningLobby">
       Join Lobby
     </v-btn>

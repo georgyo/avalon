@@ -19,7 +19,7 @@
         v-model="playerList"
         handle=".handle"
         :disabled="!canDrag"
-        item-key="id"
+        :item-key="(item) => item"
         @end="onReorderList()">
         <template #item="{element}">
           <v-list-item>

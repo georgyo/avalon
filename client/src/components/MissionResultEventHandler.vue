@@ -47,15 +47,17 @@ export default defineComponent({
       }
   },
   mounted() {
-      EventBus.on('GAME_STARTED', () => {
-          this.missionDialog = false;
-      });
-      EventBus.on('GAME_ENDED', () => {
-          this.missionDialog = false;
-      });
-      EventBus.on('MISSION_RESULT', () => {
-          this.missionDialog = true;
-      });
+      this._onGameStarted = () => { this.missionDialog = false; };
+      this._onGameEnded = () => { this.missionDialog = false; };
+      this._onMissionResult = () => { this.missionDialog = true; };
+      EventBus.on('GAME_STARTED', this._onGameStarted);
+      EventBus.on('GAME_ENDED', this._onGameEnded);
+      EventBus.on('MISSION_RESULT', this._onMissionResult);
+  },
+  beforeUnmount() {
+      EventBus.off('GAME_STARTED', this._onGameStarted);
+      EventBus.off('GAME_ENDED', this._onGameEnded);
+      EventBus.off('MISSION_RESULT', this._onMissionResult);
   }
 })
 </script>

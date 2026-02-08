@@ -34,12 +34,14 @@ export default defineComponent({
       }
   },
   mounted() {
-      EventBus.on('GAME_STARTED', () => {
-          this.startGameDialog = true;
-      });
-      EventBus.on('GAME_ENDED', () => {
-          this.startGameDialog = false;
-      });
+      this._onGameStarted = () => { this.startGameDialog = true; };
+      this._onGameEnded = () => { this.startGameDialog = false; };
+      EventBus.on('GAME_STARTED', this._onGameStarted);
+      EventBus.on('GAME_ENDED', this._onGameEnded);
+  },
+  beforeUnmount() {
+      EventBus.off('GAME_STARTED', this._onGameStarted);
+      EventBus.off('GAME_ENDED', this._onGameEnded);
   }
 })
 </script>

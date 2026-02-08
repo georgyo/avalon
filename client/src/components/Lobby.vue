@@ -72,7 +72,6 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue'
-import { EventBus } from '@/eventBus'
 import * as avalonLib from '@avalon/common/avalonlib'
 import LobbyPlayerList from './LobbyPlayerList.vue'
 import RoleList from './RoleList.vue'
@@ -92,9 +91,6 @@ export default defineComponent({
       showOptionGameLog: false,
       startingGame: false
     }
-  },
-  created() {
-    EventBus.on('evt', (...args: any[]) => console.log("event in lobby", ...args));
   },
   computed: {
     reasonToNotStartGame: function(): string | null {
