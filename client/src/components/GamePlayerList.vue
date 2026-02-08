@@ -5,17 +5,17 @@
       :key="playerName">
     <template v-slot:prepend>
       <div style="width: 40px;">
-      <v-checkbox
+      <v-checkbox-btn
        color="indigo-darken-2"
        v-if="enableCheckboxes(playerName)"
        v-model="selectedPlayers" :value='playerName'
-       hide-details density="compact"></v-checkbox>
-       <v-checkbox
+       density="compact"></v-checkbox-btn>
+       <v-checkbox-btn
         v-if="selectedForMission(playerName)"
         :model-value="true"
         color="indigo-lighten-1"
         readonly
-        hide-details density="compact"></v-checkbox>
+        density="compact"></v-checkbox-btn>
       </div>
     </template>
     <template v-slot:default>

@@ -5,14 +5,13 @@
      v-for="(role, index) in roles"
       :key="index">
       <template v-slot:prepend>
-        <v-checkbox
+        <v-checkbox-btn
          v-if="allowSelect"
          color="black"
          v-model='role.selected'
-         hide-details
          density="compact"
          class="mr-2"
-         ></v-checkbox>
+         ></v-checkbox-btn>
         <v-icon v-if='role.team == "good"' icon="fa:fab fa-old-republic" />
         <v-icon v-else color="red" icon="fa:fab fa-empire" />
       </template>
