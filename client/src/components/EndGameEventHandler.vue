@@ -21,12 +21,9 @@
                :missionVotes='avalon.game.outcome.votes' />
             </v-container>
             <GameAchievements :avalon='avalon' />
+            <v-btn class="mt-6" color="primary" size="large" variant="elevated" @click="endGameDialogClosed()">Close</v-btn>
             </div>
         </v-card-text>
-        <v-card-actions>
-          <v-spacer></v-spacer>
-          <v-btn @click="endGameDialogClosed()">Close</v-btn>
-        </v-card-actions>
       </v-card>
     </v-dialog>
 </template>
