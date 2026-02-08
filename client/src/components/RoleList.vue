@@ -45,11 +45,11 @@ export default defineComponent({
   data() {
     return {
       roleInfo: false,
-      selectedRole: { name: '', team: '', description: '' } as any
+      selectedRole: { name: '', team: '', description: '' } as { name: string; team: string; description: string }
     }
   },
   methods: {
-    showRoleInfo(role: any) {
+    showRoleInfo(role: { name: string; team: string; description: string }) {
       this.roleInfo = true;
       this.selectedRole = role;
     }

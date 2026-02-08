@@ -3,9 +3,9 @@ import 'firebase/compat/auth'
 import 'firebase/compat/firestore'
 import _ from 'lodash'
 import * as avalonLib from '@avalon/common/avalonlib';
-import type { Role } from '@avalon/common/avalonlib';
 import {AvalonApi} from './avalon-api-rest';
 import firebaseConfig from './firebase-config';
+import type { Role, GameData, Mission, Proposal, LobbyData, LobbyUser, UserData, RoleDoc } from './types';
 
 import axios from 'axios';
 
@@ -26,20 +26,27 @@ function onFirebaseError(err: Error): void {
 }
 
 class Game {
-  game: any;
+  game: GameData;
   roleInfos: Role[] | undefined;
+  roleMap!: Record<string, Role>;
   numPlayers!: number;
   currentMissionIdx!: number;
-  currentMission: any;
+  currentMission: Mission | null = null;
   currentProposalIdx!: number;
-  currentProposal: any;
+  currentProposal: Proposal | null = null;
   currentProposer: string | null = null;
   hammer: string | null = null;
 
-  // Dynamic properties assigned via Object.assign
-  [key: string]: any;
+  // Properties copied from GameData via Object.assign
+  state!: GameData['state'];
+  phase!: string;
+  players!: string[];
+  roles!: string[];
+  missions!: Mission[];
+  outcome?: GameData['outcome'];
+  options?: GameData['options'];
 
-  constructor(game: any, config: GameConfig) {
+  constructor(game: GameData, config: GameConfig) {
     this.game = game;
     if (game.roles) {
       this.roleInfos = game.roles.sort(
@@ -49,12 +56,13 @@ class Game {
         }).map((r: string) => config.roleMap[r]);
     }
     Object.assign(this, game);
+    this.roleMap = config.roleMap;
 
     if (this.state == 'INIT') {
       return;
     }
     this.numPlayers = this.game.players.length;
-    this.currentMissionIdx = this.missions.findIndex((m: any) => m.state == 'PENDING');
+    this.currentMissionIdx = this.missions.findIndex(m => m.state == 'PENDING');
     if (this.currentMissionIdx < 0) {
       this.currentMission = null;
       this.currentProposalIdx = -1;
@@ -63,7 +71,7 @@ class Game {
       this.hammer = null;
     } else {
       this.currentMission = this.missions[this.currentMissionIdx];
-      this.currentProposalIdx = this.currentMission.proposals.findIndex((p: any) => p.state == 'PENDING');
+      this.currentProposalIdx = this.currentMission.proposals.findIndex(p => p.state == 'PENDING');
       if (this.currentProposalIdx < 0) {
         // no pending proposals, so must be latest one
         this.currentProposalIdx = this.currentMission.proposals.length - 1;
@@ -72,7 +80,7 @@ class Game {
       this.currentProposer = (this.currentProposal ? this.currentProposal.proposer : null);
 
       if (this.currentProposal != null) {
-        const proposerIdx = this.game.players.findIndex((p: string) => p == this.currentProposer);
+        const proposerIdx = this.game.players.findIndex(p => p == this.currentProposer);
         const hammerIdx = (proposerIdx + (4 - this.currentProposalIdx)) % this.numPlayers;
         this.hammer = this.game.players[hammerIdx];
       } else {
@@ -81,18 +89,18 @@ class Game {
     }
   }
 
-  get lastProposal(): any {
+  get lastProposal(): Proposal | null {
     if (this.currentProposalIdx > 0) {
       return this.missions[this.currentMissionIdx].proposals[this.currentProposalIdx - 1];
     }
     if (this.currentMissionIdx <= 0) {
       return null;
     }
-    return this.missions[this.currentMissionIdx - 1].proposals.find((p: any) => p.state == 'APPROVED');
+    return this.missions[this.currentMissionIdx - 1].proposals.find(p => p.state == 'APPROVED') ?? null;
   }
 
   getNumTeam(team: string): number {
-    return this.game.roles.filter((r: string) => this.roleMap[r].team == team).length;
+    return this.game.roles.filter(r => this.roleMap[r].team == team).length;
   }
 
   get numEvil(): number {
@@ -108,8 +116,8 @@ class LobbySubscription {
   name: string;
   connected: boolean;
   private _uid: string;
-  private _doc: any;
-  private _roleDoc: any;
+  private _doc: LobbyData | null;
+  private _roleDoc: RoleDoc | null;
   private _game: Game | null;
   private _config: GameConfig;
   private _eventHandler: (evt: string) => void;
@@ -127,23 +135,23 @@ class LobbySubscription {
     this._subscriptions = { };
   }
 
-  get data(): any {
-    return this._doc;
+  get data(): LobbyData {
+    return this._doc!;
   }
 
-  get users(): any {
+  get users(): Record<string, LobbyUser> {
     return this.data.users;
   }
 
-  get admin(): any {
+  get admin(): { uid: string; name: string } {
     return this.data.admin;
   }
 
-  get game(): any {
-    return this._game;
+  get game(): Game {
+    return this._game!;
   }
 
-  get role(): any {
+  get role(): RoleDoc | null {
     return this._roleDoc;
   }
 
@@ -257,9 +265,9 @@ class GameConfig {
   roles!: Role[];
   selectableRoles!: Role[];
   roleMap!: Record<string, Role>;
-  notifyEvent: (...args: any[]) => void;
+  notifyEvent: (event: string, data?: string) => void;
 
-  constructor(notificationCallback: (...args: any[]) => void) {
+  constructor(notificationCallback: (event: string, data?: string) => void) {
     this.playerList = [];
     this.setupRoles();
     this.notifyEvent = notificationCallback;
@@ -278,8 +286,8 @@ class GameConfig {
     return this.roleMap[role];
   }
 
-  updatePlayerList(newList: any, notifyForEachPlayer: boolean): void {
-    const nameList: string[] = _.values(newList).map((u: any) => u.name);
+  updatePlayerList(newList: Record<string, LobbyUser>, notifyForEachPlayer: boolean): void {
+    const nameList: string[] = _.values(newList).map(u => u.name);
 
     if (this.playerList.length == 0) {
       this.playerList = nameList;
@@ -315,16 +323,16 @@ class GameConfig {
 export default class AvalonGame {
   api: AvalonApi;
   lobby: LobbySubscription | null;
-  user: any;
+  user: UserData | null;
   userDocUnsubscribe: (() => void) | null;
-  globalStats: any;
+  globalStats: Record<string, unknown> | null;
   hostname: string;
   config: GameConfig;
   confirmingEmailError: string | null;
   private _authStateInitialized: boolean;
-  private _eventCallback: ((...args: any[]) => void) | null;
+  private _eventCallback: ((event: string, data?: string) => void) | null;
 
-  constructor(eventCallback: (...args: any[]) => void) {
+  constructor(eventCallback: (event: string, data?: string) => void) {
     // XXX TODO: find a better place for this:
     Array.prototype.joinWithAnd = function() {
       if (this.length == 0) return '';
@@ -350,16 +358,16 @@ export default class AvalonGame {
     this.config = new GameConfig(this.notifyEvent.bind(this));
   }
 
-  notifyEvent(...args: any[]): void {
+  notifyEvent(event: string, data?: string): void {
     if (this._eventCallback) {
-      this._eventCallback(...args);
+      this._eventCallback(event, data);
     } else {
-      console.warn("(no event callback)", ...args);
+      console.warn("(no event callback)", event, data);
     }
   }
 
-  joinLobbyImpl(joinLobbyPromise: Promise<any>): Promise<void> {
-    return joinLobbyPromise.then(function(this: AvalonGame, resp: any) {
+  joinLobbyImpl(joinLobbyPromise: Promise<import('axios').AxiosResponse>): Promise<void> {
+    return joinLobbyPromise.then(function(this: AvalonGame, resp: import('axios').AxiosResponse) {
       this.subscribeToLobby(resp.data.lobby);
     }.bind(this));
   }
@@ -377,15 +385,15 @@ export default class AvalonGame {
     return this.api.leaveLobby(this.lobby!.name).then(() => this.unsubscribeFromLobby());
   }
 
-  kickPlayer(name: string): Promise<any> {
+  kickPlayer(name: string): Promise<import('axios').AxiosResponse> {
     return this.api.kickPlayer(this.lobby!.name, name);
   }
 
-  cancelGame(): Promise<any> {
+  cancelGame(): Promise<import('axios').AxiosResponse> {
     return this.api.cancelGame(this.lobby!.name, this.user.name);
   }
 
-  voteTeam(vote: boolean): Promise<any> {
+  voteTeam(vote: boolean): Promise<import('axios').AxiosResponse> {
     return this.api.voteTeam(
       this.lobby!.name,
       this.user.name,
@@ -394,11 +402,11 @@ export default class AvalonGame {
       vote);
   }
 
-  startGame(options: Record<string, any>): Promise<any> {
+  startGame(options: Record<string, unknown>): Promise<import('axios').AxiosResponse> {
     return this.api.startGame(this.lobby!.name, this.config.playerList, this.config.selectedRoleList, options);
   }
 
-  proposeTeam(playerList: string[]): Promise<any> {
+  proposeTeam(playerList: string[]): Promise<import('axios').AxiosResponse> {
     return this.api.proposeTeam(
       this.lobby!.name,
       this.user.name,
@@ -407,7 +415,7 @@ export default class AvalonGame {
       playerList);
   }
 
-  doMission(vote: boolean): Promise<any> {
+  doMission(vote: boolean): Promise<import('axios').AxiosResponse> {
     return this.api.doMission(
       this.lobby!.name,
       this.user.name,
@@ -416,7 +424,7 @@ export default class AvalonGame {
       vote);
   }
 
-  assassinate(target: string): Promise<any> {
+  assassinate(target: string): Promise<import('axios').AxiosResponse> {
     return this.api.assassinate(
       this.lobby!.name,
       this.user.name,
@@ -448,7 +456,7 @@ export default class AvalonGame {
     return this.isInLobby && this.lobby!.game.state == 'ACTIVE' && this.lobby!.role;
   }
 
-  get game(): any {
+  get game(): Game {
     return this.lobby!.game;
   }
 

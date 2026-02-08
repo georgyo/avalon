@@ -52,11 +52,11 @@ export default defineComponent({
     avalon: Object
   },
   methods: {
-    genericLogin(loadingValue: string, loginPromise: Promise<any>) {
-      (this as any)[loadingValue] = true;
+    genericLogin(loadingValue: 'isCreatingLobby' | 'isJoiningLobby', loginPromise: Promise<void>) {
+      this[loadingValue] = true;
       loginPromise.catch(
-        (err: any) => this.showErrorMessage(err)).finally(
-          () => (this as any)[loadingValue] = false);
+        (err: Error) => this.showErrorMessage(err)).finally(
+          () => this[loadingValue] = false);
     },
     createLobby() {
       this.genericLogin('isCreatingLobby', this.avalon.createLobby(this.name));
@@ -64,7 +64,7 @@ export default defineComponent({
     joinLobby() {
       this.genericLogin('isJoiningLobby', this.avalon.joinLobby(this.name, this.lobby));
     },
-    showErrorMessage(errMsg: any) {
+    showErrorMessage(errMsg: Error | string) {
       if (this.alertTimeoutTimer != null) {
         clearTimeout(this.alertTimeoutTimer);
       }
@@ -76,7 +76,7 @@ export default defineComponent({
     },
     setInputWidth(field: string) {
       const size = 20;
-      const ref = (this.$refs as any)[field];
+      const ref = (this.$refs as Record<string, { $el?: HTMLElement }>)[field];
       if (ref && ref.$el) {
         const input = ref.$el.querySelector('input');
         if (input) input.setAttribute('size', size.toString());
@@ -94,7 +94,7 @@ export default defineComponent({
         textField = 'nameTextField';
       }
       this.$nextTick(() => {
-        const ref = (this.$refs as any)[textField];
+        const ref = (this.$refs as Record<string, { $el?: HTMLElement }>)[textField];
         if (ref && ref.$el) {
           const input = ref.$el.querySelector('input');
           if (input) {

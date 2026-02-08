@@ -59,13 +59,13 @@ export default defineComponent({
           }
       },
       roleAssignments() {
-        return this.avalon.game.outcome.roles.slice(0).sort((a: any, b: any) => {
-          const roleIndexOf = (name: string) => this.avalon.config.roles.findIndex((r: any) => r.name == name);
+        return this.avalon.game.outcome.roles.slice(0).sort((a: {role: string}, b: {role: string}) => {
+          const roleIndexOf = (name: string) => this.avalon.config.roles.findIndex((r: {name: string}) => r.name == name);
           return roleIndexOf(a.role) - roleIndexOf(b.role);
         });
       },
       missions() {
-          return this.avalon.game.missions.filter((m: any) => m.proposals.filter((p: any) => p.state != 'PENDING').length > 0);
+          return this.avalon.game.missions.filter((m: {proposals: {state: string}[]}) => m.proposals.filter(p => p.state != 'PENDING').length > 0);
       }
   },
   methods: {

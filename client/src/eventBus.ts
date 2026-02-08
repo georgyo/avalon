@@ -13,7 +13,7 @@ type Events = {
   PLAYER_JOINED: string
   DISCONNECTED_FROM_LOBBY: string
   'show-role': void
-  [key: string]: any
+  [key: string]: unknown
 }
 
 export const EventBus = mitt<Events>()
