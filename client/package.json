@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "lint": "ESLINT_USE_FLAT_CONFIG=false eslint --ext .js,.ts,.vue --fix src",
+    "lint": "eslint --fix src",
     "dev": "vite",
     "build": "vite build",
     "serve": "vite preview"
@@ -16,7 +16,7 @@
     "@fortawesome/vue-fontawesome": "2.0.10",
     "axios": "1.13.4",
     "firebase": "^12.9.0",
-    "lodash": "4.17.23",
+    "lodash": "^4.17.23",
     "seedrandom": "3.0.5",
     "vue": "2.7.16",
     "vue-toasted": "1.1.28",
@@ -30,7 +30,7 @@
     "@mdi/font": "7.4.47",
     "@vitejs/plugin-vue2": "^2.3.4",
     "@vue/babel-preset-app": "^5.0.9",
-    "eslint": "9.39.2",
+    "eslint": "^10.0.0",
     "eslint-plugin-promise": "7.2.1",
     "eslint-plugin-vue": "^9.29.1",
     "postcss": "^8.5.6",

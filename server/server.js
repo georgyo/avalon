@@ -29,7 +29,7 @@ router.use(function(req, res, next) {
 });
 
 router.post('/login', (req, res) => {
-  return avalon.loginUser(req.body, req.uid).then(r => res.end());
+  return avalon.loginUser(req.body, req.uid).then(_r => res.end());
 });
 
 router.post('/createLobby', (req, res) => {
@@ -72,7 +72,7 @@ router.post('/assassinate', (req, res) => {
   return avalon.assassinate(req.body, req.uid).then(() => res.end());
 });
 
-router.use((err, req, res, next) => {
+router.use((err, req, res, _next) => {
   res.status(err.statusCode ? err.statusCode : 500);
   res.json({ message: err.message });
 });

@@ -129,7 +129,7 @@ export default Vue.extend({
     }
   },
   created() {
-    EventBus.$on('evt', () => console.log("event in lobby", ...arguments));
+    EventBus.$on('evt', (...args) => console.log("event in lobby", ...args));
   },
   computed: {
     reasonToNotStartGame: function() {

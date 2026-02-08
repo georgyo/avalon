@@ -58,7 +58,7 @@ export default class GameAnalysis {
     const proposed = this.roleProposesRole(sourceRole, destRole);
     const approved = this.roleApprovesRole(sourceRole, destRole);
     if (proposed || approved) {
-      let msg ='';
+      let msg;
       if (proposed && approved) {
         msg = 'both proposed and approved teams';
       } else if (proposed) {

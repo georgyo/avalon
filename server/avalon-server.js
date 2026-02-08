@@ -363,7 +363,7 @@ function makeMissions(playerList) {
   return missionConfig;
 }
 
-function assignRoles(playerList, roles = [], oldRoles) {
+function assignRoles(playerList, roles = [], _oldRoles) {
 
   const makeTeam = function(teamList, team) {
     const teamRoles = avalonLib.ROLES.filter(r => r.team == team);
@@ -465,11 +465,11 @@ exports.startGame = function(data, uid) {
   if (!data.playerList || 
     data.playerList.length < 5  ||
     data.playerList.length > 10) {
-    throw new AvalonError(400, 'Bad player list length' + playerList);
+    throw new AvalonError(400, 'Bad player list length' + data.playerList);
   }
 
   if (!data.roles || !data.roles.every(role => avalonLib.ROLES.find(r => r.name == role))) {
-    throw new AvalonError(400, 'Bad roles ' + roles);
+    throw new AvalonError(400, 'Bad roles ' + data.roles);
   }
 
   const lobbyDocRef = db.collection('lobbies').doc(data.lobby);
@@ -653,7 +653,7 @@ exports.voteTeam = function(data, uid) {
         }
 
         // all votes are in
-        proposal.votes = Object.entries(votes.proposal).filter(([n, vote]) => vote).map(([name, v]) => name);
+        proposal.votes = Object.entries(votes.proposal).filter(([_n, vote]) => vote).map(([name, _v]) => name);
         console.log('approvers are', proposal.votes);
 
         if (proposal.votes.length < Math.floor(game.players.length / 2) + 1) {
@@ -686,7 +686,7 @@ exports.doMission = function(data, uid) {
 
   return recordVote(data.name, uid, data.lobby, data.mission,
     data.proposal, data.vote, 'MISSION_VOTE', 'APPROVED',
-    (game, mission, proposal) => mission.team,
+    (_game, mission, _proposal) => mission.team,
     (secretVotes) => secretVotes.mission[data.mission],
     // only evil people are allowed to vote evil
     ((name, vote, secretDoc) => vote || secretDoc.get('roles')[name].team == 'evil')

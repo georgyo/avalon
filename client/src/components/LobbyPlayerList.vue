@@ -27,15 +27,17 @@
           <v-icon left v-else>person</v-icon>
           <v-flex xs10>{{player}}</v-flex>
           <v-flex xs1>
-            <v-btn icon right text
+            <template v-slot:activator>
+<v-btn icon right text
               v-if="(avalon.isAdmin && player != avalon.user.name && !avalon.isGameInProgress)"
               :loading="playersBeingKicked.includes(player)"
               @click.stop="kickPlayerConfirm(player)"
-              slot="activator"
+              
               color="black"
               dark>
               <v-icon>clear</v-icon>
             </v-btn>
+</template>
           </v-flex>
         </v-list-item>
       </draggable>

@@ -60,7 +60,7 @@ export default Vue.extend({
       },
       roleAssignments() {
         return this.avalon.game.outcome.roles.slice(0).sort((a,b) => {
-          let roleIndexOf = (name) => this.avalon.config.roles.findIndex(r => r.name == name);
+          const roleIndexOf = (name) => this.avalon.config.roles.findIndex(r => r.name == name);
           return roleIndexOf(a.role) - roleIndexOf(b.role);
         });
       },
