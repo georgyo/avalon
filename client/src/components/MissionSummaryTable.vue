@@ -44,11 +44,6 @@ export default defineComponent({
   data() {
       return {
       }
-  },
-  methods: {
-      isCurrentProposal(mission: {state: string; proposals: unknown[]}, proposal: unknown) {
-          return mission.state == 'PENDING' && mission.proposals.indexOf(proposal) == mission.proposals.length - 1;
-      }
   }
 })
 </script>

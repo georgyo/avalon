@@ -33,7 +33,10 @@ export default defineComponent({
   props: [ 'avalon' ],
   data() {
       return {
-          missionDialog: false
+          missionDialog: false,
+          onGameStarted: null as (() => void) | null,
+          onGameEnded: null as (() => void) | null,
+          onMissionResult: null as (() => void) | null,
       }
   },
   computed: {
@@ -47,17 +50,17 @@ export default defineComponent({
       }
   },
   mounted() {
-      this._onGameStarted = () => { this.missionDialog = false; };
-      this._onGameEnded = () => { this.missionDialog = false; };
-      this._onMissionResult = () => { this.missionDialog = true; };
-      EventBus.on('GAME_STARTED', this._onGameStarted);
-      EventBus.on('GAME_ENDED', this._onGameEnded);
-      EventBus.on('MISSION_RESULT', this._onMissionResult);
+      this.onGameStarted = () => { this.missionDialog = false; };
+      this.onGameEnded = () => { this.missionDialog = false; };
+      this.onMissionResult = () => { this.missionDialog = true; };
+      EventBus.on('GAME_STARTED', this.onGameStarted);
+      EventBus.on('GAME_ENDED', this.onGameEnded);
+      EventBus.on('MISSION_RESULT', this.onMissionResult);
   },
   beforeUnmount() {
-      EventBus.off('GAME_STARTED', this._onGameStarted);
-      EventBus.off('GAME_ENDED', this._onGameEnded);
-      EventBus.off('MISSION_RESULT', this._onMissionResult);
+      EventBus.off('GAME_STARTED', this.onGameStarted);
+      EventBus.off('GAME_ENDED', this.onGameEnded);
+      EventBus.off('MISSION_RESULT', this.onMissionResult);
   }
 })
 </script>

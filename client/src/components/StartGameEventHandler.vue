@@ -24,7 +24,9 @@ export default defineComponent({
   props: [ 'avalon' ],
   data() {
       return {
-          startGameDialog: false
+          startGameDialog: false,
+          onGameStarted: null as (() => void) | null,
+          onGameEnded: null as (() => void) | null,
       }
   },
   methods: {
@@ -34,14 +36,14 @@ export default defineComponent({
       }
   },
   mounted() {
-      this._onGameStarted = () => { this.startGameDialog = true; };
-      this._onGameEnded = () => { this.startGameDialog = false; };
-      EventBus.on('GAME_STARTED', this._onGameStarted);
-      EventBus.on('GAME_ENDED', this._onGameEnded);
+      this.onGameStarted = () => { this.startGameDialog = true; };
+      this.onGameEnded = () => { this.startGameDialog = false; };
+      EventBus.on('GAME_STARTED', this.onGameStarted);
+      EventBus.on('GAME_ENDED', this.onGameEnded);
   },
   beforeUnmount() {
-      EventBus.off('GAME_STARTED', this._onGameStarted);
-      EventBus.off('GAME_ENDED', this._onGameEnded);
+      EventBus.off('GAME_STARTED', this.onGameStarted);
+      EventBus.off('GAME_ENDED', this.onGameEnded);
   }
 })
 </script>
