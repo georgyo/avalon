@@ -16,8 +16,8 @@
     "bundle:server": "esbuild server/server.js --bundle --platform=node --target=node20 --outfile=dist-server/server.js --define:__BUNDLED__=true",
     "start": "yarn workspace @avalon/server start",
     "admin": "avalon-admin",
-    "test": "node test-flow-v5.mjs",
-    "test:browser": "node test-browser.mjs"
+    "test": "node tests/e2e-flow.mjs",
+    "test:browser": "node tests/e2e-browser.mjs"
   },
   "devDependencies": {
     "@babel/core": "^7.29.0",

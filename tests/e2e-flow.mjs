@@ -1,6 +1,12 @@
 import { chromium } from 'playwright';
 import { execSync } from 'child_process';
-import { writeFileSync } from 'fs';
+import { writeFileSync, mkdirSync } from 'fs';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const screenshotDir = join(__dirname, 'screenshots');
+mkdirSync(screenshotDir, { recursive: true });
 
 // Proxy requests through curl since Node.js DNS can't resolve external hosts
 function curlRequest(method, url, headers = {}, data = null) {
@@ -48,7 +54,7 @@ async function testFlow() {
 
   async function screenshot(name) {
     stepNum++;
-    const path = `/home/user/avalon/flow-${stepNum}-${name}.png`;
+    const path = join(screenshotDir, `flow-${stepNum}-${name}.png`);
     await page.screenshot({ path, fullPage: true });
     console.log(`  [screenshot] ${path}`);
     return path;

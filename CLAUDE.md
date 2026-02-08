@@ -19,7 +19,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Testing
 - `yarn test` - Run E2E flow test (Playwright, headless)
 - `yarn test:browser` - Run E2E browser test (Playwright, headed)
-- Tests are in `test-flow-v5.mjs` and `test-browser.mjs` at the repo root
+- Tests are in `tests/e2e-flow.mjs` and `tests/e2e-browser.mjs`
 - Tests use Playwright to simulate a full multiplayer game flow against a running server
 
 ### Firebase Deployment

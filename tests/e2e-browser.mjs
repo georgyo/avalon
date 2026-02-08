@@ -1,4 +1,11 @@
 import { chromium } from 'playwright';
+import { mkdirSync } from 'fs';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const screenshotDir = join(__dirname, 'screenshots');
+mkdirSync(screenshotDir, { recursive: true });
 
 async function testBrowser() {
   const browser = await chromium.launch({ headless: true });
@@ -22,7 +29,7 @@ async function testBrowser() {
     await page.waitForTimeout(3000);
 
     // Take a screenshot for verification
-    await page.screenshot({ path: '/home/user/avalon/browser-test.png', fullPage: true });
+    await page.screenshot({ path: join(screenshotDir, 'browser-test.png'), fullPage: true });
 
     // Check if the page loaded correctly
     const title = await page.title();

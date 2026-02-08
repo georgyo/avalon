@@ -62,7 +62,7 @@ avalon/
   client/           # @avalon/client - Vue 3 SPA
   server/           # @avalon/server - Express REST API
   firebase/         # Firebase functions + Firestore rules
-  test-flow-v5.mjs  # E2E tests (Playwright)
+  tests/            # E2E tests (Playwright)
   flake.nix         # Nix build configuration
 ```
 
