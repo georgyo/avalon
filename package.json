@@ -12,8 +12,9 @@
     "avalon-server": "./server/server.js"
   },
   "scripts": {
-    "build": "yarn workspace @avalon/client build",
-    "bundle:server": "esbuild server/server.js --bundle --platform=node --target=node20 --outfile=dist-server/server.js --define:__BUNDLED__=true",
+    "build:common": "yarn workspace @avalon/common build",
+    "build": "yarn build:common && yarn workspace @avalon/client build",
+    "bundle:server": "yarn build:common && esbuild server/server.js --bundle --platform=node --target=node20 --outfile=dist-server/server.js --define:__BUNDLED__=true",
     "start": "yarn workspace @avalon/server start",
     "admin": "avalon-admin",
     "test": "node tests/e2e-flow.mjs",

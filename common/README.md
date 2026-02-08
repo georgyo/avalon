@@ -10,9 +10,20 @@ This package contains game rules, role definitions, and other shared logic used 
 
 ## Contents
 
-- **avalonlib.js / avalonlib.ts** - Core Avalon game logic
+- **avalonlib.ts** - Core Avalon game logic
   - `ROLES` - Array of all role definitions (Merlin, Morgana, etc.)
   - `getNumEvilForGameSize(numPlayers)` - Returns evil player count for a given game size
+  - `Role` - TypeScript interface for role objects
+
+## Building
+
+The TypeScript source is compiled to CJS in `dist/` for Node.js consumers:
+
+```bash
+yarn workspace @avalon/common build
+```
+
+This runs automatically as part of `yarn build` and `yarn bundle:server`.
 
 ## Usage
 

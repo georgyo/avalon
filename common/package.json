@@ -2,17 +2,23 @@
   "name": "@avalon/common",
   "version": "1.0.0",
   "description": "Shared game logic for Avalon",
-  "main": "index.js",
+  "main": "dist/index.js",
   "types": "index.ts",
   "private": true,
+  "scripts": {
+    "build": "tsc"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  },
   "exports": {
     ".": {
       "types": "./index.ts",
-      "default": "./index.js"
+      "default": "./dist/index.js"
     },
     "./avalonlib": {
       "types": "./avalonlib.ts",
-      "default": "./avalonlib.js"
+      "default": "./dist/avalonlib.js"
     }
   }
 }

@@ -72,6 +72,8 @@ __metadata:
 "@avalon/common@npm:*, @avalon/common@workspace:*, @avalon/common@workspace:common":
   version: 0.0.0-use.local
   resolution: "@avalon/common@workspace:common"
+  dependencies:
+    typescript: "npm:^5.9.3"
   languageName: unknown
   linkType: soft
 

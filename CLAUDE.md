@@ -8,8 +8,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `yarn dev` - Start client development server (from client/ directory)
 - `yarn workspace @avalon/server serve` - Start server with nodemon (from root)
 - `yarn start` - Start production server (from root)
-- `yarn build` - Build client for production (from root)
-- `yarn bundle:server` - Bundle server to single file with esbuild (from root)
+- `yarn build:common` - Compile common/ TypeScript to dist/ (runs automatically in build/bundle)
+- `yarn build` - Build common + client for production (from root)
+- `yarn bundle:server` - Build common + bundle server to single file with esbuild (from root)
 
 ### Linting
 - `yarn workspace @avalon/client lint` - Lint client code
@@ -44,9 +45,10 @@ This is a **multiplayer Avalon card game** with four main components:
 
 ### Common (`/common/`)
 - Shared game logic workspace package (`@avalon/common`)
-- Role definitions and game rules in `avalonlib.js` / `avalonlib.ts`
+- TypeScript source (`avalonlib.ts`), compiled to CJS in `dist/` via `tsc`
 - Used by both server and Firebase functions
 - Exports TypeScript types via sub-path exports
+- Run `yarn build:common` after editing (automatic in `yarn build`)
 
 ### Client (`/client/`)
 - Vue 3.5 SPA with Vuetify 3 UI framework
@@ -83,7 +85,7 @@ This is a **multiplayer Avalon card game** with four main components:
 5. Firebase Functions compute stats after game completion
 
 **Key Files:**
-- `common/avalonlib.js` - Core game logic (roles, rules) - shared by server and Firebase
+- `common/avalonlib.ts` - Core game logic (roles, rules) - shared by server and Firebase
 - `client/src/avalon-api-rest.ts` - API client wrapper
 - `client/src/components/Game*.vue` - Game interface components
 - `client/src/types.ts` - TypeScript type definitions
@@ -92,7 +94,7 @@ This is a **multiplayer Avalon card game** with four main components:
 ## Workspace Structure
 
 This is a Yarn 4 workspace with four packages:
-- `@avalon/common` - Shared game logic library (JS + TypeScript types)
+- `@avalon/common` - Shared game logic library (TypeScript, compiled to CJS)
 - `@avalon/client` - Frontend application (Vue 3 + Vite)
 - `@avalon/server` - Backend API (Express.js)
 - `functions` - Firebase Cloud Functions

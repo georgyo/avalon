@@ -81,4 +81,5 @@ dolt
 .doltcfg
 config.yaml
 dist-server/
+common/dist/
 tests/screenshots/
