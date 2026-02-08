@@ -1,13 +1,8 @@
-import { initializeApp, cert } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
-import serviceAccount from './firebaseKey.js';
+import './firebaseKey.js'; // must be imported before avalon-server to initialize Firebase
 import _ from 'lodash';
 import * as avalon from './avalon-server.js';
 import type { Game, Mission, Proposal, PlayerRole } from './types.js';
-
-initializeApp({
-  credential: cert(serviceAccount as Parameters<typeof cert>[0])
-});
 
 const db = getFirestore();
 const SECRET_STATE_DOC_NAME = 'SECRET_STATE_ARCHIVES__';

@@ -2,18 +2,13 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import express from 'express';
 import type { Request, Response, NextFunction } from 'express';
-import { initializeApp, cert } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
-import serviceAccount from './firebaseKey.js';
+import './firebaseKey.js'; // must be imported before avalon-server to initialize Firebase
 import * as avalon from './avalon-server.js';
 import promiseRouter from 'express-promise-router';
 import { AvalonError } from './types.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-initializeApp({
-  credential: cert(serviceAccount as Parameters<typeof cert>[0])
-});
 
 interface AuthenticatedRequest extends Request {
   uid?: string;

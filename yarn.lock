@@ -3717,8 +3717,8 @@ __metadata:
     typescript-eslint: "npm:^8.54.0"
     vue-eslint-parser: "npm:^10.0.0"
   bin:
-    avalon-admin: ./server/admin.js
-    avalon-server: ./server/server.js
+    avalon-admin: ./server/admin.ts
+    avalon-server: ./server/server.ts
   languageName: unknown
   linkType: soft
 
