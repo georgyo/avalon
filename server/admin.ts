@@ -1,13 +1,8 @@
-import { initializeApp, cert } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
-import serviceAccount from './firebaseKey.js';
+import './firebaseKey.js'; // must be imported first to initialize Firebase
 
 import fs from 'fs';
-
-initializeApp({
-  credential: cert(serviceAccount as Parameters<typeof cert>[0])
-});
 
 const db = getFirestore();
 
