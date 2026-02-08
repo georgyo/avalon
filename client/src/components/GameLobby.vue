@@ -1,5 +1,5 @@
 <template>
-  <v-container class="d-flex justify-center">
+  <v-container fluid>
 
       <v-card class="bg-cyan-lighten-4" v-if='false && (avalon.user.stats.games >= 3)'>
         <v-card-title class="bg-cyan-lighten-2">
@@ -14,20 +14,16 @@
 
   <v-row align="start" justify="center" class="flex-wrap">
   <v-col cols="12" sm="6">
-    <v-container>
     <p class="text-cyan-lighten-4">Players</p>
     <LobbyPlayerList v-bind:avalon='avalon' />
     <p v-if='avalon.isAdmin && avalon.config.playerList.length > 2'
       class="text-cyan-lighten-4 text-caption">Drag names to specify seating order</p>
-    </v-container>
   </v-col>
    <v-col v-show='validTeamSize' cols="12" sm="6">
-     <v-container>
       <p class="text-cyan-lighten-4">Special Roles Available</p>
       <RoleList
         v-bind:roles='avalon.config.selectableRoles'
         v-bind:allowSelect='avalon.isAdmin' />
-    </v-container>
   </v-col>
   </v-row>
   <v-row align="center" justify="center">
