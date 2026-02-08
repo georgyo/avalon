@@ -73,7 +73,7 @@ result
 # Gas Town (added by gt)
 .runtime/
 .claude/
-.beads/
+# .beads/
 .logs/
 
 dolt
