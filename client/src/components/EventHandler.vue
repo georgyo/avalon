@@ -7,13 +7,14 @@
 </template>
 
 <script lang="ts">
-import Vue from 'vue'
-import { EventBus } from '@/main'
+import { defineComponent } from 'vue'
+import { useToast } from 'vue-toastification'
+import { EventBus } from '@/eventBus'
 import StartGameEventHandler from './StartGameEventHandler.vue'
 import EndGameEventHandler from './EndGameEventHandler.vue'
 import MissionResultEventHandler from './MissionResultEventHandler.vue'
 
-export default Vue.extend({
+export default defineComponent({
   name: 'EventHandler',
   props: [ 'avalon' ],
   components: {
@@ -21,34 +22,38 @@ export default Vue.extend({
       EndGameEventHandler,
       MissionResultEventHandler,
   },
+  setup() {
+    const toast = useToast()
+    return { toast }
+  },
   mounted() {
-    EventBus.$on('LOBBY_CONNECTED', () => {
+    EventBus.on('LOBBY_CONNECTED', () => {
       document.title = `Avalon - ${this.avalon.lobby.name} - ${this.avalon.user.name}`;
     });
-    EventBus.$on('LOBBY_NEW_ADMIN', () => {
+    EventBus.on('LOBBY_NEW_ADMIN', () => {
       if (this.avalon.isAdmin) {
-        this.$toasted.show("You are now lobby administrator");
+        this.toast("You are now lobby administrator");
       } else {
-        this.$toasted.show(`${this.avalon.lobby.admin.name} became lobby administrator`);
+        this.toast(`${this.avalon.lobby.admin.name} became lobby administrator`);
       }
     });
-    EventBus.$on('PROPOSAL_REJECTED', () => {
-      this.$toasted.show(`${this.avalon.lobby.game.lastProposal.proposer}'s team rejected`);
+    EventBus.on('PROPOSAL_REJECTED', () => {
+      this.toast(`${this.avalon.lobby.game.lastProposal.proposer}'s team rejected`);
     });
-    EventBus.$on('PROPOSAL_APPROVED', () => {
-      this.$toasted.show(`${this.avalon.lobby.game.currentProposal.proposer}'s team approved`);
+    EventBus.on('PROPOSAL_APPROVED', () => {
+      this.toast(`${this.avalon.lobby.game.currentProposal.proposer}'s team approved`);
     });
-    EventBus.$on('TEAM_PROPOSED', () => {
-      this.$toasted.show(`${this.avalon.lobby.game.currentProposal.proposer} has proposed a team`);
+    EventBus.on('TEAM_PROPOSED', () => {
+      this.toast(`${this.avalon.lobby.game.currentProposal.proposer} has proposed a team`);
     });
-    EventBus.$on('PLAYER_LEFT', (name) => {
-      this.$toasted.show(`${name} left the lobby`);
+    EventBus.on('PLAYER_LEFT', (name) => {
+      this.toast(`${name} left the lobby`);
     });
-    EventBus.$on('PLAYER_JOINED', (name) => {
-      this.$toasted.show(`${name} joined the lobby`);
+    EventBus.on('PLAYER_JOINED', (name) => {
+      this.toast(`${name} joined the lobby`);
     });
-    EventBus.$on('DISCONNECTED_FROM_LOBBY', (lobby) => {
-      this.$toasted.show(`You've been disconnected from ${lobby}`);
+    EventBus.on('DISCONNECTED_FROM_LOBBY', (lobby) => {
+      this.toast(`You've been disconnected from ${lobby}`);
     });
   }
 })

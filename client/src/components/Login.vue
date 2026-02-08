@@ -1,9 +1,9 @@
 <template>
-  <v-container justify-center class="cyan lighten-5">
-    <v-layout align-center justify-center column fill-height>
+  <v-container class="d-flex justify-center bg-cyan-lighten-5">
+    <div class="d-flex flex-column align-center justify-center fill-height">
     <template v-if='!showLobbyInput'>
       <v-text-field
-        label="Your Name" @input="name = name.toUpperCase()" ref='nameTextField' v-model="name" :error-messages='errorMsg' autofocus>          
+        label="Your Name" @input="name = name.toUpperCase()" ref='nameTextField' v-model="name" :error-messages='errorMsg' autofocus>
       </v-text-field>
       <v-btn
        :disabled='!name' @click='createLobby()' :loading="isCreatingLobby">
@@ -14,7 +14,7 @@
       </v-btn>
   </template>
    <template v-else>
-    <v-text-field ref="lobbyTextField"  @input="lobby = lobby.toUpperCase()" label="Lobby" :error-messages='errorMsg' v-model="lobby" @keyup.native.enter="joinLobby()"></v-text-field>
+    <v-text-field ref="lobbyTextField" @input="lobby = lobby.toUpperCase()" label="Lobby" :error-messages='errorMsg' v-model="lobby" @keyup.enter="joinLobby()"></v-text-field>
     <v-btn :disabled='!lobby' @click='joinLobby()' :loading="isJoiningLobby">
       Join Lobby
     </v-btn>
@@ -24,15 +24,15 @@
    </template>
   <div style='padding-top: 30px'></div>
   <StatsDisplay :stats='avalon.user.stats' :globalStats='avalon.globalStats'></StatsDisplay>
-  </v-layout>
+  </div>
   </v-container>
 </template>
 
 <script lang="ts">
-import Vue from 'vue'
+import { defineComponent } from 'vue'
 import StatsDisplay from './StatsDisplay.vue'
 
-export default Vue.extend({
+export default defineComponent({
   name: 'Login',
   components: {
     StatsDisplay
@@ -41,7 +41,7 @@ export default Vue.extend({
     return {
       name: this.avalon.user ? this.avalon.user.name : '',
       lobby: '',
-      alertTimeoutTimer: null,
+      alertTimeoutTimer: null as ReturnType<typeof setTimeout> | null,
       errorMsg: '',
       showLobbyInput: false,
       isJoiningLobby: false,
@@ -52,11 +52,11 @@ export default Vue.extend({
     avalon: Object
   },
   methods: {
-    genericLogin(loadingValue, loginPromise) {
-      this[loadingValue] = true;
+    genericLogin(loadingValue: string, loginPromise: Promise<any>) {
+      (this as any)[loadingValue] = true;
       loginPromise.catch(
-        (err) => this.showErrorMessage(err)).finally(
-          () => this[loadingValue] = false);
+        (err: any) => this.showErrorMessage(err)).finally(
+          () => (this as any)[loadingValue] = false);
     },
     createLobby() {
       this.genericLogin('isCreatingLobby', this.avalon.createLobby(this.name));
@@ -64,20 +64,23 @@ export default Vue.extend({
     joinLobby() {
       this.genericLogin('isJoiningLobby', this.avalon.joinLobby(this.name, this.lobby));
     },
-    showErrorMessage(errMsg) {
-      const vm = this;
-      if (vm.alertTimeoutTimer != null) {
-        clearTimeout(vm.alertTimeoutTimer);
+    showErrorMessage(errMsg: any) {
+      if (this.alertTimeoutTimer != null) {
+        clearTimeout(this.alertTimeoutTimer);
       }
-      vm.errorMsg = errMsg.toString();
+      this.errorMsg = errMsg.toString();
       this.alertTimeoutTimer = setTimeout(() => {
-        vm.alertTimeoutTimer = null;
-        vm.errorMsg = '';
+        this.alertTimeoutTimer = null;
+        this.errorMsg = '';
       }, 5000);
     },
-    setInputWidth(field) {
+    setInputWidth(field: string) {
       const size = 20;
-      this.$refs[field].$el.getElementsByTagName('input')[0].setAttribute('size', size);
+      const ref = (this.$refs as any)[field];
+      if (ref && ref.$el) {
+        const input = ref.$el.querySelector('input');
+        if (input) input.setAttribute('size', size.toString());
+      }
     }
   },
   mounted: function() {
@@ -86,14 +89,19 @@ export default Vue.extend({
   },
   watch: {
     showLobbyInput: function() {
-      const vm = this;
       let textField = 'lobbyTextField';
       if (!this.showLobbyInput) {
         textField = 'nameTextField';
       }
       this.$nextTick(() => {
-        vm.$refs[textField].$el.getElementsByTagName('input')[0].focus();
-        vm.setInputWidth(textField);
+        const ref = (this.$refs as any)[textField];
+        if (ref && ref.$el) {
+          const input = ref.$el.querySelector('input');
+          if (input) {
+            input.focus();
+            input.setAttribute('size', '20');
+          }
+        }
       });
     }
   }

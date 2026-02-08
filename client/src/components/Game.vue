@@ -7,18 +7,18 @@
   <GameParticipants v-on:selected-players='updateSelectedPlayers($event)' :avalon='avalon'></GameParticipants>
  </v-container>
  <v-container>
-  <ActionPane :avalon='avalon' :selectedPlayers='selectedPlayers'></ActionPane>  
+  <ActionPane :avalon='avalon' :selectedPlayers='selectedPlayers'></ActionPane>
   </v-container>
   </div>
 </template>
 
 <script lang="ts">
-import Vue from 'vue'
+import { defineComponent } from 'vue'
 import Missions from './Missions.vue'
 import GameParticipants from './GameParticipants.vue'
 import ActionPane from './ActionPane.vue'
 
-export default Vue.extend({
+export default defineComponent({
   name: 'Game',
   components: {
     Missions,
@@ -28,11 +28,11 @@ export default Vue.extend({
   props: [ 'avalon'],
   data() {
     return {
-      selectedPlayers: []
+      selectedPlayers: [] as string[]
     };
   },
   methods: {
-    updateSelectedPlayers(newList) {
+    updateSelectedPlayers(newList: string[]) {
       this.selectedPlayers = newList;
     },
   },

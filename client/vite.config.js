@@ -1,13 +1,17 @@
 // vite.config.js
 
 import { defineConfig } from 'vite'
-import vue from "@vitejs/plugin-vue2";
+import vue from "@vitejs/plugin-vue";
+import vuetify from "vite-plugin-vuetify";
 
 const path = require("path");
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [vue()],
+  plugins: [
+    vue(),
+    vuetify({ autoImport: true }),
+  ],
   server: {
     proxy: {
       '/api': {
@@ -28,7 +32,6 @@ export default defineConfig({
     extensions: ['.mjs', '.js', '.ts', '.jsx', '.tsx', '.json', '.vue'],
     alias: {
       "@": path.resolve(__dirname, "./src"),
-      "vue": require.resolve("vue/dist/vue.esm.js"),
     },
     dedupe: ['vue', 'vuetify'],
   },

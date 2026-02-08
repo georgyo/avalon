@@ -1,13 +1,13 @@
 <template>
   <v-dialog v-model="dialog" max-width='450'>
-    <template v-slot:activator="{ on }">
-        <v-btn slot="activator" v-on="on" light :loading='quitting'>
-        <v-icon left>exit_to_app</v-icon>
+    <template v-slot:activator="{ props }">
+        <v-btn v-bind="props" :loading='quitting'>
+        <v-icon start>mdi-exit-to-app</v-icon>
         Quit
         </v-btn>
     </template>
-    <v-card class="cyan lighten-4">
-      <v-card-title class="cyan lighten-2">
+    <v-card class="bg-cyan-lighten-4">
+      <v-card-title class="bg-cyan-lighten-2">
           <h3>{{ actionDescription }}?</h3>
       </v-card-title>
       <v-card-text>
@@ -22,15 +22,15 @@
         </v-btn>
         <v-btn color="secondary" @click='dialog = false'>
             Nevermind
-        </v-btn>        
+        </v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>
 </template>
 
 <script lang="ts">
-import Vue from 'vue'
-export default Vue.extend({
+import { defineComponent } from 'vue'
+export default defineComponent({
   name: 'ToolbarQuitButton',
   props: [ 'avalon' ],
   data() {

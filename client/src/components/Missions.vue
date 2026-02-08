@@ -1,10 +1,10 @@
 <template>
-    <v-tabs grow centered height="100px" v-model="activeMissionTab">
+    <v-tabs grow v-model="activeMissionTab">
       <v-tab
        v-for="(mission, idx) in avalon.game.missions"
        :key="'missionTab' + idx"
-       class="light-blue lighten-4"
-       active-class="blue lighten-2">
+       :value="idx"
+       class="bg-light-blue-lighten-4">
         <font-awesome-layers style="font-size: 2.5em">
           <template v-if='mission.state == "PENDING"'>
             <font-awesome-icon :icon='["far", "circle"]' :color='isFutureMission(mission, idx) ? "gray" : "black"' />
@@ -13,9 +13,11 @@
           <font-awesome-icon v-else-if='mission.state == "FAIL"' color="red" :icon='["far", "times-circle"]' />
           <font-awesome-icon v-else-if='mission.state == "SUCCESS"' color="green" :icon='["far", "check-circle"]' />
           <font-awesome-icon v-if='mission.failsRequired > 1' color="red" :icon='["fas", "circle"]' transform="shrink-10 right-9 up-7" />
-        </font-awesome-layers> 
+        </font-awesome-layers>
       </v-tab>
-      <v-tab-item v-for="(mission, idx) in avalon.game.missions" :key="'missionItem' + idx">
+    </v-tabs>
+    <v-window v-model="activeMissionTab">
+      <v-window-item v-for="(mission, idx) in avalon.game.missions" :key="'missionItem' + idx" :value="idx">
         <v-card flat :class='classForMission(mission)'>
           <v-card-text class="text-caption">
             <div>Mission {{ idx + 1 }}:
@@ -40,15 +42,15 @@
              :missionVotes='null' />
           </v-card-text>
         </v-card>
-      </v-tab-item>    
-    </v-tabs>
+      </v-window-item>
+    </v-window>
 </template>
 
 <script lang="ts">
-import Vue from 'vue'
+import { defineComponent } from 'vue'
 import MissionSummaryTable from './MissionSummaryTable.vue'
 
-export default Vue.extend({
+export default defineComponent({
   name: 'Missions',
   components: {
       MissionSummaryTable
@@ -60,17 +62,17 @@ export default Vue.extend({
     }
   },
   methods: {
-    isFutureMission: function(mission, idx) {
+    isFutureMission: function(_mission: any, idx: number) {
       return (idx > 0) && (this.avalon.game.missions[idx - 1].state == 'PENDING');
     },
-    classForMission: function(mission) {
-      if (mission.state == 'FAIL') return 'red lighten-4';
-      if (mission.state == 'SUCCESS') return 'green lighten-4';
-      return 'blue-grey lighten-4';
+    classForMission: function(mission: any) {
+      if (mission.state == 'FAIL') return 'bg-red-lighten-4';
+      if (mission.state == 'SUCCESS') return 'bg-green-lighten-4';
+      return 'bg-blue-grey-lighten-4';
     }
   },
   watch: {
-    'avalon.lobby.game.currentMissionIdx'(val) {
+    'avalon.lobby.game.currentMissionIdx'(val: number) {
       if ((val >= 0) && (val < 5)) {
         this.activeMissionTab = val;
       }

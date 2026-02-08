@@ -1,13 +1,13 @@
 <template>
      <v-dialog v-model="endGameDialog" fullscreen persistent>
-      <v-card v-if='endGameDialog && avalon.game && avalon.game.outcome' class="cyan lighten-4">
-        <v-card-title class="cyan lighten-2 endGameTitle">
-            <v-layout align-center justify-center fill-height>
+      <v-card v-if='endGameDialog && avalon.game && avalon.game.outcome' class="bg-cyan-lighten-4">
+        <v-card-title class="bg-cyan-lighten-2 endGameTitle">
+            <div class="d-flex align-center justify-center fill-height w-100">
                 <span class='text-h4 font-weight-bold'>{{title}}</span>
-            </v-layout>
+            </div>
         </v-card-title>
         <v-card-text>
-            <v-layout align-center column justify-center>            
+            <div class="d-flex flex-column align-center justify-center">
             <div class='text-h5 font-weight-bold'> {{ avalon.game.outcome.message }}</div>
             <p v-if='avalon.game.outcome.assassinated'>
                 {{ avalon.game.outcome.assassinated}} was assassinated by
@@ -21,23 +21,23 @@
                :missionVotes='avalon.game.outcome.votes' />
             </v-container>
             <Achievements :avalon='avalon' />
-            </v-layout>
+            </div>
         </v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
-          <v-btn light @click="endGameDialogClosed()">Close</v-btn>
+          <v-btn @click="endGameDialogClosed()">Close</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
 </template>
 
 <script lang="ts">
-import Vue from 'vue'
-import { EventBus } from '@/main'
+import { defineComponent } from 'vue'
+import { EventBus } from '@/eventBus'
 import Achievements from './Achievements.vue'
 import MissionSummaryTable from './MissionSummaryTable.vue'
 
-export default Vue.extend({
+export default defineComponent({
   name: 'EndGameEventHandler',
   props: [ 'avalon' ],
   components: {
@@ -59,13 +59,13 @@ export default Vue.extend({
           }
       },
       roleAssignments() {
-        return this.avalon.game.outcome.roles.slice(0).sort((a,b) => {
-          const roleIndexOf = (name) => this.avalon.config.roles.findIndex(r => r.name == name);
+        return this.avalon.game.outcome.roles.slice(0).sort((a: any, b: any) => {
+          const roleIndexOf = (name: string) => this.avalon.config.roles.findIndex((r: any) => r.name == name);
           return roleIndexOf(a.role) - roleIndexOf(b.role);
         });
       },
       missions() {
-          return this.avalon.game.missions.filter(m => m.proposals.filter(p => p.state != 'PENDING').length > 0);
+          return this.avalon.game.missions.filter((m: any) => m.proposals.filter((p: any) => p.state != 'PENDING').length > 0);
       }
   },
   methods: {
@@ -74,13 +74,13 @@ export default Vue.extend({
       }
   },
   mounted() {
-      EventBus.$on('GAME_ENDED', () => {
+      EventBus.on('GAME_ENDED', () => {
           this.endGameDialog = true;
       });
-      EventBus.$on('GAME_STARTED', () => {
+      EventBus.on('GAME_STARTED', () => {
           // time to start new game!
           this.endGameDialog = false;
-      });      
+      });
   }
 })
 </script>
@@ -97,14 +97,14 @@ export default Vue.extend({
  }
 
  td {
-     width: 1.7em;     
+     width: 1.7em;
      padding-left: 6px;
      padding-right: 4px;
  }
 
-  tr:nth-child(even) { 
+  tr:nth-child(even) {
      background-color: Gainsboro;
-  } 
+  }
 
   tr:nth-child(odd) {
       background-color: bisque;
@@ -120,7 +120,7 @@ export default Vue.extend({
   }
 
   td.mission-result {
-    border-right: 2px solid;  
+    border-right: 2px solid;
   }
 
   .endGameTitle {
