@@ -1,10 +1,11 @@
 const path = require('path');
 const express = require('express');
-const firebaseAdmin = require('firebase-admin');
+const { initializeApp, cert } = require('firebase-admin/app');
+const { getAuth } = require('firebase-admin/auth');
 const serviceAccount = require('./firebaseKey.js');
 
-firebaseAdmin.initializeApp({
-  credential: firebaseAdmin.credential.cert(serviceAccount)
+initializeApp({
+  credential: cert(serviceAccount)
 });
 
 const avalon = require('./avalon-server.js');
@@ -20,7 +21,7 @@ router.use(function(req, res, next) {
     throw new Error(`No auth info in request: ${req.method} ${req.path}`);
   }
 
-  firebaseAdmin.auth().verifyIdToken(idToken).then(function(decodedToken) {
+  getAuth().verifyIdToken(idToken).then(function(decodedToken) {
     req.uid = decodedToken.uid;
     console.log('Request', req.method, req.path, req.uid, JSON.stringify(req.body));
     next();

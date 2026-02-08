@@ -1,9 +1,8 @@
-const firebaseAdmin = require('firebase-admin');
+const { getFirestore, FieldValue } = require('firebase-admin/firestore');
 const _ = require('lodash');
 const avalonLib = require('@avalon/common');
 
-const db = firebaseAdmin.firestore();
-const FieldValue = firebaseAdmin.firestore.FieldValue;
+const db = getFirestore();
 
 const SECRET_STATE_DOC_NAME = 'SECRET_STATE_ARCHIVES__';
 

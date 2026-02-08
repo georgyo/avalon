@@ -81,17 +81,15 @@ async function testFlow() {
     }
   });
 
-  // Intercept Firestore requests → proxy via curl
-  await page.route('**/firestore.googleapis.com/**', async (route, request) => {
-    const url = request.url();
-    console.log('  [proxy] firestore:', url.substring(0, 100));
-    try {
-      const { status, body } = curlRequest(request.method(), url, request.headers(), request.postData());
-      await route.fulfill({ status, contentType: request.headers()['accept'] || 'application/json', body });
-    } catch (err) {
-      console.log('  [proxy error]', err.message);
-      await route.fulfill({ status: 500, contentType: 'application/json', body: '{"error":{"message":"proxy error"}}' });
+  // Abort Firestore requests to force offline mode (the channel protocol is too
+  // complex to proxy via curl, and Firebase v12 is strict about response format)
+  let firestoreRequestCount = 0;
+  await page.route('**/firestore.googleapis.com/**', async (route) => {
+    firestoreRequestCount++;
+    if (firestoreRequestCount <= 3) {
+      console.log('  [abort] firestore request #' + firestoreRequestCount);
     }
+    await route.abort('connectionfailed');
   });
 
   // Intercept /api calls → proxy to https://avalon.onl via curl (Vite proxy can't resolve DNS)

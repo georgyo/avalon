@@ -1,13 +1,15 @@
-const firebaseAdmin = require('firebase-admin');
+const { initializeApp, cert } = require('firebase-admin/app');
+const { getFirestore } = require('firebase-admin/firestore');
+const { getAuth } = require('firebase-admin/auth');
 const serviceAccount = require('./firebaseKey.js');
 
 const fs = require('fs');
 
-firebaseAdmin.initializeApp({
-  credential: firebaseAdmin.credential.cert(serviceAccount)
+initializeApp({
+  credential: cert(serviceAccount)
 });
 
-const db = firebaseAdmin.firestore();
+const db = getFirestore();
 
 const statsLib = require('../firebase/functions/common/stats');
 
@@ -16,7 +18,7 @@ function recursDeleteUsers(users) {
   if (users.length == 0) return;
   let user = users.pop();
   if (!user.email) {
-    return firebaseAdmin.auth().deleteUser(user.uid).then(function() {
+    return getAuth().deleteUser(user.uid).then(function() {
       console.log("Deleted user", user.uid);
       return recursDeleteUsers(users);
     });
@@ -58,7 +60,7 @@ function exportLog(logId) {
 //exportLogs().then(() => 0);
 
 function lookupUsers() {
- return firebaseAdmin.auth().listUsers(1000).then(function(users) {
+ return getAuth().listUsers(1000).then(function(users) {
     return recursLookupUsers(users.users);
   });
 }

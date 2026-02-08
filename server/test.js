@@ -1,12 +1,13 @@
-const firebaseAdmin = require('firebase-admin');
+const { initializeApp, cert } = require('firebase-admin/app');
+const { getFirestore } = require('firebase-admin/firestore');
 const serviceAccount = require("./firebaseKey.js");
 const _ = require('lodash');
 
-firebaseAdmin.initializeApp({
-  credential: firebaseAdmin.credential.cert(serviceAccount)
+initializeApp({
+  credential: cert(serviceAccount)
 });
 
-const db = firebaseAdmin.firestore();
+const db = getFirestore();
 const SECRET_STATE_DOC_NAME = 'SECRET_STATE_ARCHIVES__';
 
 const avalon = require('./avalon-server.js');
