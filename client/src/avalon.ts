@@ -621,13 +621,13 @@ export default class AvalonGame {
           this.userDocUpdated.bind(this),
           onFirebaseError);
 
-          db.collection('stats').doc('global').get().then(doc => {
-            this.globalStats = doc.data();
-          });
+        db.collection('stats').doc('global').get().then(doc => {
+          this.globalStats = doc.data();
+        });
 
-          // strip params from URL (if we followed a confirmEmail link but we're already logged in)
-          window.history.replaceState(null, '', window.location.pathname);
-        }
+        // strip params from URL (if we followed a confirmEmail link but we're already logged in)
+        window.history.replaceState(null, '', window.location.pathname);
+      }
     }.bind(this));
   }
 }

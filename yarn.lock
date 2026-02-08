@@ -43,7 +43,7 @@ __metadata:
     "@babel/eslint-parser": "npm:7.28.6"
     "@fortawesome/fontawesome-free": "npm:7.1.0"
     "@fortawesome/fontawesome-svg-core": "npm:7.1.0"
-    "@fortawesome/free-brands-svg-icons": "npm:^7.1.0"
+    "@fortawesome/free-brands-svg-icons": "npm:7.1.0"
     "@fortawesome/free-regular-svg-icons": "npm:7.1.0"
     "@fortawesome/free-solid-svg-icons": "npm:7.1.0"
     "@fortawesome/vue-fontawesome": "npm:^3.1.3"
@@ -86,7 +86,6 @@ __metadata:
     firebase-admin: "npm:^13.6.1"
     lodash: "npm:^4.17.23"
     nodemon: "npm:^3.1.11"
-    vue-eslint-parser: "npm:^10.2.0"
   languageName: unknown
   linkType: soft
 
@@ -1597,7 +1596,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@fortawesome/free-brands-svg-icons@npm:^7.1.0":
+"@fortawesome/free-brands-svg-icons@npm:7.1.0":
   version: 7.1.0
   resolution: "@fortawesome/free-brands-svg-icons@npm:7.1.0"
   dependencies:
@@ -11629,7 +11628,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vue-eslint-parser@npm:^10.0.0, vue-eslint-parser@npm:^10.2.0":
+"vue-eslint-parser@npm:^10.0.0":
   version: 10.2.0
   resolution: "vue-eslint-parser@npm:10.2.0"
   dependencies:
