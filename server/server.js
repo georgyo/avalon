@@ -1,3 +1,4 @@
+const path = require('path');
 const express = require('express');
 const firebaseAdmin = require('firebase-admin');
 const serviceAccount = require('./firebaseKey.js');
@@ -9,7 +10,7 @@ firebaseAdmin.initializeApp({
 const avalon = require('./avalon-server.js');
 const app = express();
 app.use(express.json());
-app.use(express.static('dist'))
+app.use(express.static(path.join(__dirname, 'dist')))
 
 const router = require('express-promise-router')();
 

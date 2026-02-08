@@ -80,3 +80,4 @@ dolt
 **/.dolt/
 .doltcfg
 config.yaml
+dist-server/
