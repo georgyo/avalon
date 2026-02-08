@@ -51,7 +51,7 @@ import { defineComponent } from 'vue'
 import MissionSummaryTable from './MissionSummaryTable.vue'
 
 export default defineComponent({
-  name: 'Missions',
+  name: 'GameMissions',
   components: {
       MissionSummaryTable
   },

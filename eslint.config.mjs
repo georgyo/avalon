@@ -66,7 +66,6 @@ export default tseslint.config(
     rules: {
       'no-debugger': process.env.NODE_ENV === 'production' ? 'error' : 'off',
       'vue/comment-directive': 'off',
-      'vue/multi-word-component-names': 'off',
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
       'no-unused-vars': 'off',

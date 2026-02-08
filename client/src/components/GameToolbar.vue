@@ -25,7 +25,7 @@ import ViewRoleButton from './ViewRoleButton.vue'
 import LogoutButton from './LogoutButton.vue'
 
 export default defineComponent({
-  name: 'Toolbar',
+  name: 'GameToolbar',
   components: {
     ToolbarQuitButton,
     ViewRoleButton,

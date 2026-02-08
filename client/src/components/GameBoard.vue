@@ -1,7 +1,7 @@
 <template>
 <div>
  <v-container>
-  <Missions :avalon='avalon'></Missions>
+  <GameMissions :avalon='avalon'></GameMissions>
  </v-container>
  <v-container>
   <GameParticipants v-on:selected-players='updateSelectedPlayers($event)' :avalon='avalon'></GameParticipants>
@@ -14,14 +14,14 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue'
-import Missions from './Missions.vue'
+import GameMissions from './GameMissions.vue'
 import GameParticipants from './GameParticipants.vue'
 import ActionPane from './ActionPane.vue'
 
 export default defineComponent({
-  name: 'Game',
+  name: 'GameBoard',
   components: {
-    Missions,
+    GameMissions,
     GameParticipants,
     ActionPane,
   },

@@ -33,7 +33,7 @@ import { defineComponent } from 'vue'
 import StatsDisplay from './StatsDisplay.vue'
 
 export default defineComponent({
-  name: 'Login',
+  name: 'LobbySelect',
   components: {
     StatsDisplay
   },
