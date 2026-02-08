@@ -10,14 +10,14 @@ This package contains game rules, role definitions, and other shared logic used 
 
 ## Contents
 
-- **avalonlib.js** - Core Avalon game logic
+- **avalonlib.js / avalonlib.ts** - Core Avalon game logic
   - `ROLES` - Array of all role definitions (Merlin, Morgana, etc.)
-  - `getNumEvilForGameSize(numPlayers)` - Returns evil players count for game size
+  - `getNumEvilForGameSize(numPlayers)` - Returns evil player count for a given game size
 
 ## Usage
 
 ```javascript
-const avalonLib = require('@avalon/common');
+import avalonLib from '@avalon/common';
 
 // Access roles
 console.log(avalonLib.ROLES); // Array of 8 role objects
@@ -25,6 +25,13 @@ console.log(avalonLib.ROLES); // Array of 8 role objects
 // Get evil count for game size
 const evilCount = avalonLib.getNumEvilForGameSize(7); // Returns 3
 ```
+
+Sub-path import for just the game library:
+```javascript
+import avalonLib from '@avalon/common/avalonlib';
+```
+
+TypeScript types are included via the `exports` field in `package.json`.
 
 ## History
 
