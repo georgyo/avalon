@@ -1,34 +1,52 @@
 # This is a minimal `default.nix` by yarn-plugin-nixify. You can customize it
 # as needed, it will not be overwritten by the plugin.
 
-{ pkgs ? import <nixpkgs> { }, lib ? pkgs.lib }:
+{
+  pkgs ? import <nixpkgs> { },
+  lib ? pkgs.lib,
+}:
 
 let
+
+  filesToExclude = [
+    "default.nix"
+    "flake.nix"
+    "flake.lock"
+    ".beads"
+    ".claude"
+    ".gitignore"
+    ".dolt"
+    ".doltcfg"
+    ".github"
+    "Dockerfile"
+  ];
+
   project =
     pkgs.callPackage ./yarn-project.nix
       {
         nodejs = pkgs.nodejs-slim_20;
       }
       {
-        src = with builtins; path {
-          name = "source";
-          path = ./.;
-          filter = path: type:
-            let bname = baseNameOf path; in
-            bname != "default.nix"
-            && bname != "Dockerfile"
-            && bname != "flake.nix"
-            && bname != "flake.lock";
-        };
-
+        src =
+          with builtins;
+          path {
+            name = "source";
+            path = ./.;
+            filter =
+              path: type:
+              let
+                bname = baseNameOf path;
+              in
+              !(lib.any (excluded_file: bname == excluded_file) filesToExclude);
+          };
       };
 in
 project.overrideAttrs (oldAttrs: {
 
-  name = "avalon";
+  name = "avalon-server";
 
   # python3 needed for node-gyp native module builds (e.g., re2) during yarn install
-  nativeBuildInputs = (oldAttrs.nativeBuildInputs or []) ++ [ pkgs.python3 ];
+  nativeBuildInputs = (oldAttrs.nativeBuildInputs or [ ]) ++ [ pkgs.python3 ];
 
   buildPhase = ''
     yarn build
