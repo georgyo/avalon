@@ -5083,6 +5083,7 @@ __metadata:
     "@typescript-eslint/eslint-plugin": "npm:^8.54.0"
     "@typescript-eslint/parser": "npm:^8.54.0"
     autoprefixer: "npm:^10.4.24"
+    esbuild: "npm:^0.27.3"
     eslint: "npm:^9.39.2"
     eslint-plugin-vue: "npm:^9.29.1"
     playwright: "npm:1.56.1"
@@ -6674,7 +6675,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"esbuild@npm:^0.27.0":
+"esbuild@npm:^0.27.0, esbuild@npm:^0.27.3":
   version: 0.27.3
   resolution: "esbuild@npm:0.27.3"
   dependencies:
