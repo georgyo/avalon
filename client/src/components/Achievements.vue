@@ -4,7 +4,7 @@
     <div v-for="badge in badges" :key="badge.title" class="pt-2">
     <v-card class="bg-blue-grey-lighten-4" min-width='400' max-width='900'>
       <v-card-title class="bg-cyan-lighten-2">
-        <v-icon start color="yellow">fas fa-trophy</v-icon>
+        <v-icon start color="yellow" icon="fa:fas fa-trophy" />
         <div class='text-h6'>{{ badge.title }}</div></v-card-title>
       <v-card-text>{{ badge.body }}</v-card-text>
     </v-card>

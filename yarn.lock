@@ -43,6 +43,7 @@ __metadata:
     "@babel/eslint-parser": "npm:7.28.6"
     "@fortawesome/fontawesome-free": "npm:6.7.2"
     "@fortawesome/fontawesome-svg-core": "npm:6.7.2"
+    "@fortawesome/free-brands-svg-icons": "npm:6.7.2"
     "@fortawesome/free-regular-svg-icons": "npm:6.7.2"
     "@fortawesome/free-solid-svg-icons": "npm:6.7.2"
     "@fortawesome/vue-fontawesome": "npm:^3.0.8"
@@ -1597,6 +1598,15 @@ __metadata:
   dependencies:
     "@fortawesome/fontawesome-common-types": "npm:6.7.2"
   checksum: 10/a3767631329aaa8c1bfafc9470718628533ceb42365774cd0c121477e0f3125f3cce4c2447058deee2874829ce11aa7a3fe183b0000bad81cf5ed0449c8470ef
+  languageName: node
+  linkType: hard
+
+"@fortawesome/free-brands-svg-icons@npm:6.7.2":
+  version: 6.7.2
+  resolution: "@fortawesome/free-brands-svg-icons@npm:6.7.2"
+  dependencies:
+    "@fortawesome/fontawesome-common-types": "npm:6.7.2"
+  checksum: 10/7dcbb389ccfee519d4639b992e65180ee4665bc0627e608a5d756c78acd50414f9a8d4a21a27e38f845c89cca33eb23bb468fb050c7764504659581e35e78b48
   languageName: node
   linkType: hard
 
