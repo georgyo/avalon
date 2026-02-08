@@ -58,10 +58,11 @@ This is a **multiplayer Avalon card game** with four main components:
 - Build tool: Vite 7, dev proxy to `https://avalon.onl/api`
 
 ### Server (`/server/`)
-- Express.js REST API server
+- Express.js REST API server (TypeScript)
 - Handles game logic validation and state mutations
 - Writes to Firebase Firestore database
-- Main files: `server.js` (entry), `avalon-server.js` (game logic)
+- Main files: `server.ts` (entry), `avalon-server.ts` (game logic), `types.ts` (interfaces)
+- Uses `tsx` for development and production runtime
 - Bundled to single file via esbuild for production (`dist-server/server.js`)
 
 ### Firebase (`/firebase/`)
@@ -96,7 +97,7 @@ This is a **multiplayer Avalon card game** with four main components:
 This is a Yarn 4 workspace with four packages:
 - `@avalon/common` - Shared game logic library (TypeScript, compiled to CJS)
 - `@avalon/client` - Frontend application (Vue 3 + Vite)
-- `@avalon/server` - Backend API (Express.js)
+- `@avalon/server` - Backend API (Express.js + TypeScript)
 - `functions` - Firebase Cloud Functions
 
 Always use workspace commands from the root directory for consistent dependency management.

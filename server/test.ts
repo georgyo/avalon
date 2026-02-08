@@ -1,20 +1,28 @@
-const { initializeApp, cert } = require('firebase-admin/app');
-const { getFirestore } = require('firebase-admin/firestore');
-const serviceAccount = require("./firebaseKey.js");
-const _ = require('lodash');
+import { initializeApp, cert } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
+import serviceAccount from './firebaseKey.js';
+import _ from 'lodash';
+import * as avalon from './avalon-server.js';
+import type { Game, Mission, Proposal, PlayerRole } from './types.js';
 
 initializeApp({
-  credential: cert(serviceAccount)
+  credential: cert(serviceAccount as Parameters<typeof cert>[0])
 });
 
 const db = getFirestore();
 const SECRET_STATE_DOC_NAME = 'SECRET_STATE_ARCHIVES__';
 
-const avalon = require('./avalon-server.js');
 let lobby = '';
-let roles = {};
+let roles: Record<string, PlayerRole> = {};
 
-function randomAction(game) {
+interface TestGame extends Game {
+  currentMissionIdx: number;
+  currentMission: Mission;
+  currentProposalIdx: number;
+  currentProposal: Proposal;
+}
+
+function randomAction(game: TestGame): Promise<unknown> | undefined {
   game.currentMissionIdx = game.missions.findIndex(m => m.state == 'PENDING');
   if (game.currentMissionIdx >= 0) {
     game.currentMission = game.missions[game.currentMissionIdx];
@@ -34,26 +42,25 @@ function randomAction(game) {
   }
 }
 
-function randomActionLoop() {
+function randomActionLoop(): Promise<TestGame> {
   return db.collection('lobbies').doc(lobby).get().then(lobbyDoc => {
-    const game = lobbyDoc.data().game;
+    const game = lobbyDoc.data()!.game as TestGame;
 
     if (game.state == 'ENDED') {
       return game;
     }
 
-    return randomAction(game).then(
+    return randomAction(game)!.then(
       () => randomActionLoop()
     );
   });
 }
 
-function pickPlayersAtRandom(game, n) {
+function pickPlayersAtRandom(game: TestGame, n: number): string[] {
   return _.shuffle(game.players).slice(0, n);
 }
 
-function proposeTeam(game) {
-  //lobby: string, mission: int, proposal: int, team: [string]
+function proposeTeam(game: TestGame): Promise<void> {
   return avalon.proposeTeam({
     lobby,
     mission: game.currentMissionIdx,
@@ -62,35 +69,34 @@ function proposeTeam(game) {
   }, game.currentProposal.proposer);
 }
 
-function voteProposal(game) {
-  return _.reduce(['JIMMY', 'USERONE', 'USERTWO', 'USERTHREE', 'USERFOUR', 'USERFIVE'], (promise, name) =>
+function voteProposal(game: TestGame): Promise<boolean> {
+  return _.reduce(['JIMMY', 'USERONE', 'USERTWO', 'USERTHREE', 'USERFOUR', 'USERFIVE'], (promise: Promise<boolean>, name: string) =>
     promise.then(() => avalon.voteTeam({
       lobby,
       mission: game.currentMissionIdx,
       proposal: game.currentProposalIdx,
       name,
       vote: (game.currentProposalIdx == 4) || _.random(1) == 1
-    }, name)),
+    }, name).then(() => true)),
     Promise.resolve(true)
-  );
+  )!;
 }
 
-function missionVote(game) {
-  // lobby: string, mission: int, proposal: int, name: string, vote: boolean  
-  return Promise.all(game.currentProposal.team.map(name => 
+function missionVote(game: TestGame): Promise<void[]> {
+  return Promise.all(game.currentProposal.team.map(name =>
     avalon.doMission({
       lobby,
       mission: game.currentMissionIdx,
       proposal: game.currentProposalIdx,
       name,
       vote: _.random(1) == 1
-    }, name)    
+    }, name)
   ));
 }
 
-function assassinate(game) {
+function assassinate(game: TestGame): Promise<boolean> {
   const target = pickPlayersAtRandom(game, 1)[0];
-  const name = Object.values(roles).find(r => r.assassin).name;
+  const name = Object.values(roles).find(r => r.assassin)!.name;
 
   return avalon.assassinate({ lobby, name, target }, name);
 }
@@ -107,7 +113,7 @@ avalon.createLobby({name: 'JIMMY'}, 'JIMMY').then(r => {
   ]);
 }).then(() => {
   return avalon.cancelGame({ lobby, name: 'JIMMY' }, 'JIMMY');
-}).catch(err => /* ignore */ false)
+}).catch(_err => /* ignore */ false)
 .then(() => {
   return avalon.startGame(
     { playerList: ['JIMMY', 'USERONE', 'USERTWO', 'USERTHREE', 'USERFOUR', 'USERFIVE'],
@@ -115,51 +121,12 @@ avalon.createLobby({name: 'JIMMY'}, 'JIMMY').then(r => {
       lobby}, 'JIMMY');
   }).then(() => db.collection('lobbies').doc(lobby).collection('roles').doc(SECRET_STATE_DOC_NAME).get())
   .then((roleDoc) => {
-    roles = roleDoc.data().roles;
+    roles = roleDoc.data()!.roles;
   })
-/* }).then(() => {
-  return db.collection('lobbies').doc(lobby).collection('roles').doc(SECRET_STATE_DOC_NAME).update('roles', {
-    JIMMY: {
-      assassin: false,
-      role: 'MERLIN',
-      name: 'JIMMY',
-      sees: [ 'USERTHREE', 'USERTWO' ],
-      team: 'good' },
-    USERONE: {
-      assassin: false,
-      role: 'PERCIVAL',
-      name: 'USERONE',
-      sees: [ 'JIMMY', 'USERTWO' ],
-      team: 'good' },
-    USERTWO:
-      { name: 'USERTWO',
-        sees: [ 'USERTHREE' ],
-        team: 'evil',
-        assassin: false,
-        role: 'MORGANA' },  
-     USERTHREE:
-      { name: 'USERTHREE',
-        sees: [ 'USERTWO'],
-        team: 'evil',
-        assassin: true,
-        role: 'EVIL MINION' },
-     USERFOUR:
-      { assassin: false,
-        role: 'LOYAL FOLLOWER',
-        name: 'USERFOUR',
-        sees: [],
-        team: 'good' },
-     USERFIVE:
-      { assassin: false,
-        role: 'LOYAL FOLLOWER',
-        name: 'USERFOUR',
-        sees: [ ],
-        team: 'good' }
-    }); */
 .then(() => {
   return db.collection('lobbies').doc(lobby).get();
 }).then(lobbyDoc => {
-  game = lobbyDoc.data().game;
+  const game = lobbyDoc.data()!.game as TestGame;
   game.missions[0].proposals[0].proposer = 'JIMMY';
   return db.collection('lobbies').doc(lobby).update('game', game);
 }).then(() => randomActionLoop()).then(game => {

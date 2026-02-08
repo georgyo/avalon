@@ -5,12 +5,16 @@ import globals from 'globals';
 
 export default tseslint.config(
   {
-    ignores: ['**/dist/**', '**/node_modules/**', 'firebase/functions/**'],
+    ignores: ['**/dist/**', '**/node_modules/**', 'firebase/functions/**', 'dist-server/**'],
   },
   js.configs.recommended,
-  // Server: plain JS with Node globals
+  // Server: TypeScript with Node globals
+  ...tseslint.configs.recommended.map(config => ({
+    ...config,
+    files: ['server/**/*.ts'],
+  })),
   {
-    files: ['server/**/*.js'],
+    files: ['server/**/*.ts'],
     languageOptions: {
       globals: {
         ...globals.node,
@@ -18,15 +22,15 @@ export default tseslint.config(
       },
     },
     rules: {
-      'no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_', destructuredArrayIgnorePattern: '^_' }],
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_', destructuredArrayIgnorePattern: '^_' }],
+      'no-unused-vars': 'off',
     },
   },
   // Admin and test files have intentionally unused functions
   {
-    files: ['server/admin.js', 'server/test.js'],
+    files: ['server/admin.ts', 'server/test.ts'],
     rules: {
-      'no-unused-vars': 'off',
-      'no-undef': 'off',
+      '@typescript-eslint/no-unused-vars': 'off',
     },
   },
   // Client: Vue + TypeScript

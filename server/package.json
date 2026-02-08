@@ -1,9 +1,9 @@
 {
   "name": "@avalon/server",
   "scripts": {
-    "start": "node server.js",
-    "serve": "nodemon server.js",
-    "lint": "eslint *.js"
+    "start": "tsx server.ts",
+    "serve": "tsx watch server.ts",
+    "lint": "eslint *.ts"
   },
   "dependencies": {
     "@avalon/common": "workspace:*",
@@ -13,7 +13,10 @@
     "lodash": "^4.17.23"
   },
   "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/lodash": "^4.17.16",
     "eslint": "^9.39.0",
-    "nodemon": "^3.1.11"
+    "tsx": "^4.19.0",
+    "typescript": "^5.9.3"
   }
 }

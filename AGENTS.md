@@ -19,8 +19,9 @@ This is a multiplayer Avalon card game. The codebase is a Yarn 4 monorepo with f
 
 ### Key Files to Know
 - `common/avalonlib.js` - Core game logic (roles, rules, player counts)
-- `server/avalon-server.js` - Server-side game state machine (~24KB, largest file)
-- `server/server.js` - Express app entry point and route definitions
+- `server/avalon-server.ts` - Server-side game state machine (largest file)
+- `server/server.ts` - Express app entry point and route definitions
+- `server/types.ts` - TypeScript interfaces for game state, requests, errors
 - `client/src/types.ts` - TypeScript type definitions for game state
 - `client/src/avalon-api-rest.ts` - Client API wrapper (all server calls go through here)
 - `client/src/components/Game*.vue` - Game UI components
