@@ -8,13 +8,13 @@
 </template>
 
 <script lang="ts">
-import Vue from 'vue'
+import { defineComponent } from 'vue'
 import TeamProposalAction from './TeamProposalAction.vue'
 import TeamVoteAction from './TeamVoteAction.vue'
 import MissionAction from './MissionAction.vue'
 import AssassinationAction from './AssassinationAction.vue'
 
-export default Vue.extend({
+export default defineComponent({
   name: 'ActionPane',
   components: {
     TeamProposalAction,

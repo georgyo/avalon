@@ -1,32 +1,32 @@
 <template>
   <div>
-  <v-list class="blue-grey lighten-4">
+  <v-list class="bg-blue-grey-lighten-4">
     <v-list-item
      v-for="(role, index) in roles"
       :key="index">
-    <v-flex v-if="allowSelect" xs1>
-      <v-checkbox
-       color="black"
-       v-model='role.selected'
-       ></v-checkbox>
-    </v-flex>
-      <v-flex xs10>
-        <!-- setting 'right' property if we allow select to give space between checkbox at the left -->
-        <v-icon :right='allowSelect' v-if='role.team == "good"'>fab fa-old-republic</v-icon>
-        <v-icon :right='allowSelect' v-else color="red">fas fa-empire</v-icon>
-        {{role.name}}
-      </v-flex>
-    <v-flex xs2>
-      <v-btn icon @click='showRoleInfo(role)'><v-icon>info</v-icon>
-      </v-btn>
-    </v-flex>
-  </v-list-item> 
+      <template v-slot:prepend>
+        <v-checkbox
+         v-if="allowSelect"
+         color="black"
+         v-model='role.selected'
+         hide-details
+         density="compact"
+         class="mr-2"
+         ></v-checkbox>
+        <v-icon v-if='role.team == "good"'>fab fa-old-republic</v-icon>
+        <v-icon v-else color="red">fas fa-empire</v-icon>
+      </template>
+      <v-list-item-title>{{role.name}}</v-list-item-title>
+      <template v-slot:append>
+        <v-btn icon variant="text" @click='showRoleInfo(role)' size="small"><v-icon>mdi-information</v-icon></v-btn>
+      </template>
+  </v-list-item>
   </v-list>
   <v-dialog v-model="roleInfo" max-width='450'>
-    <v-card class="cyan lighten-4">
-        <v-card-title class="cyan lighten-2">
-          <v-icon left v-if='selectedRole.team == "good"'>fab fa-old-republic</v-icon>
-          <v-icon left v-else color="red">fas fa-empire</v-icon>
+    <v-card class="bg-cyan-lighten-4">
+        <v-card-title class="bg-cyan-lighten-2">
+          <v-icon start v-if='selectedRole.team == "good"'>fab fa-old-republic</v-icon>
+          <v-icon start v-else color="red">fas fa-empire</v-icon>
           <h3>{{ selectedRole.name }}</h3>
         </v-card-title>
         <v-card-text>
@@ -38,19 +38,19 @@
 </template>
 
 <script lang="ts">
-import Vue from 'vue'
+import { defineComponent } from 'vue'
 
-export default Vue.extend({
+export default defineComponent({
   name: 'RoleList',
   props: [ 'roles', 'allowSelect'],
   data() {
     return {
       roleInfo: false,
-      selectedRole: 'blah'
+      selectedRole: { name: '', team: '', description: '' } as any
     }
   },
   methods: {
-    showRoleInfo(role) {
+    showRoleInfo(role: any) {
       this.roleInfo = true;
       this.selectedRole = role;
     }

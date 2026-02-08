@@ -25,9 +25,9 @@
       </td>
       <td v-if='missionVotes' :key='player + "_mission" + missions.indexOf(mission)' class='mission-result'>
         <template v-if='mission.team.includes(player)'>
-          <v-icon small v-if='missionVotes[missions.indexOf(mission)][player]'
+          <v-icon size="small" v-if='missionVotes[missions.indexOf(mission)][player]'
             color='green'> fas fa-check-circle </v-icon>
-          <v-icon small v-else color="red"> fas fa-times-circle </v-icon>
+          <v-icon size="small" v-else color="red"> fas fa-times-circle </v-icon>
         </template>
       </td>
       </template>
@@ -36,9 +36,9 @@
 </template>
 
 <script lang="ts">
-import Vue from 'vue'
+import { defineComponent } from 'vue'
 
-export default Vue.extend({
+export default defineComponent({
   name: 'MissionSummaryTable',
   props: [ 'players', 'missions', 'roles', 'missionVotes' ],
   data() {
@@ -46,8 +46,8 @@ export default Vue.extend({
       }
   },
   methods: {
-      isCurrentProposal(mission, proposal) {
-          return mission.state == 'PENDING' && mission.proposal.mission.proposals.indexOf(proposal) == mission.proposals.length - 1;
+      isCurrentProposal(mission: any, proposal: any) {
+          return mission.state == 'PENDING' && mission.proposals.indexOf(proposal) == mission.proposals.length - 1;
       }
   }
 })
@@ -56,7 +56,7 @@ export default Vue.extend({
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
 
- table { 
+ table {
     border-collapse: collapse;
  }
 
@@ -65,14 +65,14 @@ export default Vue.extend({
  }
 
  td {
-     width: 1.7em;     
+     width: 1.7em;
      padding-left: 6px;
      padding-right: 4px;
  }
 
-  tr:nth-child(even) { 
+  tr:nth-child(even) {
      background-color: Gainsboro;
-  } 
+  }
 
   tr:nth-child(odd) {
       background-color: bisque;
@@ -88,7 +88,7 @@ export default Vue.extend({
   }
 
   td.mission-result {
-    border-right: 2px solid;  
+    border-right: 2px solid;
   }
 
   .endGameTitle {

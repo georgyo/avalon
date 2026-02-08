@@ -1,9 +1,9 @@
 <template>
-  <v-card class="blue-grey lighten-4">
+  <v-card class="bg-blue-grey-lighten-4">
     <v-card-title>
       Assassination Attempt
      </v-card-title>
-     <v-card-text class="light-blue lighten-4">
+     <v-card-text class="bg-light-blue-lighten-4">
       <div v-if='avalon.lobby.role.assassin'>
         <v-btn
          v-bind:disabled='!isValidSelection'
@@ -20,9 +20,9 @@
 </template>
 
 <script lang="ts">
-import Vue from 'vue'
+import { defineComponent } from 'vue'
 
-export default Vue.extend({
+export default defineComponent({
   name: 'AssassinationAction',
   props: [ 'avalon', 'playerList' ],
   data() {
@@ -37,11 +37,11 @@ export default Vue.extend({
       }
   },
   computed: {
-    isValidSelection() {
+    isValidSelection(): boolean {
         return (this.playerList.length == 1) &&
                 (this.playerList[0] != this.avalon.user.name);
     },
-    assassinateButtonText() {
+    assassinateButtonText(): string {
         if (this.isValidSelection) {
             return "Assassinate " + this.playerList[0];
         } else {

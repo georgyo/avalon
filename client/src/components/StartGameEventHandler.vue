@@ -1,12 +1,12 @@
 <template>
      <v-dialog v-model="startGameDialog" persistent max-width='450'>
-      <v-card class="cyan lighten-4">
-        <v-card-title class="cyan lighten-2"><h3>Game Started</h3></v-card-title>
+      <v-card class="bg-cyan-lighten-4">
+        <v-card-title class="bg-cyan-lighten-2"><h3>Game Started</h3></v-card-title>
         <v-card-text>
             <p>A new game has started. When you are ready, view your secret role.</p>
-            <p>You may also view your role anytime by clicking on your name in the toolbar.</p>        
+            <p>You may also view your role anytime by clicking on your name in the toolbar.</p>
         </v-card-text>
-        <v-divider></v-divider>        
+        <v-divider></v-divider>
         <v-card-actions>
           <v-spacer></v-spacer>
           <v-btn @click="startGameDialogClosed()">View Role</v-btn>
@@ -16,10 +16,10 @@
 </template>
 
 <script lang="ts">
-import Vue from 'vue'
-import { EventBus } from '@/main'
+import { defineComponent } from 'vue'
+import { EventBus } from '@/eventBus'
 
-export default Vue.extend({
+export default defineComponent({
   name: 'StartGameEventHandler',
   props: [ 'avalon' ],
   data() {
@@ -30,14 +30,14 @@ export default Vue.extend({
   methods: {
       startGameDialogClosed() {
           this.startGameDialog = false;
-          EventBus.$emit('show-role');
+          EventBus.emit('show-role');
       }
   },
   mounted() {
-      EventBus.$on('GAME_STARTED', () => {
+      EventBus.on('GAME_STARTED', () => {
           this.startGameDialog = true;
       });
-      EventBus.$on('GAME_ENDED', () => {
+      EventBus.on('GAME_ENDED', () => {
           this.startGameDialog = false;
       });
   }

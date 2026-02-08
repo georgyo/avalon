@@ -1,8 +1,8 @@
 <template>
-  <v-container justify-center>
+  <v-container class="d-flex justify-center">
 
-      <v-card class="cyan lighten-4" v-if='false && (avalon.user.stats.games >= 3)'>
-        <v-card-title class="cyan lighten-2">
+      <v-card class="bg-cyan-lighten-4" v-if='false && (avalon.user.stats.games >= 3)'>
+        <v-card-title class="bg-cyan-lighten-2">
           <h3>Server Shutdown</h3>
         </v-card-title>
         <v-card-text>
@@ -10,109 +10,74 @@
           Please pitch in if you enjoy playing here. Every little bit helps.
         </v-card-text>
         <v-divider></v-divider>
-      </v-card>    
+      </v-card>
 
-  <v-layout align-start justify-center wrap>
-  <v-flex xs12 sm6>
+  <v-row align="start" justify="center" class="flex-wrap">
+  <v-col cols="12" sm="6">
     <v-container>
-    <p class="cyan--text text--lighten-4">Players</p>
+    <p class="text-cyan-lighten-4">Players</p>
     <LobbyPlayerList v-bind:avalon='avalon' />
     <p v-if='avalon.isAdmin && avalon.config.playerList.length > 2'
-      class="cyan--text text--lighten-4 text-caption">Drag names to specify seating order</p>
+      class="text-cyan-lighten-4 text-caption">Drag names to specify seating order</p>
     </v-container>
-  </v-flex>
-   <v-flex v-show='validTeamSize' xs12 sm6>
+  </v-col>
+   <v-col v-show='validTeamSize' cols="12" sm="6">
      <v-container>
-      <p class="cyan--text text--lighten-4">Special Roles Available</p>
+      <p class="text-cyan-lighten-4">Special Roles Available</p>
       <RoleList
         v-bind:roles='avalon.config.selectableRoles'
         v-bind:allowSelect='avalon.isAdmin' />
     </v-container>
-  </v-flex>
-  </v-layout>
-  <v-layout align-center justify-center>
-   <v-flex xs12 v-if='validTeamSize'>
-     <v-layout align-center justify-center fill-height>
-      <p class="cyan--text text--lighten-4 text-h6">
+  </v-col>
+  </v-row>
+  <v-row align="center" justify="center">
+   <v-col cols="12" v-if='validTeamSize'>
+     <div class="d-flex align-center justify-center fill-height">
+      <p class="text-cyan-lighten-4 text-h6">
       {{ avalon.config.playerList.length }} players:
       {{ avalon.config.playerList.length - numEvilPlayers }} good, {{ numEvilPlayers }} evil
     </p>
-     </v-layout>
-  </v-flex>
-  </v-layout>
-  <!--                IN-GAME LOG CODE. DISABLED FOR NOW    --
-  <v-layout align-center justify-center column>
-    <v-flex xs12 sm6 v-if='canStartGame'>
-      <v-container>
-    <v-dialog v-model="showOptionGameLog" max-width='450'>
-      <v-card class="cyan lighten-4">
-        <v-card-title class="cyan lighten-2">
-          <h3>Enable in-game log display</h3>
-        </v-card-title>
-        <v-card-text>
-          Display the voting record of all players during the game.
-          This may make the game less social and more analytical. It will also make
-          it harder to hide as Merlin! Use at your own risk.
-        </v-card-text>
-      </v-card>
-    </v-dialog>
- <v-list class="blue-grey lighten-4">
-    <v-list-tile>
-    <v-flex xs1>
-      <v-checkbox v-model='options.inGameLog' color="black"></v-checkbox>
-    </v-flex>
-    <v-flex xs9 pl-2>
-      Enable in-game log display
-    </v-flex>
-    <v-flex xs2>
-      <v-btn icon @click='showOptionGameLog = true'><v-icon>info</v-icon>
-      </v-btn>
-    </v-flex>
-  </v-list-tile> 
-  </v-list>
-  </v-container>
-  </v-flex>
-  </v-layout>
-
-                     END IN-GAME LOG CODE SELECTION -->  
-  <v-layout align-center justify-center pt-2>
+     </div>
+  </v-col>
+  </v-row>
+  <div class="d-flex align-center justify-center pt-2">
     <v-btn
      v-if='canStartGame'
      :loading='startingGame'
      @click='startGame()'
     >
-        <v-icon left>
-          play_arrow
+        <v-icon start>
+          mdi-play
         </v-icon>
       Start Game
     </v-btn>
-    <v-card v-else xs6 md3 class="blue-grey lighten-4">
+    <v-card v-else class="bg-blue-grey-lighten-4">
       <v-card-text class="text-center">
         {{ reasonToNotStartGame }}
       </v-card-text>
     </v-card>
-  </v-layout>
-<v-layout pt-12 column align-end>
-  <v-flex>
-    <v-btn small block href='mailto:avalon@shamm.as' target="_blank" color='grey lighten-1'>
-      <v-icon left small>
+  </div>
+<div class="d-flex flex-column align-end pt-12">
+  <div>
+    <v-btn size="small" block href='mailto:avalon@shamm.as' target="_blank" color='grey-lighten-1'>
+      <v-icon start size="small">
         fas fa-envelope-square
       </v-icon>
        <span>Send feedback</span>
     </v-btn>
-  </v-flex>
-</v-layout>
+  </div>
+</div>
   </v-container>
 </template>
 
 <script lang="ts">
-import Vue from 'vue'
-import { EventBus } from '@/main'
+import { defineComponent } from 'vue'
+import { EventBus } from '@/eventBus'
 import * as avalonLib from '@avalon/common/avalonlib'
 import LobbyPlayerList from './LobbyPlayerList.vue'
 import RoleList from './RoleList.vue'
 
-export default Vue.extend({
+export default defineComponent({
   name: 'Lobby',
   components: {
     LobbyPlayerList,
@@ -129,10 +94,10 @@ export default Vue.extend({
     }
   },
   created() {
-    EventBus.$on('evt', (...args) => console.log("event in lobby", ...args));
+    EventBus.on('evt', (...args: any[]) => console.log("event in lobby", ...args));
   },
   computed: {
-    reasonToNotStartGame: function() {
+    reasonToNotStartGame: function(): string | null {
       if (this.avalon.config.playerList.length < 5) {
         return 'Need at least 5 players! Invite your friends to lobby ' + this.avalon.lobby.name;
       }
@@ -145,13 +110,13 @@ export default Vue.extend({
 
       return null;
     },
-    canStartGame: function() {
+    canStartGame: function(): boolean {
       return this.reasonToNotStartGame == null;
     },
-    validTeamSize() {
+    validTeamSize(): boolean {
       return (this.avalon.config.playerList.length >= 5) && (this.avalon.config.playerList.length <= 10);
     },
-    numEvilPlayers() {
+    numEvilPlayers(): number {
       return avalonLib.getNumEvilForGameSize(this.avalon.config.playerList.length);
     }
   },

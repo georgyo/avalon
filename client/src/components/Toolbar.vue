@@ -1,10 +1,10 @@
 <template>
-  <v-toolbar class='blue darken-1'>
+  <v-toolbar class='bg-blue-darken-1'>
     <template v-if="avalon.lobby && avalon.lobby.name && avalon.user && avalon.user.name">
-    <v-icon left>
-      room
+    <v-icon start>
+      mdi-map-marker
     </v-icon>
-     <span class="font-weight-bold cyan--text text--lighten-5">{{ avalon.lobby.name }}</span>
+     <span class="font-weight-bold text-cyan-lighten-5">{{ avalon.lobby.name }}</span>
     <v-spacer></v-spacer>
     <ViewRoleButton :avalon='avalon'></ViewRoleButton>
     <v-spacer></v-spacer>
@@ -19,12 +19,12 @@
 </template>
 
 <script lang="ts">
-import Vue from 'vue'
+import { defineComponent } from 'vue'
 import ToolbarQuitButton from './ToolbarQuitButton.vue';
 import ViewRoleButton from './ViewRoleButton.vue'
 import LogoutButton from './LogoutButton.vue'
 
-export default Vue.extend({
+export default defineComponent({
   name: 'Toolbar',
   components: {
     ToolbarQuitButton,

@@ -1,8 +1,8 @@
 <template>
   <div>
     <v-dialog v-model="kickPlayerDialog" max-width='450'>
-      <v-card class="cyan lighten-4">
-        <v-card-title class="cyan lighten-2">
+      <v-card class="bg-cyan-lighten-4">
+        <v-card-title class="bg-cyan-lighten-2">
           <h3>Kick {{playerToKick}}?</h3>
         </v-card-title>
         <v-card-text>Do you wish to kick {{ playerToKick }} from the lobby?</v-card-text>
@@ -14,49 +14,51 @@
       </v-card>
     </v-dialog>
 
-    <v-list class="blue-grey lighten-4">
+    <v-list class="bg-blue-grey-lighten-4">
       <draggable
         v-model="playerList"
         handle=".handle"
-        :disabled=!canDrag
+        :disabled="!canDrag"
+        item-key="id"
         @end="onReorderList()">
-        <v-list-item v-for="player in playerList" :key="player">
-          <v-icon left v-if="canDrag" class="handle">fas fa-bars</v-icon>
-          <v-icon left v-if="player == avalon.lobby.admin.name">star</v-icon>
-          <v-icon left v-else-if="player == avalon.user.name">perm_identity</v-icon>
-          <v-icon left v-else>person</v-icon>
-          <v-flex xs10>{{player}}</v-flex>
-          <v-flex xs1>
-            <template v-slot:activator>
-<v-btn icon right text
-              v-if="(avalon.isAdmin && player != avalon.user.name && !avalon.isGameInProgress)"
-              :loading="playersBeingKicked.includes(player)"
-              @click.stop="kickPlayerConfirm(player)"
-              
-              color="black"
-              dark>
-              <v-icon>clear</v-icon>
-            </v-btn>
-</template>
-          </v-flex>
-        </v-list-item>
+        <template #item="{element}">
+          <v-list-item>
+            <template v-slot:prepend>
+              <v-icon v-if="canDrag" class="handle mr-2">fas fa-bars</v-icon>
+              <v-icon v-if="element == avalon.lobby.admin.name" class="mr-2">mdi-star</v-icon>
+              <v-icon v-else-if="element == avalon.user.name" class="mr-2">mdi-account</v-icon>
+              <v-icon v-else class="mr-2">mdi-account-outline</v-icon>
+            </template>
+            <v-list-item-title>{{element}}</v-list-item-title>
+            <template v-slot:append>
+              <v-btn icon variant="text"
+                v-if="(avalon.isAdmin && element != avalon.user.name && !avalon.isGameInProgress)"
+                :loading="playersBeingKicked.includes(element)"
+                @click.stop="kickPlayerConfirm(element)"
+                color="black"
+                size="small">
+                <v-icon>mdi-close</v-icon>
+              </v-btn>
+            </template>
+          </v-list-item>
+        </template>
       </draggable>
     </v-list>
   </div>
 </template>
 
 <script lang="ts">
-import Vue from 'vue'
+import { defineComponent } from 'vue'
 import draggable from "vuedraggable";
 
-export default Vue.extend({
+export default defineComponent({
   name: "LobbyPlayerList",
   components: {
     draggable
   },
   props: ["avalon"],
   computed: {
-    canDrag() {
+    canDrag(): boolean {
       return this.avalon.isAdmin && !this.avalon.isGameInProgress;
     }
   },
@@ -65,29 +67,29 @@ export default Vue.extend({
       playerList: this.avalon.config.playerList,
       kickPlayerDialog: false,
       playerToKick: "",
-      playersBeingKicked: []
+      playersBeingKicked: [] as string[]
     };
   },
   methods: {
     onReorderList() {
       this.avalon.config.sortList(this.playerList);
     },
-    kickPlayerConfirm(player) {
+    kickPlayerConfirm(player: string) {
       this.playerToKick = player;
       this.kickPlayerDialog = true;
     },
-    kickPlayer(player) {
+    kickPlayer(player: string) {
       this.kickPlayerDialog = false;
       this.playersBeingKicked.push(player);
       this.avalon.kickPlayer(player).finally(() =>
           this.playersBeingKicked.splice(
-            this.playersBeingKicked.indexOf(player)
+            this.playersBeingKicked.indexOf(player), 1
           )
         );
     }
   },
   watch: {
-    "avalon.config.playerList": function(list) {
+    "avalon.config.playerList": function(list: string[]) {
       this.playerList = list;
     }
   }

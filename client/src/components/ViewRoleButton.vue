@@ -1,31 +1,30 @@
 <template>
   <v-bottom-sheet v-model="sheet">
-    <template v-slot:activator="{ on }">
-      <v-btn slot="activator" v-on="on" light>
-        <v-icon left>
-          perm_identity
-          <!-- person -->
+    <template v-slot:activator="{ props }">
+      <v-btn v-bind="props">
+        <v-icon start>
+          mdi-account
         </v-icon>
-        {{ avalon.user.name }}        
+        {{ avalon.user.name }}
       </v-btn>
     </template>
-    <v-card v-if='!avalon.isGameInProgress' class="cyan lighten-4">
+    <v-card v-if='!avalon.isGameInProgress' class="bg-cyan-lighten-4">
       <v-card-title>
-        <v-layout align-center column justify-center>
+        <div class="d-flex flex-column align-center justify-center">
           <div class="font-weight-bold">When the game starts, you will see your role here.</div>
-        </v-layout>
+        </div>
       </v-card-title>
       <v-card-text>
-        <v-layout align-center column justify-center>
-          <p class='subheading'>Your Stats</p>
+        <div class="d-flex flex-column align-center justify-center">
+          <p class='text-subtitle-1'>Your Stats</p>
           <StatsDisplay :stats='avalon.user.stats' :globalStats='avalon.globalStats' />
-        </v-layout>
+        </div>
       </v-card-text>
     </v-card>
-    <v-card v-else class="cyan lighten-4">
-      <v-card-title class="cyan lighten-2">
-          <v-icon left v-if='avalon.lobby.role.role.team == "good"'>fab fa-old-republic</v-icon>
-          <v-icon left v-else color="red">fas fa-empire</v-icon>
+    <v-card v-else class="bg-cyan-lighten-4">
+      <v-card-title class="bg-cyan-lighten-2">
+          <v-icon start v-if='avalon.lobby.role.role.team == "good"'>fab fa-old-republic</v-icon>
+          <v-icon start v-else color="red">fas fa-empire</v-icon>
           <span class='text-h5'>{{ avalon.lobby.role.role.name }}</span>
       </v-card-title>
       <v-card-text>
@@ -48,19 +47,19 @@
 </template>
 
 <script lang="ts">
-import Vue from 'vue'
-import { EventBus } from '../main'
+import { defineComponent } from 'vue'
+import { EventBus } from '@/eventBus'
 import StatsDisplay from './StatsDisplay.vue'
 
-export default Vue.extend({
+export default defineComponent({
   name: 'ViewRoleButton',
   components: {
     StatsDisplay
   },
   props: [ 'avalon' ],
   mounted() {
-      EventBus.$on('show-role', () => this.sheet = true);
-      EventBus.$on('GAME_ENDED', () => this.sheet = false);
+      EventBus.on('show-role', () => this.sheet = true);
+      EventBus.on('GAME_ENDED', () => this.sheet = false);
   },
   data() {
       return {

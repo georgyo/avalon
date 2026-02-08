@@ -1,90 +1,93 @@
 <template>
-  <v-card class="welcome cyan lighten-5">
-    <v-layout align-center justify-center column fill-height>
+  <v-card class="welcome bg-cyan-lighten-5">
+    <div class="d-flex flex-column align-center justify-center fill-height">
       <v-card-title>
 
        <v-alert
-        :value="avalon.confirmingEmailError"
+        v-if="avalon.confirmingEmailError"
         type="error"
        >
         {{ avalon.confirmingEmailError }} Please try logging in again.
         </v-alert>
 
-        
+
         <div class='welcome'>
-            <span class=dtext-h3Avalon:> The Resistance <span class="font-weight-thin">Online</span></span>
+            <span class="text-h3">Avalon: The Resistance <span class="font-weight-thin">Online</span></span>
             <p class='mt-4 pt-2'>
-              <span class='subheading'>
+              <span class='text-subtitle-1'>
                 A game of social deduction for 5 to 10 people, now on desktop and mobile.
               </span>
             </p>
         </div>
       </v-card-title>
-        <v-tabs v-model="tab" center-active align-center fill-height centered grow >
-          <v-tabs-slider></v-tabs-slider>
-          <v-tab key="email">Email</v-tab>
-          <v-tab key="anonymous">Anonymous</v-tab>
-      </v-tabs>
-      <v-tabs-items v-model="tab" continuous center-active align-center fill-height centered >
-        <v-tab-item key="email">
-        <template v-if='!emailSubmitted'>
-          <v-text-field
-           label="Email Address" 
-           ref='userEmailField'
-           v-model='emailAddr'
-           type="email"
-           autocomplete="email"
-           @keyup='clearErrorMessage()'
-           @keyup.native.enter='submitEmailAddress()'
-           :error-messages='errorMessage'
-           autofocus />
-          <v-btn
-           @click='submitEmailAddress()' :loading="isSubmittingEmailAddr">
-            Login
+        <v-tabs v-model="tab" center-active grow>
+          <v-tab value="email">Email</v-tab>
+          <v-tab value="anonymous">Anonymous</v-tab>
+        </v-tabs>
+        <v-window v-model="tab">
+          <v-window-item value="email">
+          <div class="pa-4">
+          <template v-if='!emailSubmitted'>
+            <v-text-field
+             label="Email Address"
+             ref='userEmailField'
+             v-model='emailAddr'
+             type="email"
+             autocomplete="email"
+             @keyup='clearErrorMessage()'
+             @keyup.enter='submitEmailAddress()'
+             :error-messages='errorMessage'
+             autofocus />
+            <v-btn
+             @click='submitEmailAddress()' :loading="isSubmittingEmailAddr">
+              Login
+            </v-btn>
+          </template>
+          <template v-else>
+            <v-card class="bg-blue-grey-lighten-4">
+              <v-card-text class="text-center">
+                  <p>Check your email for the verification link</p>
+              </v-card-text>
+            </v-card>
+            <v-btn class='mt-4'
+             @click='resetForm()'>
+              Try Again
+            </v-btn>
+          </template>
+          </div>
+        </v-window-item>
+      <v-window-item value="anonymous">
+        <div class="pa-4">
+        <v-btn
+             @click='signInAnonymously()'>
+              Login
           </v-btn>
-        </template>
-        <template v-else>
-          <v-card xs6 md3 class="blue-grey lighten-4">
-            <v-card-text class="text-center">
-                <p>Check your email for the verification link</p>
-            </v-card-text>
-          </v-card>
-          <v-btn class='mt-4'
-           @click='resetForm()'>
-            Try Again
-          </v-btn>
-        </template>
-      </v-tab-item>
-    <v-tab-item key="anonymous">
-      <v-btn
-           @click='signInAnonymously()'>
-            Login
-        </v-btn>
-    </v-tab-item>
-      </v-tabs-items>
+        </div>
+      </v-window-item>
+        </v-window>
 
-        </v-layout>
-      <v-layout column align-end>
-        <v-flex class='mt-4 pt-4'>
-          <v-btn small href='mailto:avalon@shamm.as' target="_blank" color='grey lighten-2'>
-            <v-icon left small>
+        </div>
+      <div class="d-flex flex-column align-end">
+        <div class='mt-4 pt-4'>
+          <v-btn size="small" href='mailto:avalon@shamm.as' target="_blank" color='grey-lighten-2'>
+            <v-icon start size="small">
               fas fa-envelope-square
             </v-icon>
             <span>Email</span>
           </v-btn>
-        </v-flex>
-      </v-layout>
+        </div>
+      </div>
   </v-card>
 </template>
 
 <script lang="ts">
-import Vue from 'vue'
+import { defineComponent } from 'vue'
 
-export default Vue.extend({
+export default defineComponent({
   name: 'UserLogin',
   data() {
     return {
-      tab: null,
+      tab: 'email',
       emailAddr: '',
       errorMessage: '',
       isSubmittingEmailAddr: false,
@@ -96,7 +99,7 @@ export default Vue.extend({
   },
   mounted() {
     document.title = 'Avalon (Not Logged In)'
-  },  
+  },
   methods: {
     clearErrorMessage() {
         this.errorMessage = '';
@@ -104,20 +107,20 @@ export default Vue.extend({
     submitEmailAddress() {
         this.isSubmittingEmailAddr = true;
         this.clearErrorMessage();
-        this.avalon.confirmingEmailError = ''; // this is not very clean but eh
-        this.avalon.submitEmailAddr(this.emailAddr).then(function() {
+        this.avalon!.confirmingEmailError = '';
+        this.avalon!.submitEmailAddr(this.emailAddr).then(() => {
             this.emailSubmitted = true;
-        }.bind(this)).catch(function(err) {
+        }).catch((err: Error) => {
             this.errorMessage = err.message;
-        }.bind(this)).finally(function() {
+        }).finally(() => {
             this.isSubmittingEmailAddr = false;
-        }.bind(this));
+        });
     },
     signInAnonymously() {
       this.clearErrorMessage();
-      this.avalon.signInAnonymously()
+      this.avalon!.signInAnonymously()
       .then()
-      .catch((err) => this.errorMessage = err.message)
+      .catch((err: Error) => this.errorMessage = err.message)
     },
     resetForm() {
         this.emailSubmitted = false;

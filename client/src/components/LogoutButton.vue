@@ -1,14 +1,14 @@
 <template>
-  <v-btn slot="activator" light :loading='loggingOut' @click='logoutButtonClicked()'>
-    <v-icon left>exit_to_app</v-icon>
+  <v-btn :loading='loggingOut' @click='logoutButtonClicked()'>
+    <v-icon start>mdi-exit-to-app</v-icon>
       Logout
   </v-btn>
 </template>
 
 <script lang="ts">
-import Vue from 'vue'
+import { defineComponent } from 'vue'
 
-export default Vue.extend({
+export default defineComponent({
   name: 'LogoutButton',
   props: [ 'avalon' ],
   data() {

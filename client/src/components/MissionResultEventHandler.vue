@@ -1,14 +1,14 @@
 <template>
      <v-dialog v-model="missionDialog" max-width='450px'>
-      <v-card v-if='missionDialog' class="cyan lighten-4">
-        <v-card-title class="cyan lighten-2">
+      <v-card v-if='missionDialog' class="bg-cyan-lighten-4">
+        <v-card-title class="bg-cyan-lighten-2">
             <div class='text-h5'>
                 <span v-if="mission.state == 'SUCCESS'">
-                    <v-icon left color="green">fas fa-check-circle</v-icon>
+                    <v-icon start color="green">fas fa-check-circle</v-icon>
                     Mission Succeeded!
                 </span>
                 <span v-else>
-                    <v-icon left color="red">fas fa-times-circle</v-icon>
+                    <v-icon start color="red">fas fa-times-circle</v-icon>
                     Mission Failed!
                 </span>
             </div>
@@ -25,10 +25,10 @@
 </template>
 
 <script lang="ts">
-import Vue from 'vue'
-import { EventBus } from '@/main'
+import { defineComponent } from 'vue'
+import { EventBus } from '@/eventBus'
 
-export default Vue.extend({
+export default defineComponent({
   name: 'MissionResultEventHandler',
   props: [ 'avalon' ],
   data() {
@@ -42,18 +42,18 @@ export default Vue.extend({
             this.avalon.lobby.game.missions.length : this.avalon.lobby.game.currentMissionIdx;
           return this.avalon.lobby.game.missions[curMissionIdx - 1];
       },
-      numFails() {          
+      numFails() {
           return this.mission.numFails;
       }
   },
   mounted() {
-      EventBus.$on('GAME_STARTED', () => {
+      EventBus.on('GAME_STARTED', () => {
           this.missionDialog = false;
       });
-      EventBus.$on('GAME_ENDED', () => {
+      EventBus.on('GAME_ENDED', () => {
           this.missionDialog = false;
       });
-      EventBus.$on('MISSION_RESULT', () => {
+      EventBus.on('MISSION_RESULT', () => {
           this.missionDialog = true;
       });
   }
