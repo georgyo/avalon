@@ -12,6 +12,7 @@ type Events = {
   PLAYER_LEFT: string
   PLAYER_JOINED: string
   DISCONNECTED_FROM_LOBBY: string
+  PLAYER_LIST_CHANGED: void
   'show-role': void
   [key: string]: unknown
 }

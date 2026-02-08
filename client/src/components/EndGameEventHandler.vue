@@ -47,6 +47,8 @@ export default defineComponent({
   data() {
       return {
           endGameDialog: false,
+          onGameEnded: null as (() => void) | null,
+          onGameStarted: null as (() => void) | null,
       }
   },
   computed: {
@@ -74,14 +76,14 @@ export default defineComponent({
       }
   },
   mounted() {
-      this._onGameEnded = () => { this.endGameDialog = true; };
-      this._onGameStarted = () => { this.endGameDialog = false; };
-      EventBus.on('GAME_ENDED', this._onGameEnded);
-      EventBus.on('GAME_STARTED', this._onGameStarted);
+      this.onGameEnded = () => { this.endGameDialog = true; };
+      this.onGameStarted = () => { this.endGameDialog = false; };
+      EventBus.on('GAME_ENDED', this.onGameEnded);
+      EventBus.on('GAME_STARTED', this.onGameStarted);
   },
   beforeUnmount() {
-      EventBus.off('GAME_ENDED', this._onGameEnded);
-      EventBus.off('GAME_STARTED', this._onGameStarted);
+      EventBus.off('GAME_ENDED', this.onGameEnded);
+      EventBus.off('GAME_STARTED', this.onGameStarted);
   }
 })
 </script>

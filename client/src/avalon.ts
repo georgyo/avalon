@@ -179,10 +179,12 @@ class LobbySubscription {
   }
 
   private _roleDocUpdated(roleDoc: firebase.firestore.DocumentSnapshot): void {
-    this._roleDoc = roleDoc.data();
-    // enhance role
-    if (this._roleDoc) {
-      this._roleDoc.role = this._config.roleMap[this._roleDoc.role];
+    const rawData = roleDoc.data() as { role: string; sees?: string[] } | undefined;
+    // enhance role: replace role name string with full Role object
+    if (rawData) {
+      this._roleDoc = { ...rawData, role: this._config.roleMap[rawData.role] };
+    } else {
+      this._roleDoc = null;
     }
   }
 
@@ -196,7 +198,7 @@ class LobbySubscription {
       return;
     }
 
-    this._doc = newDoc.data();
+    this._doc = newDoc.data() as LobbyData;
     this._game = new Game(this._doc.game, this._config);
 
     if ((oldDoc == null) ||
@@ -390,13 +392,13 @@ export default class AvalonGame {
   }
 
   cancelGame(): Promise<import('axios').AxiosResponse> {
-    return this.api.cancelGame(this.lobby!.name, this.user.name);
+    return this.api.cancelGame(this.lobby!.name, this.user!.name);
   }
 
   voteTeam(vote: boolean): Promise<import('axios').AxiosResponse> {
     return this.api.voteTeam(
       this.lobby!.name,
-      this.user.name,
+      this.user!.name,
       this.game.currentMissionIdx,
       this.game.currentProposalIdx,
       vote);
@@ -409,7 +411,7 @@ export default class AvalonGame {
   proposeTeam(playerList: string[]): Promise<import('axios').AxiosResponse> {
     return this.api.proposeTeam(
       this.lobby!.name,
-      this.user.name,
+      this.user!.name,
       this.game.currentMissionIdx,
       this.game.currentProposalIdx,
       playerList);
@@ -418,7 +420,7 @@ export default class AvalonGame {
   doMission(vote: boolean): Promise<import('axios').AxiosResponse> {
     return this.api.doMission(
       this.lobby!.name,
-      this.user.name,
+      this.user!.name,
       this.game.currentMissionIdx,
       this.game.currentProposalIdx,
       vote);
@@ -427,7 +429,7 @@ export default class AvalonGame {
   assassinate(target: string): Promise<import('axios').AxiosResponse> {
     return this.api.assassinate(
       this.lobby!.name,
-      this.user.name,
+      this.user!.name,
       target);
   }
 
@@ -445,11 +447,11 @@ export default class AvalonGame {
   }
 
   get isAdmin(): boolean {
-    return this.isInLobby && (this.lobby!.admin.uid == this.user.uid);
+    return this.isInLobby && (this.lobby!.admin.uid == this.user!.uid);
   }
 
   get isInLobby(): boolean {
-    return this.user && this.user.lobby && this.lobby && this.lobby.connected;
+    return !!(this.user && this.user.lobby && this.lobby && this.lobby.connected);
   }
 
   get isGameInProgress(): boolean {
@@ -479,7 +481,7 @@ export default class AvalonGame {
       return;
     }
 
-    this.user = userDoc.data();
+    this.user = userDoc.data() as UserData;
 
     if (!this.user.lobby && (this.lobby != null)) {
       const oldLobby = this.lobby.name;
@@ -504,7 +506,7 @@ export default class AvalonGame {
       // want to avoid double-subscriptions (from user doc and create/join func calls)
       return;
     }
-    this.lobby = new LobbySubscription(this.user.uid, lobby, this.config,
+    this.lobby = new LobbySubscription(this.user!.uid, lobby, this.config,
       function(this: AvalonGame, evt: string) {
         switch(evt) {
           case 'LOBBY_CONNECTED':
