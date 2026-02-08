@@ -88,7 +88,6 @@ __metadata:
     firebase-admin: "npm:11.11.1"
     lodash: "npm:4.17.21"
     nodemon: "npm:3.1.7"
-    read-env: "npm:^2.0.0"
   languageName: unknown
   linkType: soft
 
@@ -3929,15 +3928,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/camelcase@npm:5.2.0":
-  version: 5.2.0
-  resolution: "@types/camelcase@npm:5.2.0"
-  dependencies:
-    camelcase: "npm:*"
-  checksum: 10/e4e8eb5a895a96414384b3dd8fdaa56e7a44aa7b463712d779882e31526fd8db9657012d493d0bd75c7d5dea25425185e9da1cf3b128e38276bc48b9875a4194
-  languageName: node
-  linkType: hard
-
 "@types/caseless@npm:*":
   version: 0.12.5
   resolution: "@types/caseless@npm:0.12.5"
@@ -5590,14 +5580,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"camelcase@npm:*":
-  version: 8.0.0
-  resolution: "camelcase@npm:8.0.0"
-  checksum: 10/6da7abe997af29e80052f17aa21628c7cce14af364cef9f07a2a44d59614dd6f361d405f121938e673424d673697a8c53ad17be8c4b03b0a727307c4db8b5b5e
-  languageName: node
-  linkType: hard
-
-"camelcase@npm:5.3.1, camelcase@npm:^5.0.0, camelcase@npm:^5.3.1":
+"camelcase@npm:^5.0.0, camelcase@npm:^5.3.1":
   version: 5.3.1
   resolution: "camelcase@npm:5.3.1"
   checksum: 10/e6effce26b9404e3c0f301498184f243811c30dfe6d0b9051863bd8e4034d09c8c2923794f280d6827e5aa055f6c434115ff97864a16a963366fb35fd673024b
@@ -12021,16 +12004,6 @@ __metadata:
   version: 18.2.0
   resolution: "react-is@npm:18.2.0"
   checksum: 10/200cd65bf2e0be7ba6055f647091b725a45dd2a6abef03bf2380ce701fd5edccee40b49b9d15edab7ac08a762bf83cb4081e31ec2673a5bfb549a36ba21570df
-  languageName: node
-  linkType: hard
-
-"read-env@npm:^2.0.0":
-  version: 2.0.0
-  resolution: "read-env@npm:2.0.0"
-  dependencies:
-    "@types/camelcase": "npm:5.2.0"
-    camelcase: "npm:5.3.1"
-  checksum: 10/9c075756247a69add454a83c058dfd07b38380b0e1075e5645b53eeeec3ad058d3e4c2ed1d6b39aa412dfea3c362dd4c7513e58ea3455671fd94d8b2dd364e80
   languageName: node
   linkType: hard
 
