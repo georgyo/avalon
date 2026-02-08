@@ -26,7 +26,7 @@
         </v-tabs>
         <v-window v-model="tab">
           <v-window-item value="email">
-          <div class="pa-4">
+          <div class="pa-4 login-form">
           <template v-if='!emailSubmitted'>
             <v-text-field
              label="Email Address"
@@ -134,6 +134,10 @@ export default defineComponent({
   padding-top: 30px;
   padding-bottom: 30px;
   text-align: center;
+}
+
+.login-form {
+  min-width: 450px;
 }
 
 </style>
