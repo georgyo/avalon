@@ -3,7 +3,7 @@
     <div class="d-flex flex-column align-center justify-center fill-height">
     <template v-if='!showLobbyInput'>
       <v-text-field
-        label="Your Name" @update:model-value="val => name = val.toUpperCase()" ref='nameTextField' v-model="name" :error-messages='errorMsg' autofocus>
+        label="Your Name" @update:model-value="val => name = val.toUpperCase()" ref='nameTextField' v-model="name" :rules="nameRules" :error-messages='errorMsg' autofocus>
       </v-text-field>
       <v-btn
        :disabled='!name' @click='createLobby()' :loading="isCreatingLobby">
@@ -30,6 +30,7 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue'
+import { ROLES } from '@avalon/common/avalonlib'
 import StatsDisplay from './StatsDisplay.vue'
 
 export default defineComponent({
@@ -50,6 +51,16 @@ export default defineComponent({
   },
   props: {
     avalon: Object
+  },
+  computed: {
+    nameRules() {
+      const roleNames = ROLES.map(r => r.name);
+      return [
+        (v: string) => !!v || 'Name is required',
+        (v: string) => /^[A-Z]+$/.test(v) || 'Name must contain only letters (A-Z)',
+        (v: string) => !roleNames.includes(v) || 'Name cannot be a role name',
+      ];
+    }
   },
   methods: {
     genericLogin(loadingValue: 'isCreatingLobby' | 'isJoiningLobby', loginPromise: Promise<void>) {
