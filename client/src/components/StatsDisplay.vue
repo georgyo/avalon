@@ -84,16 +84,24 @@ export default defineComponent({
 
 table {
     border-collapse: collapse;
+    max-width: 400px;
 }
 
 td {
     text-align: right;
-    padding-left: 1em;
-    padding-right: 1em;
+    padding-left: 0.5em;
+    padding-right: 0.5em;
 }
 
 .stats-header {
   border-bottom: 2px solid;
+}
+
+@media (min-width: 600px) {
+  td {
+    padding-left: 1em;
+    padding-right: 1em;
+  }
 }
 
 </style>

@@ -76,4 +76,16 @@ export default defineComponent({
 /* don't capitalize button text */
 *{ text-transform: none !important; }
 
+/* Mobile responsive adjustments */
+@media (max-width: 599px) {
+  .v-main > .v-container {
+    padding: 8px;
+  }
+
+  .v-card-title {
+    white-space: normal;
+    word-wrap: break-word;
+  }
+}
+
 </style>

@@ -1,7 +1,7 @@
 <template>
   <v-card class="welcome bg-cyan-lighten-5">
     <div class="d-flex flex-column align-center justify-center fill-height">
-      <v-card-title>
+      <v-card-title class="welcome-title">
 
        <v-alert
         v-if="avalon.confirmingEmailError"
@@ -12,7 +12,7 @@
 
 
         <div class='welcome'>
-            <span class="text-h3">Avalon: The Resistance <span class="font-weight-thin">Online</span></span>
+            <span class="welcome-heading">Avalon: The Resistance <span class="font-weight-thin">Online</span></span>
             <p class='mt-4 pt-2'>
               <span class='text-subtitle-1'>
                 A game of social deduction for 5 to 10 people, now on desktop and mobile.
@@ -136,8 +136,28 @@ export default defineComponent({
   text-align: center;
 }
 
+.welcome-title {
+  width: 100%;
+  white-space: normal;
+  word-wrap: break-word;
+}
+
+.welcome-heading {
+  font-size: 1.75rem;
+  font-weight: 400;
+  line-height: 1.3;
+}
+
 .login-form {
-  min-width: 450px;
+  width: 100%;
+  max-width: 450px;
+  min-width: 0;
+}
+
+@media (min-width: 600px) {
+  .welcome-heading {
+    font-size: 3rem;
+  }
 }
 
 </style>

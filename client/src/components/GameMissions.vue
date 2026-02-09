@@ -5,7 +5,7 @@
        :key="'missionTab' + idx"
        :value="idx"
        class="bg-light-blue-lighten-4">
-        <font-awesome-layers style="font-size: 2.5em">
+        <font-awesome-layers class="mission-icon">
           <template v-if='mission.state == "PENDING"'>
             <font-awesome-icon :icon='["far", "circle"]' :color='isFutureMission(mission, idx) ? "gray" : "black"' />
             <font-awesome-layers-text class="gray8" style="font-size: 0.5em" :value="mission.teamSize" />
@@ -82,4 +82,13 @@ export default defineComponent({
 </script>
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
+.mission-icon {
+  font-size: 1.8em;
+}
+
+@media (min-width: 600px) {
+  .mission-icon {
+    font-size: 2.5em;
+  }
+}
 </style>

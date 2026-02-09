@@ -6,20 +6,20 @@
                 <span class='text-h4 font-weight-bold'>{{title}}</span>
             </div>
         </v-card-title>
-        <v-card-text>
+        <v-card-text class="endgame-content">
             <div class="d-flex flex-column align-center justify-center">
-            <div class='text-h5 font-weight-bold'> {{ avalon.game.outcome.message }}</div>
+            <div class='endgame-message font-weight-bold'> {{ avalon.game.outcome.message }}</div>
             <p v-if='avalon.game.outcome.assassinated'>
                 {{ avalon.game.outcome.assassinated}} was assassinated by
                 {{ avalon.game.outcome.roles.find(r => r.assassin ).name }}
             </p>
-            <v-container style='overflow-x: auto; width: 100%;'>
+            <div class="endgame-table-wrapper">
               <MissionSummaryTable
                :players='avalon.game.players'
                :missions='missions'
                :roles='roleAssignments'
                :missionVotes='avalon.game.outcome.votes' />
-            </v-container>
+            </div>
             <GameAchievements :avalon='avalon' />
             <v-btn class="mt-6" color="primary" size="large" variant="elevated" @click="endGameDialogClosed()">Close</v-btn>
             </div>
@@ -124,7 +124,35 @@ export default defineComponent({
   }
 
   .endGameTitle {
-      padding-left: 30px;
+      padding-left: 10px;
+      padding-right: 10px;
       text-align: center;
+  }
+
+  .endgame-content {
+      padding: 8px;
+  }
+
+  .endgame-message {
+      font-size: 1.15rem;
+      text-align: center;
+  }
+
+  .endgame-table-wrapper {
+      overflow-x: auto;
+      width: 100%;
+      -webkit-overflow-scrolling: touch;
+  }
+
+  @media (min-width: 600px) {
+    .endGameTitle {
+      padding-left: 30px;
+    }
+    .endgame-content {
+      padding: 16px;
+    }
+    .endgame-message {
+      font-size: 1.5rem;
+    }
   }
 </style>
