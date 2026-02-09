@@ -1,26 +1,32 @@
 <template>
-  <v-container class="d-flex justify-center bg-cyan-lighten-5">
-    <div class="d-flex flex-column align-center justify-center fill-height">
+  <v-container class="d-flex justify-center bg-cyan-lighten-5 lobby-select-container">
+    <div class="d-flex flex-column align-center justify-center fill-height lobby-select-inner">
     <template v-if='!showLobbyInput'>
       <v-text-field
-        label="Your Name" @update:model-value="val => name = val.toUpperCase()" ref='nameTextField' v-model="name" :rules="nameRules" :error-messages='errorMsg' autofocus>
+        label="Your Name" @update:model-value="val => name = val.toUpperCase()" ref='nameTextField' v-model="name" :rules="nameRules" :error-messages='errorMsg' autofocus
+        class="lobby-input">
       </v-text-field>
-      <v-btn
-       :disabled='!name' @click='createLobby()' :loading="isCreatingLobby">
-        Create Lobby
-      </v-btn>
-      <v-btn :disabled='!name || isCreatingLobby' @click='showLobbyInput = true'>
-        Join Lobby
-      </v-btn>
+      <div class="d-flex flex-column flex-sm-row ga-2 lobby-buttons">
+        <v-btn
+         :disabled='!name' @click='createLobby()' :loading="isCreatingLobby" block>
+          Create Lobby
+        </v-btn>
+        <v-btn :disabled='!name || isCreatingLobby' @click='showLobbyInput = true' block>
+          Join Lobby
+        </v-btn>
+      </div>
   </template>
    <template v-else>
-    <v-text-field ref="lobbyTextField" @update:model-value="val => lobby = val.toUpperCase()" label="Lobby" :error-messages='errorMsg' v-model="lobby" @keyup.enter="joinLobby()"></v-text-field>
-    <v-btn :disabled='!lobby' @click='joinLobby()' :loading="isJoiningLobby">
-      Join Lobby
-    </v-btn>
-    <v-btn @click='showLobbyInput = false' :disabled='isJoiningLobby'>
-      Cancel
-    </v-btn>
+    <v-text-field ref="lobbyTextField" @update:model-value="val => lobby = val.toUpperCase()" label="Lobby" :error-messages='errorMsg' v-model="lobby" @keyup.enter="joinLobby()"
+      class="lobby-input"></v-text-field>
+    <div class="d-flex flex-column flex-sm-row ga-2 lobby-buttons">
+      <v-btn :disabled='!lobby' @click='joinLobby()' :loading="isJoiningLobby" block>
+        Join Lobby
+      </v-btn>
+      <v-btn @click='showLobbyInput = false' :disabled='isJoiningLobby' block>
+        Cancel
+      </v-btn>
+    </div>
    </template>
   <div style='padding-top: 30px'></div>
   <StatsDisplay :stats='avalon.user.stats' :globalStats='avalon.globalStats'></StatsDisplay>
@@ -121,5 +127,26 @@ export default defineComponent({
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
+.lobby-select-container {
+  padding: 12px;
+}
 
+.lobby-select-inner {
+  width: 100%;
+  max-width: 450px;
+}
+
+.lobby-input {
+  width: 100%;
+}
+
+.lobby-buttons {
+  width: 100%;
+}
+
+@media (min-width: 600px) {
+  .lobby-select-container {
+    padding: 16px;
+  }
+}
 </style>

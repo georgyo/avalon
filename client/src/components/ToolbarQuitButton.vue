@@ -1,9 +1,9 @@
 <template>
   <v-dialog v-model="dialog" max-width='450'>
     <template v-slot:activator="{ props }">
-        <v-btn v-bind="props" :loading='quitting'>
+        <v-btn v-bind="props" :loading='quitting' class="quit-btn">
         <v-icon start>mdi-exit-to-app</v-icon>
-        Quit
+        <span class="quit-btn-text">Quit</span>
         </v-btn>
     </template>
     <v-card class="bg-cyan-lighten-4">
@@ -69,5 +69,13 @@ export default defineComponent({
 </script>
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
-
+@media (max-width: 599px) {
+  .quit-btn {
+    min-width: 0;
+    padding: 0 8px;
+  }
+  .quit-btn-text {
+    display: none;
+  }
+}
 </style>

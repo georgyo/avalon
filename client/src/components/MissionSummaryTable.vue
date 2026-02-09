@@ -80,6 +80,22 @@ export default defineComponent({
 
   td.player-name {
       border-left: 2px solid;
+      white-space: nowrap;
+      max-width: 120px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+  }
+
+  @media (max-width: 599px) {
+    td {
+      padding-left: 3px;
+      padding-right: 2px;
+      width: 1.5em;
+    }
+    td.player-name {
+      max-width: 80px;
+      font-size: 0.85em;
+    }
   }
 
   td.mission-result {

@@ -1,11 +1,11 @@
 <template>
   <v-bottom-sheet v-model="sheet">
     <template v-slot:activator="{ props }">
-      <v-btn v-bind="props" variant="outlined">
+      <v-btn v-bind="props" variant="outlined" class="role-btn">
         <v-icon start>
           mdi-account
         </v-icon>
-        {{ avalon.user.name }}
+        <span class="role-btn-text">{{ avalon.user.name }}</span>
       </v-btn>
     </template>
     <v-card v-if='!avalon.isGameInProgress' class="bg-cyan-lighten-4">
@@ -78,5 +78,21 @@ export default defineComponent({
 </script>
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
+.role-btn {
+  max-width: 160px;
+}
 
+.role-btn-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 599px) {
+  .role-btn {
+    max-width: 120px;
+    font-size: 0.8rem;
+    padding: 0 8px;
+  }
+}
 </style>

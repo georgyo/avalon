@@ -121,5 +121,9 @@ export default defineComponent({
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
-
+@media (max-width: 599px) {
+  .v-container {
+    padding: 8px;
+  }
+}
 </style>

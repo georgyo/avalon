@@ -11,7 +11,7 @@
     <ToolbarQuitButton :avalon='avalon'></ToolbarQuitButton>
     </template>
     <template v-else>
-      <span>{{ avalon.user.email }}</span>
+      <span class="toolbar-email">{{ avalon.user.email }}</span>
       <v-spacer></v-spacer>
       <LogoutButton :avalon='avalon' />
     </template>
@@ -37,5 +37,17 @@ export default defineComponent({
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
+.toolbar-email {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 200px;
+}
 
+@media (max-width: 599px) {
+  .toolbar-email {
+    max-width: 150px;
+    font-size: 0.85rem;
+  }
+}
 </style>
