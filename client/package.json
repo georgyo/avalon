@@ -36,7 +36,7 @@
     "eslint-plugin-promise": "7.1.0",
     "eslint-plugin-vue": "^9.29.0",
     "postcss": "^8.4.47",
-    "vite": "^3.2.11",
+    "vite": "^5.0.0",
     "vite-plugin-vue2": "2.0.3",
     "volar-service-css": "^0.0.62",
     "volar-service-html": "^0.0.62",
