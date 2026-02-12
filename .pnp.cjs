@@ -109,7 +109,7 @@ const RAW_RUNTIME_STATE =
           ["eslint-plugin-vue", "virtual:307f0f0a0f6bbe419b2892b2adbeb625075054c34bce101c7493ba00895524625ed865e532e293b325047e347afc45f9c2b2b1217a78ed253b0c25afd92ce307#npm:9.29.0"],\
           ["firebase", "npm:9.23.0"],\
           ["i", "npm:0.3.7"],\
-          ["lodash", "npm:4.17.21"],\
+          ["lodash", "npm:4.17.23"],\
           ["npm", "npm:10.9.0"],\
           ["postcss", "npm:8.4.47"],\
           ["seedrandom", "npm:3.0.5"],\
@@ -138,7 +138,7 @@ const RAW_RUNTIME_STATE =
           ["express", "npm:4.21.1"],\
           ["express-promise-router", "virtual:1cbebe8a36d487ff03fd5e0d9ea4db39ddd47d4fca1722ebd0509c9358ad156a39346a45dab140fabcc5e45c1757f9fe716ff56e644771abd4ce5b8b91f00806#npm:4.1.1"],\
           ["firebase-admin", "virtual:1c48d6fc54bd63a4a7a92b825c3188ce017de7b96310c12c0672c1faf971fb61632a4b939610bf601aced2f901d0649c6fb175a44219174f74f248e1599d043d#npm:11.11.1"],\
-          ["lodash", "npm:4.17.21"],\
+          ["lodash", "npm:4.17.23"],\
           ["nodemon", "npm:3.1.7"],\
           ["read-env", "npm:2.0.0"]\
         ],\
@@ -14052,6 +14052,13 @@ const RAW_RUNTIME_STATE =
         "packageLocation": "./.yarn/cache/lodash-npm-4.17.21-6382451519-c08619c038.zip/node_modules/lodash/",\
         "packageDependencies": [\
           ["lodash", "npm:4.17.21"]\
+        ],\
+        "linkType": "HARD"\
+      }],\
+      ["npm:4.17.23", {\
+        "packageLocation": "./.yarn/cache/lodash-npm-4.17.23-50bdb1c01a-82504c8825.zip/node_modules/lodash/",\
+        "packageDependencies": [\
+          ["lodash", "npm:4.17.23"]\
         ],\
         "linkType": "HARD"\
       }]\
