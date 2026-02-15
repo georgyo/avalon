@@ -1,7 +1,7 @@
 {
   "name": "@avalon/server",
   "scripts": {
-    "start": "tsx server.ts",
+    "start": "node ../dist-server/server.js",
     "serve": "tsx watch server.ts",
     "lint": "eslint *.ts"
   },

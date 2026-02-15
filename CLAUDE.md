@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Development Commands
 - `yarn dev` - Start client development server (from client/ directory)
 - `yarn workspace @avalon/server serve` - Start server with nodemon (from root)
-- `yarn start` - Start production server (from root)
+- `yarn start` - Start production server (from root, requires `yarn bundle:server` first)
 - `yarn build:common` - Compile common/ TypeScript to dist/ (runs automatically in build/bundle)
 - `yarn build` - Build common + client for production (from root)
 - `yarn bundle:server` - Build common + bundle server to single file with esbuild (from root)
