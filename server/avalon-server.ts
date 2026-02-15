@@ -17,7 +17,7 @@ import {
   type TeamProposalData,
   type VoteData,
   type AssassinateData,
-} from './types.js';
+} from './types';
 
 const db = getFirestore();
 
