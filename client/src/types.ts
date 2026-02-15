@@ -34,7 +34,7 @@ export interface GameOutcome {
 }
 
 export interface GameData {
-  state: 'INIT' | 'ACTIVE' | 'COMPLETE';
+  state: 'INIT' | 'ACTIVE' | 'ENDED';
   phase: string;
   players: string[];
   roles: string[];
