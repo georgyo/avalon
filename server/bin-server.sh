@@ -2,5 +2,12 @@
 # Wrapper script for avalon-server
 # This allows the bin entry to work by using tsx to run the TypeScript source
 
-cd "$(dirname "$0")"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$SCRIPT_DIR" || exit 1
+
+if [ ! -f "server.ts" ]; then
+  echo "Error: server.ts not found in $SCRIPT_DIR" >&2
+  exit 1
+fi
+
 exec npx tsx server.ts "$@"
