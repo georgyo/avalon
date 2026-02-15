@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env sh
 # Wrapper script for avalon-server
 # This allows the bin entry to work by using tsx to run the TypeScript source
 
