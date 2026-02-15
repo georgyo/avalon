@@ -30,7 +30,7 @@ export interface GameOutcome {
   message: string;
   assassinated?: string;
   roles: RoleAssignment[];
-  votes: Record<string, Record<string, boolean>>[];
+  votes: Record<string, boolean>[];
 }
 
 export interface GameData {

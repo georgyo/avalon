@@ -8,7 +8,7 @@ const screenshotDir = join(__dirname, 'screenshots');
 mkdirSync(screenshotDir, { recursive: true });
 
 async function testBrowser() {
-  const browser = await chromium.launch({ headless: true });
+  const browser = await chromium.launch({ headless: false, slowMo: 50 });
   const page = await browser.newPage();
 
   // Collect console errors
