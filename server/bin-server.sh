@@ -10,4 +10,9 @@ if [ ! -f "server.ts" ]; then
   exit 1
 fi
 
-exec npx tsx server.ts "$@"
+# Prefer local tsx installation over npx download
+if [ -x "../node_modules/.bin/tsx" ]; then
+  exec ../node_modules/.bin/tsx server.ts "$@"
+else
+  exec npx tsx server.ts "$@"
+fi
