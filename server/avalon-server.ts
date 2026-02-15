@@ -645,6 +645,9 @@ function recordVote(
       }
 
       const votes = secretDoc.get('votes') as SecretVotes;
+      if (name === '__proto__' || name === 'constructor' || name === 'prototype') {
+        throw new AvalonError(400, 'Invalid player name');
+      }
       secretVotesListGetter(votes)[name] = vote;
 
       txn.update(lobbyDocRef, "game", game);
