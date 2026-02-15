@@ -8,8 +8,8 @@
     "firebase/functions"
   ],
   "bin": {
-    "avalon-admin": "./server/admin.ts",
-    "avalon-server": "./server/server.ts"
+    "avalon-admin": "./server/bin-admin.sh",
+    "avalon-server": "./server/bin-server.sh"
   },
   "scripts": {
     "build:common": "yarn workspace @avalon/common build",
