@@ -777,7 +777,7 @@ export function assassinate(data: AssassinateData, uid: string): Promise<boolean
 
       const users = lobbyDoc.get('users') as Record<string, { uid: string }>;
       if (uid != users[data.name].uid) {
-        console.warn(data.name, 'is', users[data.name].uid, 'but request came from', uid);
+        console.warn('%s is %s but request came from %s', data.name, users[data.name].uid, uid);
         throw new AvalonError(403, 'You are not who you say you are');
       }
 
