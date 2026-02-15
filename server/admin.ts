@@ -1,6 +1,6 @@
 import { getFirestore } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
-import './firebaseKey.js'; // must be imported first to initialize Firebase
+import './firebaseKey'; // must be imported first to initialize Firebase
 
 import fs from 'fs';
 

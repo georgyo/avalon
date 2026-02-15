@@ -3,10 +3,10 @@ import { fileURLToPath } from 'url';
 import express from 'express';
 import type { Request, Response, NextFunction } from 'express';
 import { getAuth } from 'firebase-admin/auth';
-import './firebaseKey.js'; // must be imported before avalon-server to initialize Firebase
-import * as avalon from './avalon-server.js';
+import './firebaseKey'; // must be imported before avalon-server to initialize Firebase
+import * as avalon from './avalon-server';
 import promiseRouter from 'express-promise-router';
-import { AvalonError } from './types.js';
+import { AvalonError } from './types';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
