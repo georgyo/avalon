@@ -491,10 +491,11 @@ function endGameTxn(
 
 export function startGame(data: StartGameData, uid: string): Promise<boolean> {
 
-  if (!data.playerList ||
+  if (!Array.isArray(data.playerList) ||
     data.playerList.length < 5  ||
-    data.playerList.length > 10) {
-    throw new AvalonError(400, 'Bad player list length' + data.playerList);
+    data.playerList.length > 10 ||
+    !data.playerList.every(p => typeof p === 'string')) {
+    throw new AvalonError(400, 'Bad player list ' + data.playerList);
   }
 
   if (!data.roles || !data.roles.every(role => ROLES.find(r => r.name == role))) {
