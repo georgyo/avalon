@@ -720,10 +720,19 @@ export function doMission(data: VoteData, uid: string): Promise<void> {
   const lobbyDocRef = db.collection('lobbies').doc(data.lobby);
   const secretDocRef = lobbyDocRef.collection('roles').doc(SECRET_STATE_DOC_NAME);
 
-  return recordVote(data.name, uid, data.lobby, data.mission,
-    data.proposal, data.vote, 'MISSION_VOTE', 'APPROVED',
+  const missionIndex = Number(data.mission);
+  const proposalIndex = Number(data.proposal);
+  if (!Number.isInteger(missionIndex) || missionIndex < 0) {
+    throw new AvalonError(`Invalid mission index: ${data.mission}`, 400);
+  }
+  if (!Number.isInteger(proposalIndex) || proposalIndex < 0) {
+    throw new AvalonError(`Invalid proposal index: ${data.proposal}`, 400);
+  }
+
+  return recordVote(data.name, uid, data.lobby, missionIndex,
+    proposalIndex, data.vote, 'MISSION_VOTE', 'APPROVED',
     (_game, mission, _proposal) => mission.team,
-    (secretVotes) => secretVotes.mission[data.mission],
+    (secretVotes) => secretVotes.mission[missionIndex],
     ((name, vote, secretDoc) => vote || (secretDoc.get('roles') as Record<string, PlayerRole>)[name].team == 'evil')
     ).then(function() {
     return db.runTransaction(function(txn) {
@@ -732,21 +741,28 @@ export function doMission(data: VoteData, uid: string): Promise<void> {
         txn.get(secretDocRef)]).then(
           function([lobbyDoc, secretDoc]) {
       const game = lobbyDoc.get('game') as Game;
-      const mission = game.missions[data.mission];
-      const proposal = mission.proposals[data.proposal];
+      if (!game || !Array.isArray(game.missions) || missionIndex >= game.missions.length) {
+        throw new AvalonError('Mission not found', 400);
+      }
+      const mission = game.missions[missionIndex];
+      if (!Array.isArray(mission.proposals) || proposalIndex >= mission.proposals.length) {
+        throw new AvalonError('Proposal not found', 400);
+      }
+      const proposal = mission.proposals[proposalIndex];
       const votes = secretDoc.get('votes') as SecretVotes;
 
       if (mission.state != 'PENDING') {
         return;
       }
 
-      if (Object.keys(votes.mission[data.mission]).length != mission.teamSize) {
+      if (!votes || !votes.mission || !votes.mission[missionIndex] ||
+          Object.keys(votes.mission[missionIndex]).length != mission.teamSize) {
         return;
       }
 
       mission.team = proposal.team;
 
-      mission.numFails = Object.values(votes.mission[data.mission]).filter(v => !v).length;
+      mission.numFails = Object.values(votes.mission[missionIndex]).filter(v => !v).length;
 
       if (mission.numFails < mission.failsRequired) {
         mission.state = 'SUCCESS';
@@ -767,7 +783,9 @@ export function doMission(data: VoteData, uid: string): Promise<void> {
         }
       } else {
         game.phase = 'TEAM_PROPOSAL';
-        game.missions[data.mission + 1].proposals.push(proposalTemplate(proposal.proposer, game.players));
+        if (missionIndex + 1 < game.missions.length) {
+          game.missions[missionIndex + 1].proposals.push(proposalTemplate(proposal.proposer, game.players));
+        }
       }
       txn.update(lobbyDocRef, 'game', game);
     });
