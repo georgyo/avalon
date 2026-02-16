@@ -116,7 +116,7 @@ export function joinLobby(data: JoinLobbyData, uid: string): Promise<{ lobby: st
       const currentLobby = userDoc.get('lobby') as string | undefined;
       if (currentLobby != null) {
         if (currentLobby != data.lobby) {
-          console.log(uid, 'currently in', userDoc.get('lobby'), 'tried to join', data.lobby);
+          console.log('%s currently in %s tried to join %s', uid, userDoc.get('lobby'), data.lobby);
         }
         return {
           lobby: userDoc.get('lobby') as string,
@@ -636,7 +636,7 @@ function recordVote(
       const uid = users[name].uid;
 
       if (requestUid != uid) {
-        console.log(name, 'is', uid, 'but request came from', requestUid);
+        console.log('%s is %s but request came from %s', name, uid, requestUid);
         throw new AvalonError(403, 'You are not who you say you are');
       }
 
@@ -647,7 +647,7 @@ function recordVote(
       }
 
       if (voteValidator && !voteValidator(name, vote, secretDoc)) {
-        console.log(name, 'is not allowed to vote', vote, ', switching to ', !vote);
+        console.log('%s is not allowed to vote %s, switching to %s', name, vote, !vote);
         vote = !vote;
       }
 
