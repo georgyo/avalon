@@ -69,7 +69,7 @@ export function loginUser(data: LoginData, uid: string): Promise<void> {
     return txn.get(userDocRef).then(function(userDoc) {
       if (userDoc.exists) {
         if (userDoc.get('email') != emailAddr) {
-          throw new AvalonError(429, 'Mismatched emails: ' + userDoc.get('emails') + ' and ' + emailAddr);
+          throw new AvalonError(429, 'Mismatched emails: ' + userDoc.get('email') + ' and ' + emailAddr);
         }
         const lobbyName = userDoc.get('lobby') as string | undefined;
         if (lobbyName) {
