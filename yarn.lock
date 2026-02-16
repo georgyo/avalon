@@ -5353,15 +5353,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint-plugin-promise@npm:6.6.0":
-  version: 6.6.0
-  resolution: "eslint-plugin-promise@npm:6.6.0"
-  peerDependencies:
-    eslint: ^7.0.0 || ^8.0.0 || ^9.0.0
-  checksum: 10/c2b5604efd7e1390c132fcbf06cb2f072c956ffa65c14a991cb74ba1e2327357797239cb5b9b292d5e4010301bb897bd85a6273d7873fb157edc46aa2d95cbd9
-  languageName: node
-  linkType: hard
-
 "eslint-plugin-promise@npm:7.2.1":
   version: 7.2.1
   resolution: "eslint-plugin-promise@npm:7.2.1"
@@ -6371,7 +6362,7 @@ __metadata:
     "@avalon/common": "workspace:*"
     "@eslint/js": "npm:^9.39.0"
     eslint: "npm:^9.39.0"
-    eslint-plugin-promise: "npm:6.6.0"
+    eslint-plugin-promise: "npm:7.2.1"
     firebase-admin: "npm:^13.6.1"
     firebase-functions: "npm:^7.0.3"
     firebase-functions-test: "npm:^3.4.0"
