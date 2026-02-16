@@ -24,7 +24,7 @@ let
   project =
     pkgs.callPackage ./yarn-project.nix
       {
-        nodejs = pkgs.nodejs-slim_20;
+        nodejs = pkgs.nodejs-slim_24;
       }
       {
         src =
@@ -67,7 +67,7 @@ project.overrideAttrs (oldAttrs: {
     mkdir -p $out/bin
     cat > $out/bin/avalon-server <<WRAPPER
     #!/bin/sh
-    exec '${pkgs.nodejs-slim_20}/bin/node' '$out/lib/avalon/server.js' "\$@"
+    exec '${pkgs.nodejs-slim_24}/bin/node' '$out/lib/avalon/server.js' "\$@"
     WRAPPER
     chmod +x $out/bin/avalon-server
   '';
