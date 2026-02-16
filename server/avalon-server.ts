@@ -693,10 +693,22 @@ export function voteTeam(data: VoteData, uid: string): Promise<void> {
   const lobbyDocRef = db.collection('lobbies').doc(data.lobby);
   const secretDocRef = lobbyDocRef.collection('roles').doc(SECRET_STATE_DOC_NAME);
 
-  return recordVote(data.name, uid, data.lobby, missionIndex,
-    proposalIndex, data.vote, 'PROPOSAL_VOTE', 'PENDING',
-    (_game, _mission, proposal) => proposal.votes,
-    (secretVotes) => secretVotes.proposal).then(function() {
+  // Validate bounds before calling recordVote to prevent runtime errors
+  return lobbyDocRef.get().then(function(lobbyDoc) {
+    const game = lobbyDoc.get('game') as Game;
+    if (!game || !Array.isArray(game.missions) || missionIndex >= game.missions.length) {
+      throw new AvalonError(400, 'Mission not found');
+    }
+    const mission = game.missions[missionIndex];
+    if (!Array.isArray(mission.proposals) || proposalIndex >= mission.proposals.length) {
+      throw new AvalonError(400, 'Proposal not found');
+    }
+
+    return recordVote(data.name, uid, data.lobby, missionIndex,
+      proposalIndex, data.vote, 'PROPOSAL_VOTE', 'PENDING',
+      (_game, _mission, proposal) => proposal.votes,
+      (secretVotes) => secretVotes.proposal);
+  }).then(function() {
     return db.runTransaction(function(txn) {
       return Promise.all([
         txn.get(lobbyDocRef),
@@ -759,12 +771,24 @@ export function doMission(data: VoteData, uid: string): Promise<void> {
     throw new AvalonError(400, `Invalid proposal index: ${data.proposal}`);
   }
 
-  return recordVote(data.name, uid, data.lobby, missionIndex,
-    proposalIndex, data.vote, 'MISSION_VOTE', 'APPROVED',
-    (_game, mission, _proposal) => mission.team,
-    (secretVotes) => secretVotes.mission[missionIndex],
-    ((name, vote, secretDoc) => vote || (secretDoc.get('roles') as Record<string, PlayerRole>)[name].team == 'evil')
-    ).then(function() {
+  // Validate bounds before calling recordVote to prevent runtime errors
+  return lobbyDocRef.get().then(function(lobbyDoc) {
+    const game = lobbyDoc.get('game') as Game;
+    if (!game || !Array.isArray(game.missions) || missionIndex >= game.missions.length) {
+      throw new AvalonError(400, 'Mission not found');
+    }
+    const mission = game.missions[missionIndex];
+    if (!Array.isArray(mission.proposals) || proposalIndex >= mission.proposals.length) {
+      throw new AvalonError(400, 'Proposal not found');
+    }
+
+    return recordVote(data.name, uid, data.lobby, missionIndex,
+      proposalIndex, data.vote, 'MISSION_VOTE', 'APPROVED',
+      (_game, mission, _proposal) => mission.team,
+      (secretVotes) => secretVotes.mission[missionIndex],
+      ((name, vote, secretDoc) => vote || (secretDoc.get('roles') as Record<string, PlayerRole>)[name].team == 'evil')
+    );
+  }).then(function() {
     return db.runTransaction(function(txn) {
       return Promise.all([
         txn.get(lobbyDocRef),
