@@ -34,7 +34,14 @@ function proposalTemplate(currentProposer: string, playerList: string[]): Propos
   };
 }
 
+function validateSafeName(name: string): void {
+  if (name === '__proto__' || name === 'constructor' || name === 'prototype') {
+    throw new AvalonError(400, 'Invalid player name');
+  }
+}
+
 function validateName(userName: string): void {
+  validateSafeName(userName);
   if ((typeof userName != 'string') ||
       (!userName.match(/^[A-Z]+$/)) ||
       (userName.trim() != userName) ||
@@ -645,9 +652,7 @@ function recordVote(
       }
 
       const votes = secretDoc.get('votes') as SecretVotes;
-      if (name === '__proto__' || name === 'constructor' || name === 'prototype') {
-        throw new AvalonError(400, 'Invalid player name');
-      }
+      validateSafeName(name);
       secretVotesListGetter(votes)[name] = vote;
 
       txn.update(lobbyDocRef, "game", game);
