@@ -20,17 +20,21 @@ app.use(express.static(path.join(__dirname, 'dist')));
 
 const router = promiseRouter();
 
-router.use(function(req: AuthenticatedRequest, _res: Response, next: NextFunction) {
+router.use(async function(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   const idToken = req.get('X-Avalon-Auth');
   if (!idToken) {
-    throw new Error(`No auth info in request: ${req.method} ${req.path}`);
+    res.status(401).json({ message: `No auth info in request: ${req.method} ${req.path}` });
+    return;
   }
 
-  getAuth().verifyIdToken(idToken).then(function(decodedToken) {
+  try {
+    const decodedToken = await getAuth().verifyIdToken(idToken);
     req.uid = decodedToken.uid;
     console.log('Request', req.method, req.path, req.uid, JSON.stringify(req.body));
     next();
-  });
+  } catch {
+    res.status(401).json({ message: 'Invalid or expired auth token' });
+  }
 });
 
 router.post('/login', (req: AuthenticatedRequest, res: Response) => {
