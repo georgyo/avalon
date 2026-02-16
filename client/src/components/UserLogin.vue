@@ -21,8 +21,8 @@
         </div>
       </v-card-title>
         <v-tabs v-model="tab" center-active grow>
-          <v-tab value="email">Email</v-tab>
-          <v-tab value="anonymous">Anonymous</v-tab>
+          <v-tab value="email" data-testid="email-tab">Email</v-tab>
+          <v-tab value="anonymous" data-testid="anonymous-tab">Anonymous</v-tab>
         </v-tabs>
         <v-window v-model="tab">
           <v-window-item value="email">

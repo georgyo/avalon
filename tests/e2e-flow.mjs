@@ -127,7 +127,7 @@ async function testFlow() {
 
     // ========== Step 2: Switch to Anonymous tab ==========
     console.log('\n=== Step 2: Select Anonymous login tab ===');
-    await page.click('text=Anonymous');
+    await page.click('[data-testid="anonymous-tab"]');
     await page.waitForTimeout(500);
     await screenshot('anon-tab');
     console.log('  PASS: Anonymous tab selected');
