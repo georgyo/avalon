@@ -1,31 +1,31 @@
 <template>
   <div id="app">
-    <v-app class="indigo darken-2">
+    <v-app class="bg-indigo-darken-2">
       <EventHandler :avalon='avalon'></EventHandler>
-      <v-container fill-height justify-center v-if='!avalon.initialized'>
+      <v-container class="fill-height d-flex justify-center" v-if='!avalon.initialized'>
         <v-progress-circular
                indeterminate
                :size="150"
                color="yellow"></v-progress-circular>
       </v-container>
       <template v-else>
-        <v-main class="indigo darken-2">
-        <v-container v-if='!avalon.isLoggedIn' fill-height justify-center>
+        <v-main class="bg-indigo-darken-2">
+        <v-container v-if='!avalon.isLoggedIn' class="fill-height d-flex justify-center">
           <UserLogin :avalon='avalon' />
         </v-container>
         <template v-else>
-          <Toolbar :avalon='avalon'></Toolbar>
-            <v-container>          
-              <v-layout align-center justify-center column fill-height>
-                <Login
+          <GameToolbar :avalon='avalon'></GameToolbar>
+            <v-container>
+              <v-row align="center" justify="center" class="flex-column fill-height">
+                <LobbySelect
                   :avalon='avalon'
                   v-if="!avalon.isInLobby"
                 />
-                <Lobby
+                <GameLobby
                   v-bind:avalon='avalon'
                   v-else-if='!avalon.isGameInProgress' />
-                <Game :avalon='avalon' v-else />
-              </v-layout>
+                <GameBoard :avalon='avalon' v-else />
+              </v-row>
             </v-container>
         </template>
         </v-main>
@@ -34,17 +34,18 @@
   </div>
 </template>
 
-<script>
-import AvalonGame from './avalon.js'
-import { EventBus } from './main.js'
-import Toolbar from './components/Toolbar.vue'
+<script lang="ts">
+import { defineComponent } from 'vue'
+import AvalonGame from './avalon'
+import { EventBus } from './eventBus'
+import GameToolbar from './components/GameToolbar.vue'
 import EventHandler from './components/EventHandler.vue'
-import Login from './components/Login.vue'
-import Lobby from './components/Lobby.vue'
-import Game from './components/Game.vue'
+import LobbySelect from './components/LobbySelect.vue'
+import GameLobby from './components/GameLobby.vue'
+import GameBoard from './components/GameBoard.vue'
 import UserLogin from './components/UserLogin.vue'
 
-export default {
+export default defineComponent({
   name: 'app',
   data() {
     return {
@@ -55,24 +56,36 @@ export default {
     this.avalon.init();
   },
   components: {
-    Login,
-    Lobby,
-    Toolbar,
+    LobbySelect,
+    GameLobby,
+    GameToolbar,
     EventHandler,
-    Game,
+    GameBoard,
     UserLogin
   },
   methods: {
-    eventCallback() {
-      console.debug('event callback', ...arguments);
-      EventBus.$emit(...arguments);
+    eventCallback(event: string, data?: string) {
+      console.debug('event callback', event, data);
+      EventBus.emit(event, data);
     },
   },
-}
+})
 </script>
 <style>
 
 /* don't capitalize button text */
-*{ text-transform: none !important; } 
+*{ text-transform: none !important; }
+
+/* Mobile responsive adjustments */
+@media (max-width: 599px) {
+  .v-main > .v-container {
+    padding: 8px;
+  }
+
+  .v-card-title {
+    white-space: normal;
+    word-wrap: break-word;
+  }
+}
 
 </style>

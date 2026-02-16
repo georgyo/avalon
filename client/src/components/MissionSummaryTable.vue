@@ -25,9 +25,9 @@
       </td>
       <td v-if='missionVotes' :key='player + "_mission" + missions.indexOf(mission)' class='mission-result'>
         <template v-if='mission.team.includes(player)'>
-          <v-icon small v-if='missionVotes[missions.indexOf(mission)][player]'
-            color='green'> fas fa-check-circle </v-icon>
-          <v-icon small v-else color="red"> fas fa-times-circle </v-icon>
+          <v-icon size="small" v-if='missionVotes[missions.indexOf(mission)][player]'
+            color='green' icon="fa:fas fa-check-circle" />
+          <v-icon size="small" v-else color="red" icon="fa:fas fa-times-circle" />
         </template>
       </td>
       </template>
@@ -35,26 +35,23 @@
   </table>
 </template>
 
-<script>
-export default {
+<script lang="ts">
+import { defineComponent } from 'vue'
+
+export default defineComponent({
   name: 'MissionSummaryTable',
   props: [ 'players', 'missions', 'roles', 'missionVotes' ],
   data() {
       return {
       }
-  },
-  methods: {
-      isCurrentProposal(mission, proposal) {
-          return mission.state == 'PENDING' && mission.proposal.mission.proposals.indexOf(proposal) == mission.proposals.length - 1;
-      }
   }
-}
+})
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
 
- table { 
+ table {
     border-collapse: collapse;
  }
 
@@ -63,14 +60,14 @@ export default {
  }
 
  td {
-     width: 1.7em;     
+     width: 1.7em;
      padding-left: 6px;
      padding-right: 4px;
  }
 
-  tr:nth-child(even) { 
+  tr:nth-child(even) {
      background-color: Gainsboro;
-  } 
+  }
 
   tr:nth-child(odd) {
       background-color: bisque;
@@ -83,10 +80,26 @@ export default {
 
   td.player-name {
       border-left: 2px solid;
+      white-space: nowrap;
+      max-width: 120px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+  }
+
+  @media (max-width: 599px) {
+    td {
+      padding-left: 3px;
+      padding-right: 2px;
+      width: 1.5em;
+    }
+    td.player-name {
+      max-width: 80px;
+      font-size: 0.85em;
+    }
   }
 
   td.mission-result {
-    border-right: 2px solid;  
+    border-right: 2px solid;
   }
 
   .endGameTitle {

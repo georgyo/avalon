@@ -1,26 +1,40 @@
 {
   "name": "avalon-workspace",
-  "packageManager": "yarn@4.9.1",
+  "packageManager": "yarn@4.12.0",
   "workspaces": [
+    "common",
     "client",
     "server",
     "firebase/functions"
   ],
   "bin": {
-    "avalon-admin": "./server/admin.js",
-    "avalon-server": "./server/server.js"
+    "avalon-admin": "./server/admin.ts",
+    "avalon-server": "./server/server.ts"
   },
   "scripts": {
-    "build": "yarn workspace @avalon/client build",
+    "build:common": "yarn workspace @avalon/common build",
+    "build": "yarn build:common && yarn workspace @avalon/client build",
+    "bundle:server": "yarn build:common && esbuild server/server.ts --bundle --platform=node --target=node20 --outfile=dist-server/server.js --format=esm --define:__BUNDLED__=true --banner:js=\"import{createRequire}from'module';import{fileURLToPath as _f}from'url';import{dirname as _d}from'path';const require=createRequire(import.meta.url);const __filename=_f(import.meta.url);const __dirname=_d(__filename);\"",
     "start": "yarn workspace @avalon/server start",
-    "admin": "avalon-admin"
+    "admin": "yarn workspace @avalon/server tsx admin.ts",
+    "test": "node tests/e2e-flow.mjs",
+    "test:browser": "node tests/e2e-browser.mjs"
   },
   "devDependencies": {
-    "@babel/core": "^7.25.8",
-    "@babel/eslint-parser": "^7.25.8",
-    "autoprefixer": "^10.4.20",
-    "eslint": "^9.12.0",
-    "eslint-plugin-vue": "^9.29.0",
-    "postcss": "^8.4.47"
+    "@babel/core": "^7.29.0",
+    "@babel/eslint-parser": "^7.28.6",
+    "@eslint/js": "^9.39.0",
+    "@typescript-eslint/eslint-plugin": "^8.54.0",
+    "@typescript-eslint/parser": "^8.54.0",
+    "autoprefixer": "^10.4.24",
+    "esbuild": "^0.27.3",
+    "eslint": "^9.39.0",
+    "eslint-plugin-vue": "^10.7.0",
+    "globals": "^17.3.0",
+    "playwright": "1.58.2",
+    "postcss": "^8.5.6",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.54.0",
+    "vue-eslint-parser": "^10.0.0"
   }
 }

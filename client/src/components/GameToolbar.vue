@@ -1,0 +1,53 @@
+<template>
+  <v-toolbar class='bg-blue-darken-1'>
+    <template v-if="avalon.lobby && avalon.lobby.name && avalon.user && avalon.user.name">
+    <v-icon start>
+      mdi-map-marker
+    </v-icon>
+     <span class="font-weight-bold text-cyan-lighten-5">{{ avalon.lobby.name }}</span>
+    <v-spacer></v-spacer>
+    <ViewRoleButton :avalon='avalon'></ViewRoleButton>
+    <v-spacer></v-spacer>
+    <ToolbarQuitButton :avalon='avalon'></ToolbarQuitButton>
+    </template>
+    <template v-else>
+      <span class="toolbar-email">{{ avalon.user.email }}</span>
+      <v-spacer></v-spacer>
+      <LogoutButton :avalon='avalon' />
+    </template>
+  </v-toolbar>
+</template>
+
+<script lang="ts">
+import { defineComponent } from 'vue'
+import ToolbarQuitButton from './ToolbarQuitButton.vue';
+import ViewRoleButton from './ViewRoleButton.vue'
+import LogoutButton from './LogoutButton.vue'
+
+export default defineComponent({
+  name: 'GameToolbar',
+  components: {
+    ToolbarQuitButton,
+    ViewRoleButton,
+    LogoutButton
+  },
+  props: [ 'avalon' ]
+ })
+</script>
+
+<!-- Add "scoped" attribute to limit CSS to this component only -->
+<style scoped>
+.toolbar-email {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 200px;
+}
+
+@media (max-width: 599px) {
+  .toolbar-email {
+    max-width: 150px;
+    font-size: 0.85rem;
+  }
+}
+</style>

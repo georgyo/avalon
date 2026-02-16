@@ -1,15 +1,17 @@
-const functions = require('firebase-functions');
-const firebaseAdmin = require('firebase-admin');
+const { onDocumentCreated } = require('firebase-functions/v2/firestore');
+const { initializeApp } = require('firebase-admin/app');
+const { getFirestore } = require('firebase-admin/firestore');
 const statsLib = require('./common/stats')
 
-firebaseAdmin.initializeApp();
+initializeApp();
 
-const db = firebaseAdmin.firestore();
+const db = getFirestore();
 
-exports.onLogCreate = functions.firestore.document('/logs/{logId}').onCreate(async (snapshot, context) => {
-    console.log("New game", context.params.logId);
+exports.onLogCreate = onDocumentCreated('/logs/{logId}', async (event) => {
+    const logId = event.params.logId;
+    console.log("New game", logId);
 
-    const docSnapshot = await db.collection('logs').doc(context.params.logId).get();
+    const docSnapshot = await db.collection('logs').doc(logId).get();
     const data = docSnapshot.data();
 
     console.log(data);

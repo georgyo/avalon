@@ -1,14 +1,14 @@
 <template>
      <v-dialog v-model="missionDialog" max-width='450px'>
-      <v-card v-if='missionDialog' class="cyan lighten-4">
-        <v-card-title class="cyan lighten-2">
+      <v-card v-if='missionDialog' class="bg-cyan-lighten-4">
+        <v-card-title class="bg-cyan-lighten-2">
             <div class='text-h5'>
                 <span v-if="mission.state == 'SUCCESS'">
-                    <v-icon left color="green">fas fa-check-circle</v-icon>
+                    <v-icon start color="green" icon="fa:fas fa-check-circle" />
                     Mission Succeeded!
                 </span>
                 <span v-else>
-                    <v-icon left color="red">fas fa-times-circle</v-icon>
+                    <v-icon start color="red" icon="fa:fas fa-times-circle" />
                     Mission Failed!
                 </span>
             </div>
@@ -24,15 +24,19 @@
     </v-dialog>
 </template>
 
-<script>
-import { EventBus } from '@/main.js'
+<script lang="ts">
+import { defineComponent } from 'vue'
+import { EventBus } from '@/eventBus'
 
-export default {
+export default defineComponent({
   name: 'MissionResultEventHandler',
   props: [ 'avalon' ],
   data() {
       return {
-          missionDialog: false
+          missionDialog: false,
+          onGameStarted: null as (() => void) | null,
+          onGameEnded: null as (() => void) | null,
+          onMissionResult: null as (() => void) | null,
       }
   },
   computed: {
@@ -41,22 +45,24 @@ export default {
             this.avalon.lobby.game.missions.length : this.avalon.lobby.game.currentMissionIdx;
           return this.avalon.lobby.game.missions[curMissionIdx - 1];
       },
-      numFails() {          
+      numFails() {
           return this.mission.numFails;
       }
   },
   mounted() {
-      EventBus.$on('GAME_STARTED', () => {
-          this.missionDialog = false;
-      });
-      EventBus.$on('GAME_ENDED', () => {
-          this.missionDialog = false;
-      });
-      EventBus.$on('MISSION_RESULT', () => {
-          this.missionDialog = true;
-      });
+      this.onGameStarted = () => { this.missionDialog = false; };
+      this.onGameEnded = () => { this.missionDialog = false; };
+      this.onMissionResult = () => { this.missionDialog = true; };
+      EventBus.on('GAME_STARTED', this.onGameStarted);
+      EventBus.on('GAME_ENDED', this.onGameEnded);
+      EventBus.on('MISSION_RESULT', this.onMissionResult);
+  },
+  beforeUnmount() {
+      EventBus.off('GAME_STARTED', this.onGameStarted);
+      EventBus.off('GAME_ENDED', this.onGameEnded);
+      EventBus.off('MISSION_RESULT', this.onMissionResult);
   }
-}
+})
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->

@@ -6,13 +6,15 @@
   </div>
 </template>
 
-<script>
-import { EventBus } from '@/main.js'
+<script lang="ts">
+import { defineComponent } from 'vue'
+import { useToast } from 'vue-toastification'
+import { EventBus } from '@/eventBus'
 import StartGameEventHandler from './StartGameEventHandler.vue'
 import EndGameEventHandler from './EndGameEventHandler.vue'
 import MissionResultEventHandler from './MissionResultEventHandler.vue'
 
-export default {
+export default defineComponent({
   name: 'EventHandler',
   props: [ 'avalon' ],
   components: {
@@ -20,37 +22,56 @@ export default {
       EndGameEventHandler,
       MissionResultEventHandler,
   },
+  setup() {
+    const toast = useToast()
+    return { toast }
+  },
+  data() {
+    return {
+      handlers: {} as Record<string, (data?: string) => void>
+    }
+  },
   mounted() {
-    EventBus.$on('LOBBY_CONNECTED', () => {
-      document.title = `Avalon - ${this.avalon.lobby.name} - ${this.avalon.user.name}`;
-    });
-    EventBus.$on('LOBBY_NEW_ADMIN', () => {
-      if (this.avalon.isAdmin) {
-        this.$toasted.show("You are now lobby administrator");
-      } else {
-        this.$toasted.show(`${this.avalon.lobby.admin.name} became lobby administrator`);
+    this.handlers = {
+      LOBBY_CONNECTED: () => {
+        document.title = `Avalon - ${this.avalon.lobby.name} - ${this.avalon.user.name}`;
+      },
+      LOBBY_NEW_ADMIN: () => {
+        if (this.avalon.isAdmin) {
+          this.toast("You are now lobby administrator");
+        } else {
+          this.toast(`${this.avalon.lobby.admin.name} became lobby administrator`);
+        }
+      },
+      PROPOSAL_REJECTED: () => {
+        this.toast(`${this.avalon.lobby.game.lastProposal.proposer}'s team rejected`);
+      },
+      PROPOSAL_APPROVED: () => {
+        this.toast(`${this.avalon.lobby.game.currentProposal.proposer}'s team approved`);
+      },
+      TEAM_PROPOSED: () => {
+        this.toast(`${this.avalon.lobby.game.currentProposal.proposer} has proposed a team`);
+      },
+      PLAYER_LEFT: (name?: string) => {
+        this.toast(`${name} left the lobby`);
+      },
+      PLAYER_JOINED: (name?: string) => {
+        this.toast(`${name} joined the lobby`);
+      },
+      DISCONNECTED_FROM_LOBBY: (lobby?: string) => {
+        this.toast(`You've been disconnected from ${lobby}`);
       }
-    });
-    EventBus.$on('PROPOSAL_REJECTED', () => {
-      this.$toasted.show(`${this.avalon.lobby.game.lastProposal.proposer}'s team rejected`);
-    });
-    EventBus.$on('PROPOSAL_APPROVED', () => {
-      this.$toasted.show(`${this.avalon.lobby.game.currentProposal.proposer}'s team approved`);
-    });
-    EventBus.$on('TEAM_PROPOSED', () => {
-      this.$toasted.show(`${this.avalon.lobby.game.currentProposal.proposer} has proposed a team`);
-    });
-    EventBus.$on('PLAYER_LEFT', (name) => {
-      this.$toasted.show(`${name} left the lobby`);
-    });
-    EventBus.$on('PLAYER_JOINED', (name) => {
-      this.$toasted.show(`${name} joined the lobby`);
-    });
-    EventBus.$on('DISCONNECTED_FROM_LOBBY', (lobby) => {
-      this.$toasted.show(`You've been disconnected from ${lobby}`);
-    });
+    };
+    for (const [event, handler] of Object.entries(this.handlers)) {
+      EventBus.on(event, handler);
+    }
+  },
+  beforeUnmount() {
+    for (const [event, handler] of Object.entries(this.handlers)) {
+      EventBus.off(event, handler);
+    }
   }
-}
+})
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->

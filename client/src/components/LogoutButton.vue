@@ -1,12 +1,14 @@
 <template>
-  <v-btn slot="activator" light :loading='loggingOut' @click='logoutButtonClicked()'>
-    <v-icon left>exit_to_app</v-icon>
+  <v-btn :loading='loggingOut' @click='logoutButtonClicked()'>
+    <v-icon start>mdi-exit-to-app</v-icon>
       Logout
   </v-btn>
 </template>
 
-<script>
-export default {
+<script lang="ts">
+import { defineComponent } from 'vue'
+
+export default defineComponent({
   name: 'LogoutButton',
   props: [ 'avalon' ],
   data() {
@@ -20,7 +22,7 @@ export default {
           this.avalon.logout();
       }
   }
-}
+})
 </script>
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>

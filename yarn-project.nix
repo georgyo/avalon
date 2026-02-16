@@ -6,7 +6,7 @@
 
 let
 
-  yarnBin = ./.yarn/releases/yarn-4.9.1.cjs;
+  yarnBin = ./.yarn/releases/yarn-4.12.0.cjs;
 
   cacheFolder = ".yarn/cache";
   lockfile = ./yarn.lock;
@@ -52,7 +52,7 @@ let
       rm $out/.gitignore
     '';
     outputHashMode = "recursive";
-    outputHash = "sha512-l7PFgH+ljwKuAbAYAGSlHRjc7SpeYyGuwMTL0/uDQZ12rcF1aLhuJI+pX3vWI5IhdYifC3MBiQsP7LYkkQepAg==";
+    outputHash = "sha512-aDHs0T2tYRiS905yvXOOZEuEcl7cr7Jy1Zpod/1RkGRD21dE12O3gjA/R31LzJR3EMCtJm07aZRxhzx5y4w2FQ==";
   };
 
   # Main project derivation.
@@ -118,7 +118,7 @@ let
         cp --reflink=auto --recursive .yarn "$out/libexec/$name"
 
         # Copy the Yarn linker output into the package.
-        cp --reflink=auto .pnp.* "$out/libexec/$name"
+        cp --reflink=auto --recursive node_modules "$out/libexec/$name"
       fi
 
       cd "$out/libexec/$name"
@@ -126,6 +126,9 @@ let
       # Invoke a plugin internal command to setup binaries.
       mkdir -p "$out/bin"
       yarn nixify install-bin $out/bin
+
+      # A package with node_modules doesn't need the cache
+      yarn cache clean
 
       runHook postInstall
     '';

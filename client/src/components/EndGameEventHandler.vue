@@ -1,51 +1,51 @@
 <template>
      <v-dialog v-model="endGameDialog" fullscreen persistent>
-      <v-card v-if='endGameDialog && avalon.game && avalon.game.outcome' class="cyan lighten-4">
-        <v-card-title class="cyan lighten-2 endGameTitle">
-            <v-layout align-center justify-center fill-height>
+      <v-card v-if='endGameDialog && avalon.game && avalon.game.outcome' class="bg-cyan-lighten-4">
+        <v-card-title class="bg-cyan-lighten-2 endGameTitle">
+            <div class="d-flex align-center justify-center fill-height w-100">
                 <span class='text-h4 font-weight-bold'>{{title}}</span>
-            </v-layout>
+            </div>
         </v-card-title>
-        <v-card-text>
-            <v-layout align-center column justify-center>            
-            <div class='text-h5 font-weight-bold'> {{ avalon.game.outcome.message }}</div>
+        <v-card-text class="endgame-content">
+            <div class="d-flex flex-column align-center justify-center">
+            <div class='endgame-message font-weight-bold'> {{ avalon.game.outcome.message }}</div>
             <p v-if='avalon.game.outcome.assassinated'>
                 {{ avalon.game.outcome.assassinated}} was assassinated by
                 {{ avalon.game.outcome.roles.find(r => r.assassin ).name }}
             </p>
-            <v-container style='overflow-x: auto; width: 100%;'>
+            <div class="endgame-table-wrapper">
               <MissionSummaryTable
                :players='avalon.game.players'
                :missions='missions'
                :roles='roleAssignments'
                :missionVotes='avalon.game.outcome.votes' />
-            </v-container>
-            <Achievements :avalon='avalon' />
-            </v-layout>
+            </div>
+            <GameAchievements :avalon='avalon' />
+            <v-btn class="mt-6" color="primary" size="large" variant="elevated" @click="endGameDialogClosed()">Close</v-btn>
+            </div>
         </v-card-text>
-        <v-card-actions>
-          <v-spacer></v-spacer>
-          <v-btn light @click="endGameDialogClosed()">Close</v-btn>
-        </v-card-actions>
       </v-card>
     </v-dialog>
 </template>
 
-<script>
-import { EventBus } from '@/main.js'
-import Achievements from './Achievements.vue'
+<script lang="ts">
+import { defineComponent } from 'vue'
+import { EventBus } from '@/eventBus'
+import GameAchievements from './GameAchievements.vue'
 import MissionSummaryTable from './MissionSummaryTable.vue'
 
-export default {
+export default defineComponent({
   name: 'EndGameEventHandler',
   props: [ 'avalon' ],
   components: {
-      Achievements,
+      GameAchievements,
       MissionSummaryTable
   },
   data() {
       return {
           endGameDialog: false,
+          onGameEnded: null as (() => void) | null,
+          onGameStarted: null as (() => void) | null,
       }
   },
   computed: {
@@ -58,13 +58,13 @@ export default {
           }
       },
       roleAssignments() {
-        return this.avalon.game.outcome.roles.slice(0).sort((a,b) => {
-          let roleIndexOf = (name) => this.avalon.config.roles.findIndex(r => r.name == name);
+        return this.avalon.game.outcome.roles.slice(0).sort((a: {role: string}, b: {role: string}) => {
+          const roleIndexOf = (name: string) => this.avalon.config.roles.findIndex((r: {name: string}) => r.name == name);
           return roleIndexOf(a.role) - roleIndexOf(b.role);
         });
       },
       missions() {
-          return this.avalon.game.missions.filter(m => m.proposals.filter(p => p.state != 'PENDING').length > 0);
+          return this.avalon.game.missions.filter((m: {proposals: {state: string}[]}) => m.proposals.filter(p => p.state != 'PENDING').length > 0);
       }
   },
   methods: {
@@ -73,21 +73,22 @@ export default {
       }
   },
   mounted() {
-      EventBus.$on('GAME_ENDED', () => {
-          this.endGameDialog = true;
-      });
-      EventBus.$on('GAME_STARTED', () => {
-          // time to start new game!
-          this.endGameDialog = false;
-      });      
+      this.onGameEnded = () => { this.endGameDialog = true; };
+      this.onGameStarted = () => { this.endGameDialog = false; };
+      EventBus.on('GAME_ENDED', this.onGameEnded);
+      EventBus.on('GAME_STARTED', this.onGameStarted);
+  },
+  beforeUnmount() {
+      EventBus.off('GAME_ENDED', this.onGameEnded);
+      EventBus.off('GAME_STARTED', this.onGameStarted);
   }
-}
+})
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
 
- table { 
+ table {
     border-collapse: collapse;
  }
 
@@ -96,14 +97,14 @@ export default {
  }
 
  td {
-     width: 1.7em;     
+     width: 1.7em;
      padding-left: 6px;
      padding-right: 4px;
  }
 
-  tr:nth-child(even) { 
+  tr:nth-child(even) {
      background-color: Gainsboro;
-  } 
+  }
 
   tr:nth-child(odd) {
       background-color: bisque;
@@ -119,11 +120,39 @@ export default {
   }
 
   td.mission-result {
-    border-right: 2px solid;  
+    border-right: 2px solid;
   }
 
   .endGameTitle {
-      padding-left: 30px;
+      padding-left: 10px;
+      padding-right: 10px;
       text-align: center;
+  }
+
+  .endgame-content {
+      padding: 8px;
+  }
+
+  .endgame-message {
+      font-size: 1.15rem;
+      text-align: center;
+  }
+
+  .endgame-table-wrapper {
+      overflow-x: auto;
+      width: 100%;
+      -webkit-overflow-scrolling: touch;
+  }
+
+  @media (min-width: 600px) {
+    .endGameTitle {
+      padding-left: 30px;
+    }
+    .endgame-content {
+      padding: 16px;
+    }
+    .endgame-message {
+      font-size: 1.5rem;
+    }
   }
 </style>
