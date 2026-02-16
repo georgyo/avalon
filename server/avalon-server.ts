@@ -772,11 +772,11 @@ export function doMission(data: VoteData, uid: string): Promise<void> {
           function([lobbyDoc, secretDoc]) {
       const game = lobbyDoc.get('game') as Game;
       if (!game || !Array.isArray(game.missions) || missionIndex >= game.missions.length) {
-        throw new AvalonError('Mission not found', 400);
+        throw new AvalonError(400, 'Mission not found');
       }
       const mission = game.missions[missionIndex];
       if (!Array.isArray(mission.proposals) || proposalIndex >= mission.proposals.length) {
-        throw new AvalonError('Proposal not found', 400);
+        throw new AvalonError(400, 'Proposal not found');
       }
       const proposal = mission.proposals[proposalIndex];
       const votes = secretDoc.get('votes') as SecretVotes;
