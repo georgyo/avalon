@@ -491,13 +491,14 @@ function endGameTxn(
 
 export function startGame(data: StartGameData, uid: string): Promise<boolean> {
 
-  if (!data.playerList ||
+  if (!Array.isArray(data.playerList) ||
     data.playerList.length < 5  ||
-    data.playerList.length > 10) {
-    throw new AvalonError(400, 'Bad player list length' + data.playerList);
+    data.playerList.length > 10 ||
+    !data.playerList.every(p => typeof p === 'string')) {
+    throw new AvalonError(400, 'Bad player list ' + data.playerList);
   }
 
-  if (!data.roles || !data.roles.every(role => ROLES.find(r => r.name == role))) {
+  if (!Array.isArray(data.roles) || !data.roles.every(role => ROLES.find(r => r.name == role))) {
     throw new AvalonError(400, 'Bad roles ' + data.roles);
   }
 
@@ -562,6 +563,9 @@ export function startGame(data: StartGameData, uid: string): Promise<boolean> {
 }
 
 export function proposeTeam(data: TeamProposalData, uid: string): Promise<void> {
+  if (!Array.isArray(data.team)) {
+    throw new AvalonError(400, 'Bad team: must be an array');
+  }
   data.team = _.uniq(data.team);
 
   const lobbyDocRef = db.collection('lobbies').doc(data.lobby);
