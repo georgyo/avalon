@@ -645,7 +645,13 @@ function recordVote(
       validateField(lobbyDoc, 'game.phase', gamePhase);
 
       const game = lobbyDoc.get('game') as Game;
+      if (!game || !Array.isArray(game.missions) || missionIdx >= game.missions.length) {
+        throw new AvalonError(400, 'Mission not found');
+      }
       const mission = game.missions[missionIdx];
+      if (!Array.isArray(mission.proposals) || proposalIdx >= mission.proposals.length) {
+        throw new AvalonError(400, 'Proposal not found');
+      }
       const proposal = mission.proposals[proposalIdx];
 
       validateValue(mission.state, 'PENDING', "Mission state");
@@ -693,22 +699,10 @@ export function voteTeam(data: VoteData, uid: string): Promise<void> {
   const lobbyDocRef = db.collection('lobbies').doc(data.lobby);
   const secretDocRef = lobbyDocRef.collection('roles').doc(SECRET_STATE_DOC_NAME);
 
-  // Validate bounds before calling recordVote to prevent runtime errors
-  return lobbyDocRef.get().then(function(lobbyDoc) {
-    const game = lobbyDoc.get('game') as Game;
-    if (!game || !Array.isArray(game.missions) || missionIndex >= game.missions.length) {
-      throw new AvalonError(400, 'Mission not found');
-    }
-    const mission = game.missions[missionIndex];
-    if (!Array.isArray(mission.proposals) || proposalIndex >= mission.proposals.length) {
-      throw new AvalonError(400, 'Proposal not found');
-    }
-
-    return recordVote(data.name, uid, data.lobby, missionIndex,
-      proposalIndex, data.vote, 'PROPOSAL_VOTE', 'PENDING',
-      (_game, _mission, proposal) => proposal.votes,
-      (secretVotes) => secretVotes.proposal);
-  }).then(function() {
+  return recordVote(data.name, uid, data.lobby, missionIndex,
+    proposalIndex, data.vote, 'PROPOSAL_VOTE', 'PENDING',
+    (_game, _mission, proposal) => proposal.votes,
+    (secretVotes) => secretVotes.proposal).then(function() {
     return db.runTransaction(function(txn) {
       return Promise.all([
         txn.get(lobbyDocRef),
@@ -771,24 +765,12 @@ export function doMission(data: VoteData, uid: string): Promise<void> {
     throw new AvalonError(400, `Invalid proposal index: ${data.proposal}`);
   }
 
-  // Validate bounds before calling recordVote to prevent runtime errors
-  return lobbyDocRef.get().then(function(lobbyDoc) {
-    const game = lobbyDoc.get('game') as Game;
-    if (!game || !Array.isArray(game.missions) || missionIndex >= game.missions.length) {
-      throw new AvalonError(400, 'Mission not found');
-    }
-    const mission = game.missions[missionIndex];
-    if (!Array.isArray(mission.proposals) || proposalIndex >= mission.proposals.length) {
-      throw new AvalonError(400, 'Proposal not found');
-    }
-
-    return recordVote(data.name, uid, data.lobby, missionIndex,
-      proposalIndex, data.vote, 'MISSION_VOTE', 'APPROVED',
-      (_game, mission, _proposal) => mission.team,
-      (secretVotes) => secretVotes.mission[missionIndex],
-      ((name, vote, secretDoc) => vote || (secretDoc.get('roles') as Record<string, PlayerRole>)[name].team == 'evil')
-    );
-  }).then(function() {
+  return recordVote(data.name, uid, data.lobby, missionIndex,
+    proposalIndex, data.vote, 'MISSION_VOTE', 'APPROVED',
+    (_game, mission, _proposal) => mission.team,
+    (secretVotes) => secretVotes.mission[missionIndex],
+    ((name, vote, secretDoc) => vote || (secretDoc.get('roles') as Record<string, PlayerRole>)[name].team == 'evil')
+  ).then(function() {
     return db.runTransaction(function(txn) {
       return Promise.all([
         txn.get(lobbyDocRef),
@@ -837,9 +819,11 @@ export function doMission(data: VoteData, uid: string): Promise<void> {
         }
       } else {
         game.phase = 'TEAM_PROPOSAL';
-        if (missionIndex + 1 < game.missions.length) {
-          game.missions[missionIndex + 1].proposals.push(proposalTemplate(proposal.proposer, game.players));
+        const nextMissionIndex = missionIndex + 1;
+        if (nextMissionIndex >= game.missions.length) {
+          throw new AvalonError(500, 'Invariant violated: no next mission available for TEAM_PROPOSAL phase');
         }
+        game.missions[nextMissionIndex].proposals.push(proposalTemplate(proposal.proposer, game.players));
       }
       txn.update(lobbyDocRef, 'game', game);
     });
