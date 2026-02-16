@@ -791,7 +791,7 @@ export function assassinate(data: AssassinateData, uid: string): Promise<boolean
 
       const roles = secretDoc.get('roles') as Record<string, PlayerRole>;
       if (!roles[data.name].assassin) {
-        console.warn(data.name, 'is', secretDoc.get('roles')[data.name]);
+        console.warn('%s is %o', data.name, secretDoc.get('roles')[data.name]);
         throw new AvalonError(403, 'You are not the assassin');
       }
 
