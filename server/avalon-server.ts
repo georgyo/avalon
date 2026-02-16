@@ -568,6 +568,15 @@ export function proposeTeam(data: TeamProposalData, uid: string): Promise<void> 
   }
   data.team = _.uniq(data.team);
 
+  const missionIndex = Number(data.mission);
+  const proposalIndex = Number(data.proposal);
+  if (!Number.isInteger(missionIndex) || missionIndex < 0) {
+    throw new AvalonError(400, `Invalid mission index: ${data.mission}`);
+  }
+  if (!Number.isInteger(proposalIndex) || proposalIndex < 0) {
+    throw new AvalonError(400, `Invalid proposal index: ${data.proposal}`);
+  }
+
   const lobbyDocRef = db.collection('lobbies').doc(data.lobby);
 
   return db.runTransaction(function(txn) {
@@ -576,8 +585,14 @@ export function proposeTeam(data: TeamProposalData, uid: string): Promise<void> 
       validateField(lobbyDoc, 'game.phase', 'TEAM_PROPOSAL');
 
       const game = lobbyDoc.get('game') as Game;
-      const mission = game.missions[data.mission];
-      const proposal = mission.proposals[data.proposal];
+      if (!game || !Array.isArray(game.missions) || missionIndex >= game.missions.length) {
+        throw new AvalonError(400, 'Mission not found');
+      }
+      const mission = game.missions[missionIndex];
+      if (!Array.isArray(mission.proposals) || proposalIndex >= mission.proposals.length) {
+        throw new AvalonError(400, 'Proposal not found');
+      }
+      const proposal = mission.proposals[proposalIndex];
 
       validateValue(mission.state, 'PENDING', "Mission state");
       validateValue(proposal.state, 'PENDING', 'Proposal state');
@@ -666,11 +681,20 @@ function recordVote(
 }
 
 export function voteTeam(data: VoteData, uid: string): Promise<void> {
+  const missionIndex = Number(data.mission);
+  const proposalIndex = Number(data.proposal);
+  if (!Number.isInteger(missionIndex) || missionIndex < 0) {
+    throw new AvalonError(400, `Invalid mission index: ${data.mission}`);
+  }
+  if (!Number.isInteger(proposalIndex) || proposalIndex < 0) {
+    throw new AvalonError(400, `Invalid proposal index: ${data.proposal}`);
+  }
+
   const lobbyDocRef = db.collection('lobbies').doc(data.lobby);
   const secretDocRef = lobbyDocRef.collection('roles').doc(SECRET_STATE_DOC_NAME);
 
-  return recordVote(data.name, uid, data.lobby, data.mission,
-    data.proposal, data.vote, 'PROPOSAL_VOTE', 'PENDING',
+  return recordVote(data.name, uid, data.lobby, missionIndex,
+    proposalIndex, data.vote, 'PROPOSAL_VOTE', 'PENDING',
     (_game, _mission, proposal) => proposal.votes,
     (secretVotes) => secretVotes.proposal).then(function() {
     return db.runTransaction(function(txn) {
@@ -678,8 +702,14 @@ export function voteTeam(data: VoteData, uid: string): Promise<void> {
         txn.get(lobbyDocRef),
         txn.get(secretDocRef)]).then(function([lobbyDoc, secretDoc]) {
         const game = lobbyDoc.get('game') as Game;
-        const mission = game.missions[data.mission];
-        const proposal = mission.proposals[data.proposal];
+        if (!game || !Array.isArray(game.missions) || missionIndex >= game.missions.length) {
+          throw new AvalonError(400, 'Mission not found');
+        }
+        const mission = game.missions[missionIndex];
+        if (!Array.isArray(mission.proposals) || proposalIndex >= mission.proposals.length) {
+          throw new AvalonError(400, 'Proposal not found');
+        }
+        const proposal = mission.proposals[proposalIndex];
         const votes = secretDoc.get('votes') as SecretVotes;
 
         if (proposal.state != 'PENDING') {
@@ -696,7 +726,7 @@ export function voteTeam(data: VoteData, uid: string): Promise<void> {
         if (proposal.votes.length < Math.floor(game.players.length / 2) + 1) {
           proposal.state = 'REJECTED';
 
-          if (data.proposal == 4) {
+          if (proposalIndex == 4) {
             return endGameTxn(txn, lobbyDoc, secretDoc, 'EVIL_WIN', "Five team proposals in a row rejected", { game });
           } else {
             game.phase = 'TEAM_PROPOSAL';
@@ -723,10 +753,10 @@ export function doMission(data: VoteData, uid: string): Promise<void> {
   const missionIndex = Number(data.mission);
   const proposalIndex = Number(data.proposal);
   if (!Number.isInteger(missionIndex) || missionIndex < 0) {
-    throw new AvalonError(`Invalid mission index: ${data.mission}`, 400);
+    throw new AvalonError(400, `Invalid mission index: ${data.mission}`);
   }
   if (!Number.isInteger(proposalIndex) || proposalIndex < 0) {
-    throw new AvalonError(`Invalid proposal index: ${data.proposal}`, 400);
+    throw new AvalonError(400, `Invalid proposal index: ${data.proposal}`);
   }
 
   return recordVote(data.name, uid, data.lobby, missionIndex,
