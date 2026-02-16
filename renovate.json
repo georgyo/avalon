@@ -2,5 +2,16 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "config:base"
-  ]
+  ],
+  "postUpgradeTasks": {
+    "commands": [
+      "yarn install",
+      "yarn nixify fetch > /dev/null 2>&1 || true"
+    ],
+    "fileFilters": [
+      "yarn-project.nix",
+      "yarn.lock"
+    ],
+    "executionMode": "update"
+  }
 }
