@@ -5,7 +5,6 @@ import type { Request, Response, NextFunction } from 'express';
 import { getAuth } from 'firebase-admin/auth';
 import './firebaseKey'; // must be imported before avalon-server to initialize Firebase
 import * as avalon from './avalon-server';
-import promiseRouter from 'express-promise-router';
 import { AvalonError } from './types';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -18,7 +17,7 @@ const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'dist')));
 
-const router = promiseRouter();
+const router = express.Router();
 
 router.use(async function(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   const idToken = req.get('X-Avalon-Auth');

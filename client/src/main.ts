@@ -1,6 +1,6 @@
 import { createApp } from 'vue'
 import { createVuetify } from 'vuetify'
-// @ts-ignore: Vuetify styles have no type declarations for side-effect import
+// @ts-expect-error: Vuetify styles have no type declarations for side-effect import
 import 'vuetify/styles'
 import { fa } from 'vuetify/iconsets/fa'
 import { aliases, mdi } from 'vuetify/iconsets/mdi'

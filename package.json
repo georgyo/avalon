@@ -24,17 +24,17 @@
     "@babel/core": "^7.29.0",
     "@babel/eslint-parser": "^7.28.6",
     "@eslint/js": "^9.39.0",
-    "@typescript-eslint/eslint-plugin": "^8.54.0",
-    "@typescript-eslint/parser": "^8.54.0",
+    "@typescript-eslint/eslint-plugin": "^8.55.0",
+    "@typescript-eslint/parser": "^8.55.0",
     "autoprefixer": "^10.4.24",
     "esbuild": "^0.27.3",
     "eslint": "^9.39.0",
-    "eslint-plugin-vue": "^10.7.0",
+    "eslint-plugin-vue": "^10.8.0",
     "globals": "^17.3.0",
-    "playwright": "1.58.2",
+    "playwright": "^1.58.2",
     "postcss": "^8.5.6",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.54.0",
-    "vue-eslint-parser": "^10.0.0"
+    "typescript-eslint": "^8.55.0",
+    "vue-eslint-parser": "^10.4.0"
   }
 }
