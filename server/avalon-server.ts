@@ -647,7 +647,7 @@ function recordVote(
       }
 
       if (voteValidator && !voteValidator(name, vote, secretDoc)) {
-        console.log(name, 'is not allowed to vote', vote, ', switching to ', !vote);
+        console.log('%s is not allowed to vote %s, switching to %s', name, String(vote), String(!vote));
         vote = !vote;
       }
 
