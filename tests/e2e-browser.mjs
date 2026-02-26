@@ -1,4 +1,4 @@
-import { chromium } from 'playwright';
+import { firefox } from 'playwright';
 import { mkdirSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
@@ -8,7 +8,7 @@ const screenshotDir = join(__dirname, 'screenshots');
 mkdirSync(screenshotDir, { recursive: true });
 
 async function testBrowser() {
-  const browser = await chromium.launch({ headless: true });
+  const browser = await firefox.launch({ headless: true });
   const page = await browser.newPage();
 
   // Collect console errors

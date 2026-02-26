@@ -69,6 +69,7 @@ node_modules/
 .env
 .turbo
 result
+test-results
 
 # Gas Town (added by gt)
 .runtime/

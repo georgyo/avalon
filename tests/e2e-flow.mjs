@@ -1,6 +1,5 @@
-import { chromium } from 'playwright';
-import { execSync } from 'child_process';
-import { writeFileSync, mkdirSync } from 'fs';
+import { firefox } from 'playwright';
+import { mkdirSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -8,31 +7,9 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const screenshotDir = join(__dirname, 'screenshots');
 mkdirSync(screenshotDir, { recursive: true });
 
-// Proxy requests through curl since Node.js DNS can't resolve external hosts
-function curlRequest(method, url, headers = {}, data = null) {
-  // Write data to a temp file to avoid shell escaping issues
-  const tmpFile = '/tmp/curl-body-' + Date.now() + '.txt';
-  let cmd = `curl -s -w '\\n__HTTP_STATUS__%{http_code}' -X ${method} '${url}'`;
-  for (const [key, value] of Object.entries(headers)) {
-    const lower = key.toLowerCase();
-    if (['host', 'origin', 'referer', 'content-length', 'transfer-encoding'].includes(lower)) continue;
-    cmd += ` -H '${key}: ${value.replace(/'/g, "'\\''")}'`;
-  }
-  if (data) {
-    writeFileSync(tmpFile, data);
-    cmd += ` --data-binary @${tmpFile}`;
-  }
-  const raw = execSync(cmd, { encoding: 'utf-8', timeout: 30000 });
-  const statusMatch = raw.match(/__HTTP_STATUS__(\d+)$/);
-  const status = statusMatch ? parseInt(statusMatch[1]) : 200;
-  const body = raw.replace(/__HTTP_STATUS__\d+$/, '');
-  return { status, body };
-}
-
 async function testFlow() {
-  const browser = await chromium.launch({
+  const browser = await firefox.launch({
     headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox']
   });
 
   const context = await browser.newContext();
@@ -60,35 +37,8 @@ async function testFlow() {
     return path;
   }
 
-  // Intercept Firebase auth requests → proxy via curl
-  await page.route('**/identitytoolkit.googleapis.com/**', async (route, request) => {
-    const url = request.url();
-    console.log('  [proxy] Firebase auth:', url.substring(0, 100));
-    try {
-      const { status, body } = curlRequest('POST', url, request.headers(), request.postData());
-      await route.fulfill({ status, contentType: 'application/json', body });
-    } catch (err) {
-      console.log('  [proxy error]', err.message);
-      await route.fulfill({ status: 500, contentType: 'application/json', body: '{"error":{"message":"proxy error"}}' });
-    }
-  });
-
-  // Intercept securetoken requests → proxy via curl
-  await page.route('**/securetoken.googleapis.com/**', async (route, request) => {
-    const url = request.url();
-    console.log('  [proxy] securetoken:', url.substring(0, 100));
-    try {
-      const contentType = request.headers()['content-type'] || 'application/x-www-form-urlencoded';
-      const { status, body } = curlRequest('POST', url, { ...request.headers(), 'content-type': contentType }, request.postData());
-      await route.fulfill({ status, contentType: 'application/json', body });
-    } catch (err) {
-      console.log('  [proxy error]', err.message);
-      await route.fulfill({ status: 500, contentType: 'application/json', body: '{"error":{"message":"proxy error"}}' });
-    }
-  });
-
-  // Abort Firestore requests to force offline mode (the channel protocol is too
-  // complex to proxy via curl, and Firebase v12 is strict about response format)
+  // Abort Firestore requests to force offline mode (the real-time channel
+  // protocol can't be used in a headless test environment)
   let firestoreRequestCount = 0;
   await page.route('**/firestore.googleapis.com/**', async (route) => {
     firestoreRequestCount++;
@@ -96,20 +46,6 @@ async function testFlow() {
       console.log('  [abort] firestore request #' + firestoreRequestCount);
     }
     await route.abort('connectionfailed');
-  });
-
-  // Intercept /api calls → proxy to https://avalon.onl via curl (Vite proxy can't resolve DNS)
-  await page.route('**/api/**', async (route, request) => {
-    const urlPath = new URL(request.url()).pathname;
-    const targetUrl = `https://avalon.onl${urlPath}`;
-    console.log(`  [proxy] API: ${request.method()} ${urlPath} → ${targetUrl}`);
-    try {
-      const { status, body } = curlRequest(request.method(), targetUrl, request.headers(), request.postData());
-      await route.fulfill({ status, contentType: 'application/json', body });
-    } catch (err) {
-      console.log('  [proxy error]', err.message);
-      await route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ message: err.message }) });
-    }
   });
 
   try {
