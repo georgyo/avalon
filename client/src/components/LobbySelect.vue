@@ -6,7 +6,7 @@
         label="Your Name" @update:model-value="val => name = val.toUpperCase()" ref='nameTextField' v-model="name" :rules="nameRules" :error-messages='errorMsg' autofocus
         class="lobby-input">
       </v-text-field>
-      <div class="d-flex flex-column flex-sm-row ga-2 lobby-buttons">
+      <div class="d-flex flex-column ga-2 lobby-buttons">
         <v-btn
          :disabled='!name' @click='createLobby()' :loading="isCreatingLobby" block>
           Create Lobby
@@ -19,7 +19,7 @@
    <template v-else>
     <v-text-field ref="lobbyTextField" @update:model-value="val => lobby = val.toUpperCase()" label="Lobby" :error-messages='errorMsg' v-model="lobby" @keyup.enter="joinLobby()"
       class="lobby-input"></v-text-field>
-    <div class="d-flex flex-column flex-sm-row ga-2 lobby-buttons">
+    <div class="d-flex flex-column ga-2 lobby-buttons">
       <v-btn :disabled='!lobby' @click='joinLobby()' :loading="isJoiningLobby" block>
         Join Lobby
       </v-btn>
