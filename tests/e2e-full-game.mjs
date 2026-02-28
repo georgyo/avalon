@@ -454,6 +454,62 @@ async function doAssassination(players) {
   console.log(`  ${target.name} was assassinated`);
 }
 
+async function quitLobby(player) {
+  try {
+    const body = await player.bodyText();
+
+    // Already on the lobby select screen
+    if (body.includes('Your Name') || body.includes('Create Lobby')) {
+      return;
+    }
+
+    // Close end-game dialog if present (fullscreen persistent dialog with "Close" button)
+    const closeBtn = player.page.locator('button:has-text("Close")');
+    if ((await closeBtn.count()) > 0 && (await closeBtn.isVisible().catch(() => false))) {
+      await closeBtn.click();
+      await player.page.waitForTimeout(500);
+    }
+
+    // Dismiss any remaining overlays (mission result, role sheet, etc.)
+    await dismissOverlays(player);
+
+    // Click "Quit" button in toolbar
+    const quitBtn = player.page.locator('button:has-text("Quit"), button .mdi-exit-to-app').first();
+    if ((await quitBtn.count()) > 0 && (await quitBtn.isVisible().catch(() => false))) {
+      await quitBtn.click();
+      await player.page.waitForTimeout(500);
+
+      // Click the confirm button ("Leave Lobby" or "Cancel Game")
+      const leaveBtn = player.page.locator('button:has-text("Leave Lobby")');
+      const cancelBtn = player.page.locator('button:has-text("Cancel Game")');
+      if ((await leaveBtn.count()) > 0 && (await leaveBtn.isVisible().catch(() => false))) {
+        await leaveBtn.click();
+      } else if ((await cancelBtn.count()) > 0 && (await cancelBtn.isVisible().catch(() => false))) {
+        await cancelBtn.click();
+      }
+
+      // Wait for lobby select screen
+      await player.page.waitForFunction(
+        () => {
+          const body = document.body.textContent || '';
+          return body.includes('Your Name') || body.includes('Create Lobby');
+        },
+        { timeout: 10000 },
+      );
+    }
+
+    console.log(`  ${player.name} left lobby`);
+  } catch (err) {
+    console.log(`  ${player.name} quit failed: ${err.message.substring(0, 100)}`);
+  }
+}
+
+async function quitAllPlayers(players) {
+  for (const player of players) {
+    await quitLobby(player);
+  }
+}
+
 // ============ Main Test ============
 
 async function testFullGame() {
@@ -676,6 +732,20 @@ async function testFullGame() {
       await player.screenshot('game-ended');
     }
 
+    // ========== Step 8: All players quit lobby ==========
+    console.log('\n=== Step 8: All players quit lobby ===');
+    await quitAllPlayers(players);
+
+    // Verify all players are back on lobby select screen
+    for (const player of players) {
+      const text = await player.bodyText();
+      if (!text.includes('Your Name') && !text.includes('Create Lobby')) {
+        throw new Error(`${player.name} did not return to lobby select screen`);
+      }
+      await player.screenshot('quit-lobby');
+    }
+    console.log('  All players back on lobby select screen');
+
     // ========== Final Results ==========
     console.log('\n=== Final Results ===');
     let hasCritical = false;
@@ -704,6 +774,9 @@ async function testFullGame() {
         // ignore screenshot errors
       }
     }
+    // Attempt to quit all players so lobbies are cleaned up
+    console.log('\n=== Cleanup: All players quitting lobby ===');
+    await quitAllPlayers(players);
     process.exit(1);
   } finally {
     for (const player of players) {
