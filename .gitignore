@@ -84,3 +84,7 @@ config.yaml
 dist-server/
 common/dist/
 tests/screenshots/
+
+# Dolt database files (added by bd init)
+.dolt/
+*.db
