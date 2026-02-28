@@ -548,7 +548,13 @@ async function quitAllPlayers(players) {
 async function testFullGame() {
   console.log('\n=== Full Game E2E Test ===\n');
 
-  const browser = await firefox.launch({ headless: true });
+  // Allow headless/headed mode via HEADLESS env var. Default to headless for CI,
+  // but some Firestore real-time channels work more reliably in headed mode.
+  // Run with HEADLESS=false for debugging or if Firestore sync is flaky.
+  const headlessEnv = process.env.HEADLESS;
+  const headless = headlessEnv == null ? true : !/^(false|0|no)$/i.test(headlessEnv);
+
+  const browser = await firefox.launch({ headless });
   const players = [];
 
   try {
