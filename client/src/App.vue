@@ -74,7 +74,7 @@ export default defineComponent({
 <style>
 
 /* don't capitalize button text */
-*{ text-transform: none !important; }
+.v-btn { text-transform: none !important; }
 
 /* Mobile responsive adjustments */
 @media (max-width: 599px) {

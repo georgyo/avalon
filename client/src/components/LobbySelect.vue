@@ -3,7 +3,7 @@
     <div class="d-flex flex-column align-center justify-center fill-height lobby-select-inner">
     <template v-if='!showLobbyInput'>
       <v-text-field
-        label="Your Name" @update:model-value="val => name = val.toUpperCase()" ref='nameTextField' v-model="name" :rules="nameRules" :error-messages='errorMsg' autofocus
+        label="Your Name" :model-value="name" @update:model-value="val => name = val.toUpperCase()" ref='nameTextField' :rules="nameRules" :error-messages='errorMsg' autofocus
         class="lobby-input">
       </v-text-field>
       <div class="d-flex flex-column ga-2 lobby-buttons">
@@ -17,7 +17,7 @@
       </div>
   </template>
    <template v-else>
-    <v-text-field ref="lobbyTextField" @update:model-value="val => lobby = val.toUpperCase()" label="Lobby" :error-messages='errorMsg' v-model="lobby" @keyup.enter="joinLobby()"
+    <v-text-field ref="lobbyTextField" :model-value="lobby" @update:model-value="val => lobby = val.toUpperCase()" label="Lobby" :error-messages='errorMsg' @keyup.enter="joinLobby()"
       class="lobby-input"></v-text-field>
     <div class="d-flex flex-column ga-2 lobby-buttons">
       <v-btn :disabled='!lobby' @click='joinLobby()' :loading="isJoiningLobby" block>
@@ -138,6 +138,10 @@ export default defineComponent({
 
 .lobby-input {
   width: 100%;
+}
+
+.lobby-input :deep(input) {
+  text-transform: uppercase;
 }
 
 .lobby-buttons {
