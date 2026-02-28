@@ -1,6 +1,6 @@
 <template>
   <v-card class="welcome bg-cyan-lighten-5">
-    <div class="d-flex flex-column align-center justify-center fill-height">
+    <div class="d-flex flex-column align-center">
       <v-card-title class="welcome-title">
 
        <v-alert
@@ -151,7 +151,7 @@ export default defineComponent({
 .login-form {
   width: 100%;
   max-width: 450px;
-  min-width: 0;
+  min-width: 280px;
 }
 
 @media (min-width: 600px) {

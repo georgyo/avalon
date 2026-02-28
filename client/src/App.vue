@@ -10,7 +10,7 @@
       </v-container>
       <template v-else>
         <v-main class="bg-indigo-darken-2">
-        <v-container v-if='!avalon.isLoggedIn' class="fill-height d-flex justify-center">
+        <v-container v-if='!avalon.isLoggedIn' class="d-flex justify-center align-start pt-8">
           <UserLogin :avalon='avalon' />
         </v-container>
         <template v-else>
