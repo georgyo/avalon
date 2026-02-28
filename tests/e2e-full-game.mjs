@@ -7,6 +7,22 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const screenshotDir = join(__dirname, 'screenshots', 'full-game');
 mkdirSync(screenshotDir, { recursive: true });
 
+// Seeded PRNG for reproducible test runs. Set RNG_SEED env var to replay a specific run.
+const rngSeed = process.env.RNG_SEED ? parseInt(process.env.RNG_SEED, 10) : (Date.now() & 0xffffffff);
+console.log(`RNG_SEED=${rngSeed} (replay with: RNG_SEED=${rngSeed} node tests/e2e-full-game.mjs)`);
+
+// Simple mulberry32 PRNG — deterministic given the same seed
+function mulberry32(seed) {
+  let s = seed | 0;
+  return function () {
+    s = (s + 0x6d2b79f5) | 0;
+    let t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+const random = mulberry32(rngSeed);
+
 const PLAYER_NAMES = ['ALICE', 'BOB', 'CAROL', 'DAVE', 'EVE'];
 
 const EVIL_ROLES = ['MORGANA', 'ASSASSIN', 'EVIL MINION', 'MORDRED', 'OBERON'];
@@ -25,8 +41,7 @@ function isErrorIgnorable(msg) {
     msg.includes('AxiosError') ||
     msg.includes('NetworkError') ||
     msg.includes('Network Error') ||
-    msg.includes('favicon') ||
-    msg.includes('404')
+    msg.includes('favicon')
   );
 }
 
@@ -55,8 +70,12 @@ class PlayerContext {
     });
 
     this.page.on('console', (msg) => {
-      if (msg.type() === 'error' && !isErrorIgnorable(msg.text())) {
-        console.log(`  [console.error ${this.name}]`, msg.text().substring(0, 200));
+      if (msg.type() === 'error') {
+        const text = msg.text();
+        this.jsErrors.push(text);
+        if (!isErrorIgnorable(text)) {
+          console.log(`  [console.error ${this.name}]`, text.substring(0, 200));
+        }
       }
     });
   }
@@ -328,7 +347,7 @@ function extractTeamSize(bodyText) {
 
 async function proposeTeam(proposer, teamSize, allPlayers) {
   // Pick random players for the team
-  const shuffled = [...allPlayers].sort(() => Math.random() - 0.5);
+  const shuffled = [...allPlayers].sort(() => random() - 0.5);
   const team = shuffled.slice(0, teamSize);
   const teamNames = team.map((p) => p.name);
   console.log(`  ${proposer.name} proposing team: ${teamNames.join(', ')}`);
@@ -359,7 +378,7 @@ async function voteOnProposal(players) {
     if (!text.includes('Team Proposal Vote')) continue;
 
     // 70% chance to approve
-    const approve = Math.random() < 0.7;
+    const approve = random() < 0.7;
 
     if (approve) {
       await player.page.locator('button:has-text("Approve")').click();
@@ -391,7 +410,7 @@ async function doMission(players, teamNames) {
     }
 
     // Evil players randomly fail (50% chance), good always succeed
-    const voteFail = player.isEvil && Math.random() < 0.5;
+    const voteFail = player.isEvil && random() < 0.5;
 
     if (voteFail) {
       await player.page.locator('button:has-text("FAIL")').click();
@@ -432,7 +451,7 @@ async function doAssassination(players) {
 
   // Pick a random good player (not self) to assassinate
   const goodPlayers = players.filter((p) => !p.isEvil);
-  const target = goodPlayers[Math.floor(Math.random() * goodPlayers.length)];
+  const target = goodPlayers[Math.floor(random() * goodPlayers.length)];
 
   console.log(`  Assassinating ${target.name}...`);
 
@@ -545,17 +564,16 @@ async function testFullGame() {
       await players[i].screenshot('lobby-joined');
     }
 
-    // Wait for all players to appear
-    await players[0].page.waitForTimeout(2000);
+    // Wait for all players to appear in the lobby (poll until all names visible)
+    await players[0].page.waitForFunction(
+      (names) => {
+        const body = document.body.textContent || '';
+        return names.every((n) => body.includes(n));
+      },
+      PLAYER_NAMES,
+      { timeout: 15000 },
+    );
     await players[0].screenshot('lobby-full');
-
-    // Verify all players are visible
-    const lobbyText = await players[0].bodyText();
-    for (const name of PLAYER_NAMES) {
-      if (!lobbyText.includes(name)) {
-        throw new Error(`Player ${name} not visible in lobby`);
-      }
-    }
     console.log('  All 5 players in lobby');
 
     // ========== Step 4: Start game ==========
@@ -609,7 +627,11 @@ async function testFullGame() {
           if (!proposer) {
             throw new Error('No proposer found in TEAM_PROPOSAL phase');
           }
-          const teamSize = extractTeamSize(await proposer.bodyText());
+          const proposerBody = await proposer.bodyText();
+          const teamSize = extractTeamSize(proposerBody);
+          if (!teamSize) {
+            throw new Error(`Could not extract team size from proposer page: ${proposerBody.substring(0, 200)}`);
+          }
           console.log(`  Proposer: ${proposer.name}, team size: ${teamSize}`);
 
           const teamNames = await proposeTeam(proposer, teamSize, players);
@@ -675,7 +697,7 @@ async function testFullGame() {
             const text = await player.bodyText();
             const hasButtons = await player.page.locator('button:has-text("SUCCESS")').count();
             if (hasButtons > 0) {
-              const voteFail = player.isEvil && Math.random() < 0.5;
+              const voteFail = player.isEvil && random() < 0.5;
               if (voteFail) {
                 await player.page.locator('button:has-text("FAIL")').click();
               } else {
@@ -760,12 +782,13 @@ async function testFullGame() {
 
     if (hasCritical) {
       console.log('\nFAIL: Critical JavaScript errors detected');
-      process.exit(1);
+      process.exitCode = 1;
+    } else {
+      console.log('\nPASS: Full game completed');
     }
-
-    console.log('\nPASS: Full game completed');
   } catch (err) {
     console.error('\nFAIL:', err.message);
+    process.exitCode = 1;
     // Screenshot all players on failure
     for (const player of players) {
       try {
@@ -777,7 +800,6 @@ async function testFullGame() {
     // Attempt to quit all players so lobbies are cleaned up
     console.log('\n=== Cleanup: All players quitting lobby ===');
     await quitAllPlayers(players);
-    process.exit(1);
   } finally {
     for (const player of players) {
       await player.close();
