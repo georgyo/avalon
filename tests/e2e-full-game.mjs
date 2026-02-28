@@ -62,6 +62,10 @@ class PlayerContext {
     this.context = await this.browser.newContext();
     this.page = await this.context.newPage();
 
+    // NOTE: Unlike e2e-flow.mjs we do NOT block Firestore requests here.
+    // This test requires real-time Firestore sync between 5 players for
+    // lobby updates, phase transitions, and vote tracking.
+
     this.page.on('pageerror', (err) => {
       this.jsErrors.push(err.message);
       if (!isErrorIgnorable(err.message)) {
@@ -340,6 +344,16 @@ async function findProposer(players) {
   return null;
 }
 
+// Fisher-Yates shuffle using the seeded PRNG for deterministic permutations
+function shuffleArray(array) {
+  const result = [...array];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}
+
 function extractTeamSize(bodyText) {
   const match = bodyText.match(/(?:Propose a|propose a) team of (\d+)/);
   return match ? parseInt(match[1]) : null;
@@ -347,7 +361,7 @@ function extractTeamSize(bodyText) {
 
 async function proposeTeam(proposer, teamSize, allPlayers) {
   // Pick random players for the team
-  const shuffled = [...allPlayers].sort(() => random() - 0.5);
+  const shuffled = shuffleArray(allPlayers);
   const team = shuffled.slice(0, teamSize);
   const teamNames = team.map((p) => p.name);
   console.log(`  ${proposer.name} proposing team: ${teamNames.join(', ')}`);
@@ -493,7 +507,7 @@ async function quitLobby(player) {
     await dismissOverlays(player);
 
     // Click "Quit" button in toolbar
-    const quitBtn = player.page.locator('button:has-text("Quit"), button .mdi-exit-to-app').first();
+    const quitBtn = player.page.locator('button:has-text("Quit"), button:has(.mdi-exit-to-app)').first();
     if ((await quitBtn.count()) > 0 && (await quitBtn.isVisible().catch(() => false))) {
       await quitBtn.click();
       await player.page.waitForTimeout(500);
@@ -694,15 +708,18 @@ async function testFullGame() {
           console.log('  Mission vote phase (recovering)...');
           // We don't know the team names from context, try to find them
           for (const player of players) {
-            const text = await player.bodyText();
-            const hasButtons = await player.page.locator('button:has-text("SUCCESS")').count();
-            if (hasButtons > 0) {
+            const successBtn = player.page.locator('button:has-text("SUCCESS")');
+            const failBtn = player.page.locator('button:has-text("FAIL")');
+            if ((await successBtn.count()) > 0) {
               const voteFail = player.isEvil && random() < 0.5;
-              if (voteFail) {
-                await player.page.locator('button:has-text("FAIL")').click();
-              } else {
-                await player.page.locator('button:has-text("SUCCESS")').click();
+              const targetBtn = voteFail ? failBtn : successBtn;
+              try {
+                await targetBtn.waitFor({ state: 'visible', timeout: 1000 });
+              } catch {
+                continue;
               }
+              if (!(await targetBtn.isEnabled())) continue;
+              await targetBtn.click();
               await player.page.waitForTimeout(200);
             }
           }
