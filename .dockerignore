@@ -8,4 +8,4 @@ node_modules
 Dockerfile
 .dockerignore
 
-server/firebase-key.json
+.env

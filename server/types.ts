@@ -1,6 +1,4 @@
-import type { firestore } from 'firebase-admin';
-
-// Firestore document data types
+// Database document data types
 
 export interface LobbyUser {
   name: string;
@@ -34,7 +32,7 @@ export interface GameOutcome {
 export interface Game {
   state: 'INIT' | 'ACTIVE' | 'ENDED';
   phase?: 'TEAM_PROPOSAL' | 'PROPOSAL_VOTE' | 'MISSION_VOTE' | 'ASSASSINATION';
-  timeCreated?: firestore.Timestamp;
+  timeCreated?: string;
   missions: Mission[];
   players: string[];
   roles: string[];
@@ -44,7 +42,7 @@ export interface Game {
 
 export interface LobbyData {
   admin: { uid: string; name: string };
-  timeCreated: firestore.Timestamp;
+  timeCreated: string;
   users: Record<string, LobbyUser>;
   game: Game;
 }
@@ -72,8 +70,8 @@ export interface UserData {
   email?: string;
   name?: string;
   lobby?: string;
-  lastActive?: firestore.FieldValue;
-  created?: firestore.FieldValue;
+  lastActive?: string;
+  created?: string;
   logs?: string[];
 }
 

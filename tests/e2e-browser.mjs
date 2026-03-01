@@ -44,15 +44,15 @@ async function testBrowser() {
     console.log('Body has content:', bodyText.length > 0);
     console.log('Body snippet:', bodyText.substring(0, 200));
 
-    // Filter out non-critical errors (like Firebase/network errors which are expected)
+    // Filter out non-critical errors
     const criticalErrors = errors.filter(e =>
-      !e.includes('Firebase') &&
-      !e.includes('firestore') &&
       !e.includes('api.mailcheck') &&
       !e.includes('net::ERR') &&
       !e.includes('favicon') &&
       !e.includes('Failed to fetch') &&
-      !e.includes('404')
+      !e.includes('404') &&
+      !e.includes('WebSocket') &&
+      !e.includes('NetworkError')
     );
 
     if (criticalErrors.length > 0) {
@@ -62,7 +62,7 @@ async function testBrowser() {
     } else {
       console.log('No critical JavaScript errors detected');
       if (errors.length > 0) {
-        console.log('Non-critical errors (expected - network/Firebase):');
+        console.log('Non-critical errors (expected - network):');
         errors.forEach(e => console.log('  -', e.substring(0, 100)));
       }
     }

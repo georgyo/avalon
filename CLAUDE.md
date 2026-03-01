@@ -15,17 +15,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Linting
 - `yarn workspace @avalon/client lint` - Lint client code
 - `yarn workspace @avalon/server lint` - Lint server code
-- `cd firebase/functions && npm run lint` - Lint Firebase functions
 
 ### Testing
 - `yarn test` - Run E2E flow test (Playwright, headless)
 - `yarn test:browser` - Run E2E browser test (Playwright, headed)
 - Tests are in `tests/e2e-flow.mjs` and `tests/e2e-browser.mjs`
 - Tests use Playwright to simulate a full multiplayer game flow against a running server
-
-### Firebase Deployment
-- `firebase deploy` - Deploy Firebase functions
-- `firebase emulators:start --only functions` - Run Firebase functions locally
 
 ### Server Deployment
 - `gcloud app deploy` - Deploy server to Google App Engine
@@ -41,34 +36,55 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Architecture
 
-This is a **multiplayer Avalon card game** with four main components:
+This is a **multiplayer Avalon card game** with three main components:
 
 ### Common (`/common/`)
 - Shared game logic workspace package (`@avalon/common`)
 - TypeScript source (`avalonlib.ts`), compiled to CJS in `dist/` via `tsc`
-- Used by both server and Firebase functions
+- Used by the server
 - Exports TypeScript types via sub-path exports
 - Run `yarn build:common` after editing (automatic in `yarn build`)
 
 ### Client (`/client/`)
 - Vue 3.5 SPA with Vuetify 3 UI framework
 - TypeScript source files in `client/src/`
-- Real-time game state via Firebase Firestore listeners
+- Real-time game state via SurrealDB live queries
 - REST API calls to Express server for game actions
+- SurrealDB record-based authentication (anonymous + email/password)
 - Build tool: Vite 7, dev proxy to `https://avalon.onl/api`
 
 ### Server (`/server/`)
 - Express.js REST API server (TypeScript)
 - Handles game logic validation and state mutations
-- Writes to Firebase Firestore database
+- Reads/writes SurrealDB database
 - Main files: `server.ts` (entry), `avalon-server.ts` (game logic), `types.ts` (interfaces)
+- `surrealdb.ts` - Database connection module
+- `stats.ts` - Post-game statistics computation
+- `schema.surql` - Database schema definition
 - Uses `tsx` for development and production runtime
 - Bundled to single file via esbuild for production (`dist-server/server.js`)
 
-### Firebase (`/firebase/`)
-- Firestore database for game state storage
-- Cloud Functions for post-game statistics computation
-- Authentication and real-time data sync
+## Database (SurrealDB)
+
+The application uses SurrealDB Cloud as its database:
+- **URL**: Configured via `SURREAL_URL` env var
+- **Auth**: Server connects with root credentials; clients use record-based auth
+- **Schema**: Defined in `server/schema.surql`
+
+### Tables
+- `user` - Player accounts with stats
+- `lobby` - Game lobbies with player lists and game state
+- `secret_state` - Hidden game state (roles, votes)
+- `player_role` - Per-player role assignments (visible only to owner)
+- `game_log` - Completed game records
+- `stats` - Global game statistics
+
+### Environment Variables
+- `SURREAL_URL` - SurrealDB connection URL
+- `SURREAL_NS` - Namespace (default: `avalon`)
+- `SURREAL_DB` - Database (default: `avalon`)
+- `SURREAL_USER` - Admin username
+- `SURREAL_PASS` - Admin password
 
 ## Game Logic Structure
 
@@ -81,33 +97,34 @@ This is a **multiplayer Avalon card game** with four main components:
 **State Flow:**
 1. Players join lobbies via client
 2. Game actions sent to Express API endpoints
-3. Server validates and updates Firestore
-4. Clients receive real-time updates via Firestore listeners
-5. Firebase Functions compute stats after game completion
+3. Server validates and updates SurrealDB
+4. Clients receive real-time updates via SurrealDB live queries
+5. Stats computed inline on game completion
 
 **Key Files:**
-- `common/avalonlib.ts` - Core game logic (roles, rules) - shared by server and Firebase
+- `common/avalonlib.ts` - Core game logic (roles, rules)
 - `client/src/avalon-api-rest.ts` - API client wrapper
+- `client/src/auth.ts` - SurrealDB record authentication
+- `client/src/surrealdb.ts` - Client database connection
 - `client/src/components/Game*.vue` - Game interface components
 - `client/src/types.ts` - TypeScript type definitions
-- `firebase/functions/common/stats.js` - Post-game statistics computation
+- `server/stats.ts` - Post-game statistics computation
 
 ## Workspace Structure
 
-This is a Yarn 4 workspace with four packages:
+This is a Yarn 4 workspace with three packages:
 - `@avalon/common` - Shared game logic library (TypeScript, compiled to CJS)
 - `@avalon/client` - Frontend application (Vue 3 + Vite)
 - `@avalon/server` - Backend API (Express.js + TypeScript)
-- `functions` - Firebase Cloud Functions
 
 Always use workspace commands from the root directory for consistent dependency management.
 
 ## Tech Stack
 
 - **Frontend:** Vue 3.5, Vuetify 3, Vite 7, TypeScript
-- **Backend:** Node.js 20, Express 4, Firebase Admin SDK
-- **Database:** Firebase Firestore (real-time)
+- **Backend:** Node.js 20, Express 4, SurrealDB SDK
+- **Database:** SurrealDB Cloud (real-time via live queries)
 - **Testing:** Playwright (E2E)
 - **Build:** Yarn 4 workspaces, esbuild (server bundling), Nix (reproducible builds)
-- **Deployment:** Google App Engine (server), Firebase (functions + hosting)
+- **Deployment:** Google App Engine (server)
 - **Linting:** ESLint 9 with TypeScript and Vue plugins

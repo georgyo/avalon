@@ -1,6 +1,4 @@
-import firebase from 'firebase/compat/app';
-import 'firebase/compat/auth';
-
+import { getToken } from './auth';
 import axios, { AxiosResponse } from 'axios';
 
 export class AvalonApi {
@@ -9,17 +7,20 @@ export class AvalonApi {
   }
 
   post(endPoint: string, data: Record<string, unknown>): Promise<AxiosResponse> {
-    return firebase.auth().currentUser!.getIdToken(false).then(function(idToken: string) {
-      console.debug("Calling", endPoint, 'with', data);
-      return axios.post(endPoint, data, {
-        headers: {'X-Avalon-Auth': idToken}
-      }).catch(err => {
-        if (err.response && err.response.data.message) {
-          throw new Error(err.response.data.message);
-        } else {
-          throw err;
-        }
-      });
+    const token = getToken();
+    if (!token) {
+      return Promise.reject(new Error('Not authenticated'));
+    }
+
+    console.debug("Calling", endPoint, 'with', data);
+    return axios.post(endPoint, data, {
+      headers: {'X-Avalon-Auth': token}
+    }).catch(err => {
+      if (err.response && err.response.data.message) {
+        throw new Error(err.response.data.message);
+      } else {
+        throw err;
+      }
     });
   }
 

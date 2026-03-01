@@ -2,8 +2,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import express from 'express';
 import type { Request, Response, NextFunction } from 'express';
-import { getAuth } from 'firebase-admin/auth';
-import './firebaseKey'; // must be imported before avalon-server to initialize Firebase
+import { connectDb } from './surrealdb';
 import * as avalon from './avalon-server';
 import { AvalonError } from './types';
 
@@ -20,15 +19,29 @@ app.use(express.static(path.join(__dirname, 'dist')));
 const router = express.Router();
 
 router.use(async function(req: AuthenticatedRequest, res: Response, next: NextFunction) {
-  const idToken = req.get('X-Avalon-Auth');
-  if (!idToken) {
+  const token = req.get('X-Avalon-Auth');
+  if (!token) {
     res.status(401).json({ message: `No auth info in request: ${req.method} ${req.path}` });
     return;
   }
 
   try {
-    const decodedToken = await getAuth().verifyIdToken(idToken);
-    req.uid = decodedToken.uid;
+    // Decode SurrealDB JWT to extract the user record ID
+    const parts = token.split('.');
+    if (parts.length !== 3) {
+      throw new Error('Invalid token format');
+    }
+    const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString());
+    const userId = payload.ID || payload.id;
+    if (!userId) {
+      throw new Error('No user ID in token');
+    }
+
+    // Extract just the ID part from SurrealDB record ID format (e.g., "user:abc123" -> "abc123")
+    req.uid = typeof userId === 'string' && userId.includes(':')
+      ? userId.split(':').slice(1).join(':')
+      : String(userId);
+
     console.log('Request', req.method, req.path, req.uid, JSON.stringify(req.body));
     next();
   } catch {
@@ -88,6 +101,13 @@ router.use((err: AvalonError, _req: Request, res: Response, _next: NextFunction)
 app.use('/api', router);
 
 const PORT = process.env.PORT || 8001;
-app.listen(PORT, () => {
-  console.log(`Server listening on port ${PORT}...`);
+
+// Connect to SurrealDB before starting the server
+connectDb().then(() => {
+  app.listen(PORT, () => {
+    console.log(`Server listening on port ${PORT}...`);
+  });
+}).catch(err => {
+  console.error('Failed to connect to SurrealDB:', err);
+  process.exit(1);
 });

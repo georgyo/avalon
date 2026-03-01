@@ -1,15 +1,15 @@
 {
   "name": "@avalon/server",
   "scripts": {
-    "start": "tsx server.ts",
-    "serve": "tsx watch server.ts",
+    "start": "tsx --env-file=../.env server.ts",
+    "serve": "tsx watch --env-file=../.env server.ts",
     "lint": "eslint *.ts"
   },
   "dependencies": {
     "@avalon/common": "workspace:^",
     "express": "^5.2.1",
-    "firebase-admin": "^13.6.1",
-    "lodash": "^4.17.23"
+    "lodash": "^4.17.23",
+    "surrealdb": "^2.0.0"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",

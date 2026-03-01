@@ -29,18 +29,13 @@ const EVIL_ROLES = ['MORGANA', 'ASSASSIN', 'EVIL MINION', 'MORDRED', 'OBERON'];
 
 function isErrorIgnorable(msg) {
   return (
-    msg.includes('Firebase') ||
-    msg.includes('firestore') ||
-    msg.includes('Firestore') ||
     msg.includes('net::ERR') ||
     msg.includes('Failed to fetch') ||
-    msg.includes('PERMISSION_DENIED') ||
-    msg.includes('Missing or insufficient permissions') ||
     msg.includes('api.mailcheck') ||
-    msg.includes('client is offline') ||
     msg.includes('AxiosError') ||
     msg.includes('NetworkError') ||
     msg.includes('Network Error') ||
+    msg.includes('WebSocket') ||
     msg.includes('favicon')
   );
 }
@@ -61,10 +56,6 @@ class PlayerContext {
   async init() {
     this.context = await this.browser.newContext();
     this.page = await this.context.newPage();
-
-    // NOTE: Unlike e2e-flow.mjs we do NOT block Firestore requests here.
-    // This test requires real-time Firestore sync between 5 players for
-    // lobby updates, phase transitions, and vote tracking.
 
     this.page.on('pageerror', (err) => {
       this.jsErrors.push(err.message);
@@ -548,9 +539,7 @@ async function quitAllPlayers(players) {
 async function testFullGame() {
   console.log('\n=== Full Game E2E Test ===\n');
 
-  // Allow headless/headed mode via HEADLESS env var. Default to headless for CI,
-  // but some Firestore real-time channels work more reliably in headed mode.
-  // Run with HEADLESS=false for debugging or if Firestore sync is flaky.
+  // Allow headless/headed mode via HEADLESS env var.
   const headlessEnv = process.env.HEADLESS;
   const headless = headlessEnv == null ? true : !/^(false|0|no)$/i.test(headlessEnv);
 

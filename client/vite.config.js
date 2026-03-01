@@ -15,7 +15,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'https://avalon.onl',
+        target: 'http://localhost:8001',
         changeOrigin: true,
       }
     }

@@ -1,8 +1,9 @@
-import { getFirestore, FieldValue } from 'firebase-admin/firestore';
-import type { firestore } from 'firebase-admin';
 import _ from 'lodash';
+import { RecordId } from 'surrealdb';
 import { ROLES, getNumEvilForGameSize } from '@avalon/common';
 import type { Role } from '@avalon/common';
+import { db } from './surrealdb';
+import { computeAndCombineStats } from './stats';
 import {
   AvalonError,
   type Game,
@@ -10,6 +11,8 @@ import {
   type Proposal,
   type PlayerRole,
   type SecretVotes,
+  type LobbyData,
+  type SecretStateData,
   type LoginData,
   type JoinLobbyData,
   type LobbyActionData,
@@ -17,11 +20,30 @@ import {
   type TeamProposalData,
   type VoteData,
   type AssassinateData,
+  type UserData,
 } from './types';
 
-const db = getFirestore();
+// Per-lobby mutex to serialize operations and prevent race conditions
+// (e.g., concurrent vote requests overwriting each other)
+const lobbyLocks = new Map<string, Promise<void>>();
 
-const SECRET_STATE_DOC_NAME = 'SECRET_STATE_ARCHIVES__';
+async function withLobbyLock<T>(lobby: string, fn: () => Promise<T>): Promise<T> {
+  const existing = lobbyLocks.get(lobby) ?? Promise.resolve();
+
+  let resolve!: () => void;
+  const newLock = new Promise<void>(r => { resolve = r; });
+  lobbyLocks.set(lobby, newLock);
+
+  await existing;
+  try {
+    return await fn();
+  } finally {
+    resolve();
+    if (lobbyLocks.get(lobby) === newLock) {
+      lobbyLocks.delete(lobby);
+    }
+  }
+}
 
 function proposalTemplate(currentProposer: string, playerList: string[]): Proposal {
   const currentProposerIdx = playerList.indexOf(currentProposer);
@@ -57,189 +79,220 @@ function validateValue(value: unknown, desired: unknown, errMsg: string): void {
   }
 }
 
-function validateField(doc: firestore.DocumentSnapshot, field: string, value: unknown): void {
-  validateValue(doc.get(field), value, field);
+// Helper to get a lobby record, throws if not found
+async function getLobby(lobbyName: string): Promise<LobbyData & { id: RecordId }> {
+  const result = await db.query<[(LobbyData & { id: RecordId })[]]>(
+    'SELECT * FROM lobby WHERE id = $id',
+    { id: new RecordId('lobby', lobbyName) }
+  );
+  const lobby = result[0]?.[0];
+  if (!lobby) throw new AvalonError(404, 'Lobby ' + lobbyName + ' does not exist');
+  return lobby;
 }
 
-export function loginUser(data: LoginData, uid: string): Promise<void> {
-  const userDocRef = db.collection('users').doc(uid);
+// Helper to get a user record, throws if not found
+async function getUser(uid: string): Promise<UserData & { id: RecordId }> {
+  const result = await db.query<[(UserData & { id: RecordId })[]]>(
+    'SELECT * FROM user WHERE id = $id',
+    { id: new RecordId('user', uid) }
+  );
+  const user = result[0]?.[0];
+  if (!user) throw new AvalonError(404, 'User ' + uid + ' does not exist');
+  return user;
+}
+
+// Helper to get secret state for a lobby
+async function getSecretState(lobbyName: string): Promise<(SecretStateData & { id: RecordId }) | null> {
+  const result = await db.query<[(SecretStateData & { id: RecordId })[]]>(
+    'SELECT * FROM secret_state WHERE lobby = $lobby',
+    { lobby: new RecordId('lobby', lobbyName) }
+  );
+  return result[0]?.[0] ?? null;
+}
+
+export async function loginUser(data: LoginData, uid: string): Promise<void> {
   const emailAddr = data.email;
 
-  return db.runTransaction(function(txn) {
-    return txn.get(userDocRef).then(function(userDoc) {
-      if (userDoc.exists) {
-        if (userDoc.get('email') != emailAddr) {
-          throw new AvalonError(429, 'Mismatched emails: ' + userDoc.get('email') + ' and ' + emailAddr);
-        }
-        const lobbyName = userDoc.get('lobby') as string | undefined;
-        if (lobbyName) {
-          const lobbyDocRef = db.collection('lobbies').doc(lobbyName);
-          return txn.get(lobbyDocRef).then(function (lobbyDoc) {
-            if (!lobbyDoc.exists) {
-              txn.update(userDocRef, {
-                lobby: FieldValue.delete()
-              });
-            }
-            txn.update(userDocRef, {
-                lastActive: FieldValue.serverTimestamp()
-            });
-          });
-        }
-      } else {
-        console.log("Creating record for user", uid, 'with email', emailAddr);
-        txn.set(db.collection('users').doc(uid), {
-          uid,
-          email: emailAddr,
-          created: FieldValue.serverTimestamp(),
-          lastActive: FieldValue.serverTimestamp()
-        });
+  const result = await db.query<[(UserData & { id: RecordId })[]]>(
+    'SELECT * FROM user WHERE id = $id',
+    { id: new RecordId('user', uid) }
+  );
+  const userDoc = result[0]?.[0];
+
+  if (userDoc) {
+    if (userDoc.email != emailAddr) {
+      throw new AvalonError(429, 'Mismatched emails: ' + userDoc.email + ' and ' + emailAddr);
+    }
+
+    if (userDoc.lobby) {
+      // Check if the lobby still exists
+      const lobbyResult = await db.query<[{ id: RecordId }[]]>(
+        'SELECT id FROM lobby WHERE id = $id',
+        { id: new RecordId('lobby', userDoc.lobby) }
+      );
+      if (!lobbyResult[0]?.[0]) {
+        await db.query(
+          'UPDATE user SET lobby = NONE WHERE id = $id',
+          { id: new RecordId('user', uid) }
+        );
       }
-   });
-  });
+    }
+
+    await db.query(
+      'UPDATE user SET lastActive = time::now() WHERE id = $id',
+      { id: new RecordId('user', uid) }
+    );
+  } else {
+    console.log("Creating record for user", uid, 'with email', emailAddr);
+    await db.query(
+      `CREATE user SET
+        id = $id,
+        email = $email,
+        created = time::now(),
+        lastActive = time::now()`,
+      { id: new RecordId('user', uid), email: emailAddr }
+    );
+  }
 }
 
-export function joinLobby(data: JoinLobbyData, uid: string): Promise<{ lobby: string; name: string }> {
+export async function joinLobby(data: JoinLobbyData, uid: string): Promise<{ lobby: string; name: string }> {
   validateName(data.name);
+  return withLobbyLock(data.lobby, async () => {
+    const userDoc = await getUser(uid);
 
-  const userDocRef = db.collection('users').doc(uid);
-  const lobbyDocRef = db.collection('lobbies').doc(data.lobby);
-
-  return db.runTransaction(function(transaction) {
-    return Promise.all([
-      transaction.get(userDocRef),
-      transaction.get(lobbyDocRef),
-    ]).then(function([userDoc, lobbyDoc]) {
-      if (!userDoc.exists) {
-        throw new AvalonError(404, 'User ' + uid + ' does not exist');
+    if (userDoc.lobby != null) {
+      if (userDoc.lobby != data.lobby) {
+        console.log('%s currently in %s tried to join %s', uid, userDoc.lobby, data.lobby);
       }
-
-      const currentLobby = userDoc.get('lobby') as string | undefined;
-      if (currentLobby != null) {
-        if (currentLobby != data.lobby) {
-          console.log('%s currently in %s tried to join %s', uid, userDoc.get('lobby'), data.lobby);
-        }
-        return {
-          lobby: userDoc.get('lobby') as string,
-          name: userDoc.get('name') as string,
-        };
-      }
-
-      if (!lobbyDoc.exists) {
-        throw new AvalonError(404, 'Lobby ' + data.lobby + ' does not exist');
-      }
-
-      if ((lobbyDoc.get('users') as Record<string, unknown>)[data.name]) {
-        throw new AvalonError(429, 'Name taken');
-      }
-
-      if (lobbyDoc.get('game.state') == 'ACTIVE') {
-        throw new AvalonError(429, "Cannot join while game is in progress");
-      }
-
-      transaction.update(lobbyDocRef, {
-        ["users." + data.name]: {
-          name: data.name,
-          uid
-        }
-      }).update(userDocRef, {
-        name: data.name,
-        lobby: data.lobby,
-        lastActive: FieldValue.serverTimestamp()
-      });
-
       return {
-        lobby: data.lobby,
-        name: data.name
+        lobby: userDoc.lobby,
+        name: userDoc.name!,
       };
-    });
+    }
+
+    const lobbyDoc = await getLobby(data.lobby);
+
+    if (lobbyDoc.users[data.name]) {
+      throw new AvalonError(429, 'Name taken');
+    }
+
+    if (lobbyDoc.game.state == 'ACTIVE') {
+      throw new AvalonError(429, "Cannot join while game is in progress");
+    }
+
+    // Update lobby users
+    const updatedUsers = { ...lobbyDoc.users, [data.name]: { name: data.name, uid } };
+    await db.query(
+      'UPDATE lobby SET users = $users WHERE id = $id',
+      { id: new RecordId('lobby', data.lobby), users: updatedUsers }
+    );
+
+    // Update user
+    await db.query(
+      'UPDATE user SET name = $name, lobby = $lobby, lastActive = time::now() WHERE id = $id',
+      { id: new RecordId('user', uid), name: data.name, lobby: data.lobby }
+    );
+
+    return {
+      lobby: data.lobby,
+      name: data.name
+    };
   });
 }
 
-export function leaveLobby(data: LobbyActionData, uid: string): Promise<boolean> {
-  const userDocRef = db.collection('users').doc(uid);
-  const lobbyDocRef = db.collection('lobbies').doc(data.lobby);
-  const secretDocRef = lobbyDocRef.collection('roles').doc(SECRET_STATE_DOC_NAME);
+export async function leaveLobby(data: LobbyActionData, uid: string): Promise<boolean> {
+  return withLobbyLock(data.lobby, async () => {
+    const userDoc = await getUser(uid);
+    const lobbyDoc = await getLobby(data.lobby);
+    const secretDoc = await getSecretState(data.lobby);
 
-  return db.runTransaction(function(txn) {
-    return Promise.all([
-      txn.get(userDocRef),
-      txn.get(lobbyDocRef),
-      txn.get(secretDocRef),
-    ]).then(function([userDoc, lobbyDoc, secretDoc]) {
-      if (!userDoc.exists || !lobbyDoc.exists) {
-        throw new AvalonError(404, 'You are not in that lobby');
-      }
+    const myName = userDoc.name!;
 
-      const myName = userDoc.get('name') as string;
+    if (lobbyDoc.game.state == 'ACTIVE') {
+      await endGameTxn(data.lobby, lobbyDoc, secretDoc, 'CANCELED', myName + ' left the game');
+    }
 
-      if (lobbyDoc.get('game.state') == 'ACTIVE') {
-        endGameTxn(txn, lobbyDoc, secretDoc, 'CANCELED', myName + ' left the game');
-      }
+    // Remove user from lobby
+    const updatedUsers = { ...lobbyDoc.users };
+    delete updatedUsers[myName];
+    await db.query(
+      'UPDATE lobby SET users = $users WHERE id = $id',
+      { id: new RecordId('lobby', data.lobby), users: updatedUsers }
+    );
 
-      txn.update(lobbyDocRef, 'users.' + myName, FieldValue.delete());
-      txn.update(userDocRef, {
-        lobby: FieldValue.delete(),
-        lastActive: FieldValue.serverTimestamp()
-      });
+    // Clear user's lobby
+    await db.query(
+      'UPDATE user SET lobby = NONE, lastActive = time::now() WHERE id = $id',
+      { id: new RecordId('user', uid) }
+    );
 
-      if (lobbyDoc.get('admin.uid') == uid) {
-        console.log("Need to swap admin");
+    if (lobbyDoc.admin.uid == uid) {
+      console.log("Need to swap admin");
 
-        const eligibleUsers = Object.keys(lobbyDoc.get('users') as Record<string, unknown>).filter(u => u != myName);
+      const eligibleUsers = Object.keys(lobbyDoc.users).filter(u => u != myName);
 
-        if (eligibleUsers.length == 0) {
-          console.log('No more users, will delete lobby', data.lobby);
-          txn.delete(lobbyDocRef);
-        } else {
-          const users = lobbyDoc.get('users') as Record<string, { uid: string; name: string }>;
-          console.log('Making new admin', data.lobby, users[eligibleUsers[0]]);
-          txn.update(lobbyDocRef, {
+      if (eligibleUsers.length == 0) {
+        console.log('No more users, will delete lobby', data.lobby);
+        await db.query('DELETE lobby WHERE id = $id', { id: new RecordId('lobby', data.lobby) });
+      } else {
+        const users = lobbyDoc.users;
+        console.log('Making new admin', data.lobby, users[eligibleUsers[0]]);
+        await db.query(
+          'UPDATE lobby SET admin = $admin WHERE id = $id',
+          {
+            id: new RecordId('lobby', data.lobby),
             admin: {
               uid: users[eligibleUsers[0]].uid,
               name: users[eligibleUsers[0]].name
             }
-          });
-        }
+          }
+        );
       }
-      return true;
-    });
+    }
+    return true;
   });
 }
 
-export function kickPlayer(data: LobbyActionData, uid: string): Promise<boolean> {
-  const lobbyDocRef = db.collection('lobbies').doc(data.lobby);
+export async function kickPlayer(data: LobbyActionData, uid: string): Promise<boolean> {
+  return withLobbyLock(data.lobby, async () => {
+    const lobbyDoc = await getLobby(data.lobby);
 
-  return db.runTransaction(function(txn) {
-    return lobbyDocRef.get().then(function(lobbyDoc) {
+    if (lobbyDoc.admin.uid != uid) {
+      throw new AvalonError(403, 'Not lobby admin');
+    }
 
-      if (lobbyDoc.get('admin.uid') != uid) {
-        throw new AvalonError(403, 'Not lobby admin');
-      }
+    if (lobbyDoc.game.state == 'ACTIVE') {
+      throw new AvalonError(429, "Cancel game first");
+    }
 
-      if (lobbyDoc.get('game.state') == 'ACTIVE') {
-        throw new AvalonError(429, "Cancel game first");
-      }
+    const user = lobbyDoc.users[data.name];
+    if (!user) {
+      throw new AvalonError(404, 'No such user');
+    }
 
-      const user = (lobbyDoc.get('users') as Record<string, { uid: string; name: string }>)[data.name];
-      if (!user) {
-        throw new AvalonError(404, 'No such user');
-      }
+    if (user.uid == uid) {
+      throw new AvalonError(400, "Can't kick yourself");
+    }
 
-      if (user.uid == uid) {
-        throw new AvalonError(400, "Can't kick yourself");
-      }
+    // Clear kicked user's lobby
+    await db.query(
+      'UPDATE user SET lobby = NONE WHERE id = $id',
+      { id: new RecordId('user', user.uid) }
+    );
 
-      txn.update(db.collection('users').doc(user.uid), {
-        lobby: FieldValue.delete()
-      });
-      txn.update(lobbyDocRef, { ['users.' + user.name] : FieldValue.delete() } );
+    // Remove user from lobby
+    const updatedUsers = { ...lobbyDoc.users };
+    delete updatedUsers[data.name];
+    await db.query(
+      'UPDATE lobby SET users = $users WHERE id = $id',
+      { id: new RecordId('lobby', data.lobby), users: updatedUsers }
+    );
 
-      return true;
-    });
+    return true;
   });
 }
 
-export function createLobby(data: { name: string }, uid: string): Promise<{ lobby: string; name: string }> {
+export async function createLobby(data: { name: string }, uid: string): Promise<{ lobby: string; name: string }> {
   validateName(data.name);
 
   const encodingString = "ABCDEFGHJKLMNPQRSTVWXYZ";
@@ -259,93 +312,76 @@ export function createLobby(data: { name: string }, uid: string): Promise<{ lobb
     return encoding;
   }
 
-  class LobbyAlreadyExists extends Error {
-    constructor(lobbyName: string) {
-      super("Lobby " + lobbyName + " already exists");
-      this.name = "LobbyAlreadyExists";
-    }
-  }
-
-  function runCreateLobbyTransaction(userName: string, userUid: string): Promise<{ lobby: string; name: string }> {
+  async function runCreateLobbyTransaction(userName: string, userUid: string): Promise<{ lobby: string; name: string }> {
     console.log("Creating lobby for " + userUid);
 
-    const userDocRef = db.collection('users').doc(userUid);
+    const userDoc = await getUser(userUid);
 
-    return db.runTransaction(function(transaction) {
-      const lobbyName = encodeId(Math.floor(Math.random() * maxId));
-      const lobbyDocRef = db.collection('lobbies').doc(lobbyName);
+    if (userDoc.lobby) {
+      await db.query(
+        'UPDATE user SET lastActive = time::now() WHERE id = $id',
+        { id: new RecordId('user', userUid) }
+      );
+      return {
+        lobby: userDoc.lobby,
+        name: userDoc.name!,
+      };
+    }
 
-      return Promise.all([
-        transaction.get(lobbyDocRef),
-        transaction.get(userDocRef)
-      ]).then(function([lobbyDoc, userDoc]) {
-        if (!userDoc.exists) {
-          throw new AvalonError(404, 'No such user');
-        }
+    const lobbyName = encodeId(Math.floor(Math.random() * maxId));
 
-        if (userDoc.get('lobby')) {
-          transaction.update(userDocRef, { lastActive: FieldValue.serverTimestamp()});
-          return {
-            lobby: userDoc.get('lobby') as string,
-            name: userDoc.get('name') as string,
-          };
-        }
+    // Check if lobby already exists
+    const existing = await db.query<[{ id: RecordId }[]]>(
+      'SELECT id FROM lobby WHERE id = $id',
+      { id: new RecordId('lobby', lobbyName) }
+    );
 
-        if (lobbyDoc.exists) {
-          throw new LobbyAlreadyExists(lobbyName);
-        }
+    if (existing[0]?.[0]) {
+      // Lobby already exists, retry
+      return runCreateLobbyTransaction(userName, userUid);
+    }
 
-        transaction.update(userDocRef, {
-          lobby: lobbyName,
-          name: userName
-        }).set(lobbyDocRef, {
-          admin: {
-            uid: userUid,
-            name: userName
-          },
-          timeCreated: FieldValue.serverTimestamp(),
-          users: {
-            [userName]: {
-              name: userName,
-              uid: userUid
-            }
-          },
-          game: { state: 'INIT' }
-        });
+    // Update user
+    await db.query(
+      'UPDATE user SET lobby = $lobby, name = $name WHERE id = $id',
+      { id: new RecordId('user', userUid), lobby: lobbyName, name: userName }
+    );
 
-        return {
-          lobby: lobbyName,
-          name: userName,
-        };
-      });
-    }).catch(function(err: unknown) {
-      if (err instanceof LobbyAlreadyExists) {
-        return runCreateLobbyTransaction(userName, userUid);
-      } else {
-        throw err;
+    // Create lobby
+    await db.query(
+      `CREATE lobby SET
+        id = $id,
+        admin = $admin,
+        timeCreated = time::now(),
+        users = $users,
+        game = $game`,
+      {
+        id: new RecordId('lobby', lobbyName),
+        admin: { uid: userUid, name: userName },
+        users: { [userName]: { name: userName, uid: userUid } },
+        game: { state: 'INIT' }
       }
-    });
+    );
+
+    return {
+      lobby: lobbyName,
+      name: userName,
+    };
   }
 
   return runCreateLobbyTransaction(data.name, uid);
 }
 
-export function cancelGame(data: LobbyActionData, uid: string): Promise<void> {
-  const lobbyDocRef = db.collection('lobbies').doc(data.lobby);
-  const secretDocRef = lobbyDocRef.collection('roles').doc(SECRET_STATE_DOC_NAME);
+export async function cancelGame(data: LobbyActionData, uid: string): Promise<void> {
+  return withLobbyLock(data.lobby, async () => {
+    const lobbyDoc = await getLobby(data.lobby);
+    const secretDoc = await getSecretState(data.lobby);
 
-  return db.runTransaction(function(txn) {
-    return Promise.all([
-      txn.get(lobbyDocRef),
-      txn.get(secretDocRef),
-    ]).then(function([lobbyDoc, secretDoc]) {
-      validateField(lobbyDoc, 'game.state', 'ACTIVE');
-      const users = lobbyDoc.get('users') as Record<string, { uid: string }>;
-      if (users[data.name].uid != uid) {
-        throw new AvalonError(404, 'You are not who you say you are');
-      }
-      endGameTxn(txn, lobbyDoc, secretDoc, 'CANCELED', 'Canceled by ' + data.name);
-    });
+    validateValue(lobbyDoc.game.state, 'ACTIVE', 'Game state not active');
+    if (lobbyDoc.users[data.name].uid != uid) {
+      throw new AvalonError(404, 'You are not who you say you are');
+    }
+    await endGameTxn(data.lobby, lobbyDoc, secretDoc, 'CANCELED', 'Canceled by ' + data.name);
   });
 }
 
@@ -385,7 +421,7 @@ interface RoleAssignment {
   sees?: string[];
 }
 
-function assignRoles(playerList: string[], roles: string[] = [], _oldRoles?: unknown): Record<string, PlayerRole> {
+function assignRoles(playerList: string[], roles: string[] = []): Record<string, PlayerRole> {
 
   const makeTeam = function(teamList: string[], team: 'good' | 'evil'): RoleAssignment[] {
     const teamRoles = ROLES.filter(r => r.team == team);
@@ -438,18 +474,18 @@ interface EndGameOptions {
   votes?: Record<string, boolean>[];
 }
 
-function endGameTxn(
-  txn: firestore.Transaction,
-  lobbyDoc: firestore.DocumentSnapshot,
-  secretDoc: firestore.DocumentSnapshot,
+async function endGameTxn(
+  lobbyName: string,
+  lobbyDoc: LobbyData,
+  secretDoc: SecretStateData | null,
   state: string,
   message: string,
   {
     assassinated = null,
-    game = lobbyDoc.get('game') as Game,
-    votes = (secretDoc.get('votes.mission') ?? []) as Record<string, boolean>[]
+    game = lobbyDoc.game,
+    votes = (secretDoc?.votes?.mission ?? []) as Record<string, boolean>[]
   }: EndGameOptions = {}
-): void {
+): Promise<void> {
 
   validateValue(game.state, 'ACTIVE', 'Game state not active');
   game.state = 'ENDED';
@@ -457,19 +493,22 @@ function endGameTxn(
     state: state as 'GOOD_WIN' | 'EVIL_WIN' | 'CANCELED',
     message,
     assassinated: assassinated ?? null,
-    roles: Object.values(secretDoc.get('roles') as Record<string, PlayerRole>).map(
-      r => _.pick(r, ['name', 'role', 'assassin'])),
+    roles: secretDoc ? Object.values(secretDoc.roles).map(
+      r => _.pick(r, ['name', 'role', 'assassin'])) : [],
     votes,
   };
 
-  const users = lobbyDoc.get('users') as Record<string, { uid: string }>;
+  const users = lobbyDoc.users;
   const uids = game.players.map(name => users[name].uid);
 
-  uids.forEach(uid => txn.delete(lobbyDoc.ref.collection('roles').doc(uid)));
-  txn.delete(lobbyDoc.ref.collection('roles').doc(SECRET_STATE_DOC_NAME));
+  // Delete player_role records for this lobby
+  await db.query('DELETE player_role WHERE lobby = $lobby', { lobby: new RecordId('lobby', lobbyName) });
+
+  // Delete secret_state for this lobby
+  await db.query('DELETE secret_state WHERE lobby = $lobby', { lobby: new RecordId('lobby', lobbyName) });
 
   if (state != 'CANCELED') {
-    const logName = game.timeCreated!.toDate().toISOString() + '_' + lobbyDoc.id;
+    const logName = (game.timeCreated || new Date().toISOString()) + '_' + lobbyName;
     const gameObj = {
       missions: game.missions,
       outcome: game.outcome,
@@ -480,16 +519,45 @@ function endGameTxn(
         };
       }),
       options: game.options,
-      timeCreated: lobbyDoc.get('game.timeCreated'),
-      timeFinished: FieldValue.serverTimestamp()
+      timeCreated: game.timeCreated,
+      timeFinished: new Date().toISOString()
     };
-    txn.set(db.collection('logs').doc(logName), gameObj);
-    uids.forEach(uid => txn.update(db.collection('users').doc(uid), "logs", FieldValue.arrayUnion(logName)));
+    await db.query(
+      'CREATE game_log SET id = $id, missions = $missions, outcome = $outcome, players = $players, options = $options, timeCreated = $timeCreated, timeFinished = time::now()',
+      {
+        id: new RecordId('game_log', logName),
+        missions: gameObj.missions,
+        outcome: gameObj.outcome,
+        players: gameObj.players,
+        options: gameObj.options,
+        timeCreated: gameObj.timeCreated,
+      }
+    );
+
+    // Update user logs
+    for (const uid of uids) {
+      await db.query(
+        'UPDATE user SET logs = array::union(logs ?? [], [$logName]) WHERE id = $id',
+        { id: new RecordId('user', uid), logName }
+      );
+    }
+
+    // Compute and store stats inline
+    try {
+      await computeAndCombineStats(gameObj);
+    } catch (err) {
+      console.error('Failed to compute stats:', err);
+    }
   }
-  txn.update(lobbyDoc.ref, "game", game);
+
+  // Update lobby game state
+  await db.query(
+    'UPDATE lobby SET game = $game WHERE id = $id',
+    { id: new RecordId('lobby', lobbyName), game }
+  );
 }
 
-export function startGame(data: StartGameData, uid: string): Promise<boolean> {
+export async function startGame(data: StartGameData, uid: string): Promise<boolean> {
 
   if (!Array.isArray(data.playerList) ||
     data.playerList.length < 5  ||
@@ -502,67 +570,85 @@ export function startGame(data: StartGameData, uid: string): Promise<boolean> {
     throw new AvalonError(400, 'Bad roles ' + data.roles);
   }
 
-  const lobbyDocRef = db.collection('lobbies').doc(data.lobby);
+  return withLobbyLock(data.lobby, async () => {
+    const lobbyDoc = await getLobby(data.lobby);
 
-  return db.runTransaction(function(txn) {
-    return lobbyDocRef.get().then(function(lobbyDoc) {
+    if (lobbyDoc.admin.uid != uid) {
+      throw new AvalonError(403, 'Not lobby admin');
+    }
 
-      if (!lobbyDoc.exists) {
-        throw new AvalonError(404, 'No such lobby: ' + data.lobby);
-      }
+    if (lobbyDoc.game.state == 'ACTIVE') {
+      throw new AvalonError(429, 'Game already in progress');
+    }
 
-      if (lobbyDoc.get('admin.uid') != uid) {
-        throw new AvalonError(403, 'Not lobby admin');
-      }
+    const lobbyUsers = lobbyDoc.users;
 
-      const curGameState = lobbyDoc.get('game.state');
+    if ((data.playerList.length != Object.keys(lobbyUsers).length) ||
+        !data.playerList.every(name => lobbyUsers[name])) {
+      throw new AvalonError(400, 'Bad player list: ' + data.playerList.sort() +
+        '. In lobby: ' + Object.keys(lobbyUsers).sort());
+    }
 
-      if (curGameState == 'ACTIVE') {
-        throw new AvalonError(429, 'Game already in progress');
-      }
+    const roles = assignRoles(data.playerList, data.roles);
+    const now = new Date().toISOString();
 
-      const lobbyUsers = lobbyDoc.get('users') as Record<string, { uid: string; name: string }>;
-
-      if ((data.playerList.length != Object.keys(lobbyUsers).length) ||
-          !data.playerList.every(name => lobbyUsers[name])) {
-        throw new AvalonError(400, 'Bad player list: ' + data.playerList.sort() +
-          '. In lobby: ' + Object.keys(lobbyUsers).sort());
-      }
-
-      const roles = assignRoles(data.playerList, data.roles, lobbyDoc.get('game.outcome.roles'));
-
-      txn.update(lobbyDocRef, {
-        game : {
+    // Update lobby with game state
+    await db.query(
+      'UPDATE lobby SET game = $game WHERE id = $id',
+      {
+        id: new RecordId('lobby', data.lobby),
+        game: {
           state: 'ACTIVE',
           phase: 'TEAM_PROPOSAL',
-          timeCreated: FieldValue.serverTimestamp(),
+          timeCreated: now,
           missions: makeMissions(data.playerList),
           players: data.playerList,
           roles: Object.values(roles).map(r => r.role),
           options: data.options
-        }});
-      txn.set(lobbyDocRef.collection('roles').doc(SECRET_STATE_DOC_NAME), {
+        }
+      }
+    );
+
+    // Create secret state
+    await db.query(
+      'CREATE secret_state SET lobby = $lobby, roles = $roles, votes = $votes',
+      {
+        lobby: new RecordId('lobby', data.lobby),
         roles,
         votes: { mission: [], proposal: {} }
-      });
+      }
+    );
 
-      Object.values(roles).forEach(role => {
-        const player = lobbyUsers[role.name];
-        txn.set(lobbyDocRef.collection('roles').doc(player.uid), {
+    // Create player role docs
+    for (const role of Object.values(roles)) {
+      const player = lobbyUsers[role.name];
+      await db.query(
+        `CREATE player_role SET
+          lobby = $lobby,
+          user = $user,
+          uid = $uid,
+          name = $name,
+          role = $role,
+          assassin = $assassin,
+          sees = $sees`,
+        {
+          lobby: new RecordId('lobby', data.lobby),
+          user: new RecordId('user', player.uid),
           uid: player.uid,
           name: player.name,
-          assassin: role.assassin,
           role: role.role,
+          assassin: role.assassin,
           sees: role.sees,
-        });
-      });
-      console.log('started game', data.lobby);
-      return true;
-    });
+        }
+      );
+    }
+
+    console.log('started game', data.lobby);
+    return true;
   });
 }
 
-export function proposeTeam(data: TeamProposalData, uid: string): Promise<void> {
+export async function proposeTeam(data: TeamProposalData, uid: string): Promise<void> {
   if (!Array.isArray(data.team)) {
     throw new AvalonError(400, 'Bad team: must be an array');
   }
@@ -577,50 +663,51 @@ export function proposeTeam(data: TeamProposalData, uid: string): Promise<void> 
     throw new AvalonError(400, `Invalid proposal index: ${data.proposal}`);
   }
 
-  const lobbyDocRef = db.collection('lobbies').doc(data.lobby);
+  return withLobbyLock(data.lobby, async () => {
+    const lobbyDoc = await getLobby(data.lobby);
+    const game = lobbyDoc.game;
 
-  return db.runTransaction(function(txn) {
-    return lobbyDocRef.get().then(function(lobbyDoc) {
-      validateField(lobbyDoc, 'game.state', 'ACTIVE');
-      validateField(lobbyDoc, 'game.phase', 'TEAM_PROPOSAL');
+    validateValue(game.state, 'ACTIVE', 'Game state not active');
+    validateValue(game.phase, 'TEAM_PROPOSAL', 'Game phase');
 
-      const game = lobbyDoc.get('game') as Game;
-      if (!game || !Array.isArray(game.missions) || missionIndex >= game.missions.length) {
-        throw new AvalonError(400, 'Mission not found');
-      }
-      const mission = game.missions[missionIndex];
-      if (!Array.isArray(mission.proposals) || proposalIndex >= mission.proposals.length) {
-        throw new AvalonError(400, 'Proposal not found');
-      }
-      const proposal = mission.proposals[proposalIndex];
+    if (!game || !Array.isArray(game.missions) || missionIndex >= game.missions.length) {
+      throw new AvalonError(400, 'Mission not found');
+    }
+    const mission = game.missions[missionIndex];
+    if (!Array.isArray(mission.proposals) || proposalIndex >= mission.proposals.length) {
+      throw new AvalonError(400, 'Proposal not found');
+    }
+    const proposal = mission.proposals[proposalIndex];
 
-      validateValue(mission.state, 'PENDING', "Mission state");
-      validateValue(proposal.state, 'PENDING', 'Proposal state');
+    validateValue(mission.state, 'PENDING', "Mission state");
+    validateValue(proposal.state, 'PENDING', 'Proposal state');
 
-      const users = lobbyDoc.get('users') as Record<string, { uid: string }>;
-      const proposerUid = users[proposal.proposer].uid;
+    const users = lobbyDoc.users;
+    const proposerUid = users[proposal.proposer].uid;
 
-      if (uid != proposerUid) {
-        throw new AvalonError(404, 'You are not the proposer');
-      }
+    if (uid != proposerUid) {
+      throw new AvalonError(404, 'You are not the proposer');
+    }
 
-      if (data.team.length != mission.teamSize) {
-        throw new AvalonError(400, 'Bad team size. Need ' + mission.teamSize);
-      }
+    if (data.team.length != mission.teamSize) {
+      throw new AvalonError(400, 'Bad team size. Need ' + mission.teamSize);
+    }
 
-      if (!data.team.every(p => game.players.includes(p))) {
-        throw new AvalonError(400, 'Bad team: ' + data.team);
-      }
+    if (!data.team.every(p => game.players.includes(p))) {
+      throw new AvalonError(400, 'Bad team: ' + data.team);
+    }
 
-      proposal.team = data.team;
-      game.phase = 'PROPOSAL_VOTE';
+    proposal.team = data.team;
+    game.phase = 'PROPOSAL_VOTE';
 
-      txn.update(lobbyDocRef, 'game', game);
-    });
+    await db.query(
+      'UPDATE lobby SET game = $game WHERE id = $id',
+      { id: new RecordId('lobby', data.lobby), game }
+    );
   });
 }
 
-function recordVote(
+async function recordVote(
   name: string,
   requestUid: string,
   lobby: string,
@@ -631,62 +718,64 @@ function recordVote(
   proposalState: string,
   publicVotesListGetter: (game: Game, mission: Mission, proposal: Proposal) => string[],
   secretVotesListGetter: (secretVotes: SecretVotes) => Record<string, boolean>,
-  voteValidator?: (name: string, vote: boolean, secretDoc: firestore.DocumentSnapshot) => boolean
+  voteValidator?: (name: string, vote: boolean, secretData: SecretStateData) => boolean
 ): Promise<void> {
 
-  const lobbyDocRef = db.collection('lobbies').doc(lobby);
-  const secretDocRef = lobbyDocRef.collection('roles').doc(SECRET_STATE_DOC_NAME);
+  const lobbyDoc = await getLobby(lobby);
+  const secretDoc = await getSecretState(lobby);
+  if (!secretDoc) throw new AvalonError(500, 'Secret state not found');
 
-  return db.runTransaction(function(txn) {
-    return Promise.all([
-      txn.get(lobbyDocRef),
-      txn.get(secretDocRef)]).then(function([lobbyDoc, secretDoc]) {
-      validateField(lobbyDoc, 'game.state', 'ACTIVE');
-      validateField(lobbyDoc, 'game.phase', gamePhase);
+  const game = lobbyDoc.game;
 
-      const game = lobbyDoc.get('game') as Game;
-      if (!game || !Array.isArray(game.missions) || missionIdx >= game.missions.length) {
-        throw new AvalonError(400, 'Mission not found');
-      }
-      const mission = game.missions[missionIdx];
-      if (!Array.isArray(mission.proposals) || proposalIdx >= mission.proposals.length) {
-        throw new AvalonError(400, 'Proposal not found');
-      }
-      const proposal = mission.proposals[proposalIdx];
+  validateValue(game.state, 'ACTIVE', 'Game state not active');
+  validateValue(game.phase, gamePhase, 'Game phase');
 
-      validateValue(mission.state, 'PENDING', "Mission state");
-      validateValue(proposal.state, proposalState, 'Proposal state');
+  if (!game || !Array.isArray(game.missions) || missionIdx >= game.missions.length) {
+    throw new AvalonError(400, 'Mission not found');
+  }
+  const mission = game.missions[missionIdx];
+  if (!Array.isArray(mission.proposals) || proposalIdx >= mission.proposals.length) {
+    throw new AvalonError(400, 'Proposal not found');
+  }
+  const proposal = mission.proposals[proposalIdx];
 
-      const users = lobbyDoc.get('users') as Record<string, { uid: string }>;
-      const uid = users[name].uid;
+  validateValue(mission.state, 'PENDING', "Mission state");
+  validateValue(proposal.state, proposalState, 'Proposal state');
 
-      if (requestUid != uid) {
-        console.log('%s is %s but request came from %s', name, uid, requestUid);
-        throw new AvalonError(403, 'You are not who you say you are');
-      }
+  const users = lobbyDoc.users;
+  const uid = users[name].uid;
 
-      const publicVotes = publicVotesListGetter(game, mission, proposal);
+  if (requestUid != uid) {
+    console.log('%s is %s but request came from %s', name, uid, requestUid);
+    throw new AvalonError(403, 'You are not who you say you are');
+  }
 
-      if (!publicVotes.includes(name)) {
-        publicVotes.push(name);
-      }
+  const publicVotes = publicVotesListGetter(game, mission, proposal);
 
-      if (voteValidator && !voteValidator(name, vote, secretDoc)) {
-        console.log('%s is not allowed to vote %s, switching to %s', name, vote, !vote);
-        vote = !vote;
-      }
+  if (!publicVotes.includes(name)) {
+    publicVotes.push(name);
+  }
 
-      const votes = secretDoc.get('votes') as SecretVotes;
-      validateSafeName(name);
-      secretVotesListGetter(votes)[name] = vote;
+  if (voteValidator && !voteValidator(name, vote, secretDoc)) {
+    console.log('%s is not allowed to vote %s, switching to %s', name, vote, !vote);
+    vote = !vote;
+  }
 
-      txn.update(lobbyDocRef, "game", game);
-      txn.update(secretDocRef, "votes", votes);
-    });
-  });
+  const votes = secretDoc.votes;
+  validateSafeName(name);
+  secretVotesListGetter(votes)[name] = vote;
+
+  await db.query(
+    'UPDATE lobby SET game = $game WHERE id = $id',
+    { id: new RecordId('lobby', lobby), game }
+  );
+  await db.query(
+    'UPDATE secret_state SET votes = $votes WHERE id = $id',
+    { id: secretDoc.id, votes }
+  );
 }
 
-export function voteTeam(data: VoteData, uid: string): Promise<void> {
+export async function voteTeam(data: VoteData, uid: string): Promise<void> {
   const missionIndex = Number(data.mission);
   const proposalIndex = Number(data.proposal);
   if (!Number.isInteger(missionIndex) || missionIndex < 0) {
@@ -696,171 +785,175 @@ export function voteTeam(data: VoteData, uid: string): Promise<void> {
     throw new AvalonError(400, `Invalid proposal index: ${data.proposal}`);
   }
 
-  const lobbyDocRef = db.collection('lobbies').doc(data.lobby);
-  const secretDocRef = lobbyDocRef.collection('roles').doc(SECRET_STATE_DOC_NAME);
+  return withLobbyLock(data.lobby, async () => {
+    await recordVote(data.name, uid, data.lobby, missionIndex,
+      proposalIndex, data.vote, 'PROPOSAL_VOTE', 'PENDING',
+      (_game, _mission, proposal) => proposal.votes,
+      (secretVotes) => secretVotes.proposal);
 
-  return recordVote(data.name, uid, data.lobby, missionIndex,
-    proposalIndex, data.vote, 'PROPOSAL_VOTE', 'PENDING',
-    (_game, _mission, proposal) => proposal.votes,
-    (secretVotes) => secretVotes.proposal).then(function() {
-    return db.runTransaction(function(txn) {
-      return Promise.all([
-        txn.get(lobbyDocRef),
-        txn.get(secretDocRef)]).then(function([lobbyDoc, secretDoc]) {
-        const game = lobbyDoc.get('game') as Game;
-        if (!game || !Array.isArray(game.missions) || missionIndex >= game.missions.length) {
-          throw new AvalonError(400, 'Mission not found');
-        }
-        const mission = game.missions[missionIndex];
-        if (!Array.isArray(mission.proposals) || proposalIndex >= mission.proposals.length) {
-          throw new AvalonError(400, 'Proposal not found');
-        }
-        const proposal = mission.proposals[proposalIndex];
-        const votes = secretDoc.get('votes') as SecretVotes;
+    // Check/resolve proposal (now safe since we hold the lock)
+    const lobbyDoc = await getLobby(data.lobby);
+    const secretDoc = await getSecretState(data.lobby);
+    if (!secretDoc) return;
 
-        if (proposal.state != 'PENDING') {
-          return;
-        }
+    const game = lobbyDoc.game;
+    if (!game || !Array.isArray(game.missions) || missionIndex >= game.missions.length) {
+      throw new AvalonError(400, 'Mission not found');
+    }
+    const mission = game.missions[missionIndex];
+    if (!Array.isArray(mission.proposals) || proposalIndex >= mission.proposals.length) {
+      throw new AvalonError(400, 'Proposal not found');
+    }
+    const proposal = mission.proposals[proposalIndex];
+    const votes = secretDoc.votes;
 
-        if (Object.keys(votes.proposal).length != game.players.length) {
-          return;
-        }
+    if (proposal.state != 'PENDING') {
+      return;
+    }
 
-        proposal.votes = Object.entries(votes.proposal).filter(([_n, vote]) => vote).map(([name, _v]) => name);
-        console.log('approvers are', proposal.votes);
+    if (Object.keys(votes.proposal).length != game.players.length) {
+      return;
+    }
 
-        if (proposal.votes.length < Math.floor(game.players.length / 2) + 1) {
-          proposal.state = 'REJECTED';
+    proposal.votes = Object.entries(votes.proposal).filter(([_n, vote]) => vote).map(([name, _v]) => name);
+    console.log('approvers are', proposal.votes);
 
-          if (proposalIndex == 4) {
-            return endGameTxn(txn, lobbyDoc, secretDoc, 'EVIL_WIN', "Five team proposals in a row rejected", { game });
-          } else {
-            game.phase = 'TEAM_PROPOSAL';
-            mission.proposals.push(proposalTemplate(proposal.proposer, game.players));
-          }
-        } else {
-          proposal.state = 'APPROVED';
-          game.phase = 'MISSION_VOTE';
-          votes.mission.push({});
-        }
+    if (proposal.votes.length < Math.floor(game.players.length / 2) + 1) {
+      proposal.state = 'REJECTED';
 
-        votes.proposal = {};
-        txn.update(lobbyDocRef, "game", game);
-        txn.update(secretDocRef, "votes", votes);
-      });
-    });
-  });
-}
-
-export function doMission(data: VoteData, uid: string): Promise<void> {
-  const lobbyDocRef = db.collection('lobbies').doc(data.lobby);
-  const secretDocRef = lobbyDocRef.collection('roles').doc(SECRET_STATE_DOC_NAME);
-
-  const missionIndex = Number(data.mission);
-  const proposalIndex = Number(data.proposal);
-  if (!Number.isInteger(missionIndex) || missionIndex < 0) {
-    throw new AvalonError(400, `Invalid mission index: ${data.mission}`);
-  }
-  if (!Number.isInteger(proposalIndex) || proposalIndex < 0) {
-    throw new AvalonError(400, `Invalid proposal index: ${data.proposal}`);
-  }
-
-  return recordVote(data.name, uid, data.lobby, missionIndex,
-    proposalIndex, data.vote, 'MISSION_VOTE', 'APPROVED',
-    (_game, mission, _proposal) => mission.team,
-    (secretVotes) => secretVotes.mission[missionIndex],
-    ((name, vote, secretDoc) => vote || (secretDoc.get('roles') as Record<string, PlayerRole>)[name].team == 'evil')
-  ).then(function() {
-    return db.runTransaction(function(txn) {
-      return Promise.all([
-        txn.get(lobbyDocRef),
-        txn.get(secretDocRef)]).then(
-          function([lobbyDoc, secretDoc]) {
-      const game = lobbyDoc.get('game') as Game;
-      if (!game || !Array.isArray(game.missions) || missionIndex >= game.missions.length) {
-        throw new AvalonError(400, 'Mission not found');
-      }
-      const mission = game.missions[missionIndex];
-      if (!Array.isArray(mission.proposals) || proposalIndex >= mission.proposals.length) {
-        throw new AvalonError(400, 'Proposal not found');
-      }
-      const proposal = mission.proposals[proposalIndex];
-      const votes = secretDoc.get('votes') as SecretVotes;
-
-      if (mission.state != 'PENDING') {
-        return;
-      }
-
-      if (!votes || !votes.mission || !votes.mission[missionIndex] ||
-          Object.keys(votes.mission[missionIndex]).length != mission.teamSize) {
-        return;
-      }
-
-      mission.team = proposal.team;
-
-      mission.numFails = Object.values(votes.mission[missionIndex]).filter(v => !v).length;
-
-      if (mission.numFails < mission.failsRequired) {
-        mission.state = 'SUCCESS';
-      } else {
-        mission.state = 'FAIL';
-      }
-
-      const failedMissions = game.missions.filter(m => m.state == 'FAIL').length;
-      const succeededMissions = game.missions.filter(m => m.state == 'SUCCESS').length;
-
-      if (failedMissions == 3) {
-        endGameTxn(txn, lobbyDoc, secretDoc, 'EVIL_WIN', 'Three failed missions', { game });
-      } else if (succeededMissions == 3) {
-        if (game.roles.includes('MERLIN')) {
-          game.phase = 'ASSASSINATION';
-        } else {
-          endGameTxn(txn, lobbyDoc, secretDoc, 'GOOD_WIN', 'Three missions succeeded', { game });
-        }
+      if (proposalIndex == 4) {
+        return endGameTxn(data.lobby, lobbyDoc, secretDoc, 'EVIL_WIN', "Five team proposals in a row rejected", { game });
       } else {
         game.phase = 'TEAM_PROPOSAL';
-        const nextMissionIndex = missionIndex + 1;
-        if (nextMissionIndex >= game.missions.length) {
-          throw new AvalonError(500, 'Invariant violated: no next mission available for TEAM_PROPOSAL phase');
-        }
-        game.missions[nextMissionIndex].proposals.push(proposalTemplate(proposal.proposer, game.players));
+        mission.proposals.push(proposalTemplate(proposal.proposer, game.players));
       }
-      txn.update(lobbyDocRef, 'game', game);
-    });
+    } else {
+      proposal.state = 'APPROVED';
+      game.phase = 'MISSION_VOTE';
+      votes.mission.push({});
+    }
+
+    votes.proposal = {};
+    await db.query(
+      'UPDATE lobby SET game = $game WHERE id = $id',
+      { id: new RecordId('lobby', data.lobby), game }
+    );
+    await db.query(
+      'UPDATE secret_state SET votes = $votes WHERE id = $id',
+      { id: secretDoc.id, votes }
+    );
   });
-});
 }
 
-export function assassinate(data: AssassinateData, uid: string): Promise<boolean> {
-  const lobbyDocRef = db.collection('lobbies').doc(data.lobby);
-  const secretDocRef = lobbyDocRef.collection('roles').doc(SECRET_STATE_DOC_NAME);
+export async function doMission(data: VoteData, uid: string): Promise<void> {
+  const missionIndex = Number(data.mission);
+  const proposalIndex = Number(data.proposal);
+  if (!Number.isInteger(missionIndex) || missionIndex < 0) {
+    throw new AvalonError(400, `Invalid mission index: ${data.mission}`);
+  }
+  if (!Number.isInteger(proposalIndex) || proposalIndex < 0) {
+    throw new AvalonError(400, `Invalid proposal index: ${data.proposal}`);
+  }
 
-  return db.runTransaction(function(txn) {
-    return Promise.all([
-      txn.get(lobbyDocRef),
-      txn.get(secretDocRef)]).then(function([lobbyDoc, secretDoc]) {
+  return withLobbyLock(data.lobby, async () => {
+    await recordVote(data.name, uid, data.lobby, missionIndex,
+      proposalIndex, data.vote, 'MISSION_VOTE', 'APPROVED',
+      (_game, mission, _proposal) => mission.team,
+      (secretVotes) => secretVotes.mission[missionIndex],
+      ((name, vote, secretData) => vote || secretData.roles[name].team == 'evil')
+    );
 
-      validateField(lobbyDoc, 'game.state', 'ACTIVE');
-      validateField(lobbyDoc, 'game.phase', 'ASSASSINATION');
+    // Check/resolve mission (now safe since we hold the lock)
+    const lobbyDoc = await getLobby(data.lobby);
+    const secretDoc = await getSecretState(data.lobby);
+    if (!secretDoc) return;
 
-      const users = lobbyDoc.get('users') as Record<string, { uid: string }>;
-      if (uid != users[data.name].uid) {
-        console.warn('%s is %s but request came from %s', data.name, users[data.name].uid, uid);
-        throw new AvalonError(403, 'You are not who you say you are');
-      }
+    const game = lobbyDoc.game;
+    if (!game || !Array.isArray(game.missions) || missionIndex >= game.missions.length) {
+      throw new AvalonError(400, 'Mission not found');
+    }
+    const mission = game.missions[missionIndex];
+    if (!Array.isArray(mission.proposals) || proposalIndex >= mission.proposals.length) {
+      throw new AvalonError(400, 'Proposal not found');
+    }
+    const proposal = mission.proposals[proposalIndex];
+    const votes = secretDoc.votes;
 
-      const roles = secretDoc.get('roles') as Record<string, PlayerRole>;
-      if (!roles[data.name].assassin) {
-        console.warn('%s is %o', data.name, secretDoc.get('roles')[data.name]);
-        throw new AvalonError(403, 'You are not the assassin');
-      }
+    if (mission.state != 'PENDING') {
+      return;
+    }
 
-      if (roles[data.target].role == 'MERLIN') {
-        endGameTxn(txn, lobbyDoc, secretDoc, 'EVIL_WIN', 'Merlin assassinated', { assassinated: data.target });
+    if (!votes || !votes.mission || !votes.mission[missionIndex] ||
+        Object.keys(votes.mission[missionIndex]).length != mission.teamSize) {
+      return;
+    }
+
+    mission.team = proposal.team;
+
+    mission.numFails = Object.values(votes.mission[missionIndex]).filter(v => !v).length;
+
+    if (mission.numFails < mission.failsRequired) {
+      mission.state = 'SUCCESS';
+    } else {
+      mission.state = 'FAIL';
+    }
+
+    const failedMissions = game.missions.filter(m => m.state == 'FAIL').length;
+    const succeededMissions = game.missions.filter(m => m.state == 'SUCCESS').length;
+
+    if (failedMissions == 3) {
+      await endGameTxn(data.lobby, lobbyDoc, secretDoc, 'EVIL_WIN', 'Three failed missions', { game });
+    } else if (succeededMissions == 3) {
+      if (game.roles.includes('MERLIN')) {
+        game.phase = 'ASSASSINATION';
+        await db.query(
+          'UPDATE lobby SET game = $game WHERE id = $id',
+          { id: new RecordId('lobby', data.lobby), game }
+        );
       } else {
-        endGameTxn(txn, lobbyDoc, secretDoc, 'GOOD_WIN', 'Three successful missions', { assassinated: data.target });
+        await endGameTxn(data.lobby, lobbyDoc, secretDoc, 'GOOD_WIN', 'Three missions succeeded', { game });
       }
-      return true;
-    });
+    } else {
+      game.phase = 'TEAM_PROPOSAL';
+      const nextMissionIndex = missionIndex + 1;
+      if (nextMissionIndex >= game.missions.length) {
+        throw new AvalonError(500, 'Invariant violated: no next mission available for TEAM_PROPOSAL phase');
+      }
+      game.missions[nextMissionIndex].proposals.push(proposalTemplate(proposal.proposer, game.players));
+      await db.query(
+        'UPDATE lobby SET game = $game WHERE id = $id',
+        { id: new RecordId('lobby', data.lobby), game }
+      );
+    }
+  });
+}
+
+export async function assassinate(data: AssassinateData, uid: string): Promise<boolean> {
+  return withLobbyLock(data.lobby, async () => {
+    const lobbyDoc = await getLobby(data.lobby);
+    const secretDoc = await getSecretState(data.lobby);
+    if (!secretDoc) throw new AvalonError(500, 'Secret state not found');
+
+    validateValue(lobbyDoc.game.state, 'ACTIVE', 'Game state not active');
+    validateValue(lobbyDoc.game.phase, 'ASSASSINATION', 'Game phase');
+
+    const users = lobbyDoc.users;
+    if (uid != users[data.name].uid) {
+      console.warn('%s is %s but request came from %s', data.name, users[data.name].uid, uid);
+      throw new AvalonError(403, 'You are not who you say you are');
+    }
+
+    const roles = secretDoc.roles;
+    if (!roles[data.name].assassin) {
+      console.warn('%s is %o', data.name, roles[data.name]);
+      throw new AvalonError(403, 'You are not the assassin');
+    }
+
+    if (roles[data.target].role == 'MERLIN') {
+      await endGameTxn(data.lobby, lobbyDoc, secretDoc, 'EVIL_WIN', 'Merlin assassinated', { assassinated: data.target });
+    } else {
+      await endGameTxn(data.lobby, lobbyDoc, secretDoc, 'GOOD_WIN', 'Three successful missions', { assassinated: data.target });
+    }
+    return true;
   });
 }

@@ -4,8 +4,7 @@
   "workspaces": [
     "common",
     "client",
-    "server",
-    "firebase/functions"
+    "server"
   ],
   "bin": {
     "avalon-admin": "./server/admin.ts",

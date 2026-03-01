@@ -5,8 +5,8 @@ A multiplayer web implementation of **The Resistance: Avalon** board game. Playe
 ## Tech Stack
 
 - **Client:** Vue 3 + Vuetify 3 + TypeScript (Vite)
-- **Server:** Express.js + Firebase Admin SDK
-- **Database:** Firebase Firestore (real-time sync)
+- **Server:** Express.js + SurrealDB SDK
+- **Database:** SurrealDB Cloud (real-time via live queries)
 - **Build:** Yarn 4 workspaces, esbuild, Nix
 
 ## Getting Started
@@ -14,7 +14,16 @@ A multiplayer web implementation of **The Resistance: Avalon** board game. Playe
 ### Prerequisites
 - Node.js 20+
 - Yarn 4 (`corepack enable`)
-- Firebase project with Firestore enabled
+- SurrealDB Cloud instance (or local SurrealDB)
+
+### Environment Variables
+```bash
+SURREAL_URL=https://your-instance.surreal.cloud/
+SURREAL_NS=avalon
+SURREAL_DB=avalon
+SURREAL_USER=root
+SURREAL_PASS=your-password
+```
 
 ### Install Dependencies
 ```bash
@@ -49,9 +58,6 @@ nix build .#container # Build Docker container image
 ```bash
 # Server (Google App Engine)
 gcloud app deploy
-
-# Firebase functions
-firebase deploy
 ```
 
 ## Project Structure
@@ -60,8 +66,7 @@ firebase deploy
 avalon/
   common/           # @avalon/common - Shared game logic (roles, rules)
   client/           # @avalon/client - Vue 3 SPA
-  server/           # @avalon/server - Express REST API
-  firebase/         # Firebase functions + Firestore rules
+  server/           # @avalon/server - Express REST API + SurrealDB
   tests/            # E2E tests (Playwright)
   flake.nix         # Nix build configuration
 ```

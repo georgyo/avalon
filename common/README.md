@@ -4,9 +4,8 @@ Shared game logic for the Avalon project.
 
 ## Overview
 
-This package contains game rules, role definitions, and other shared logic used by both:
+This package contains game rules, role definitions, and other shared logic used by:
 - Server (`@avalon/server`) - Express.js backend
-- Firebase Functions (`functions`) - Cloud Functions for stats computation
 
 ## Contents
 
@@ -46,8 +45,4 @@ TypeScript types are included via the `exports` field in `package.json`.
 
 ## History
 
-Previously, this code was duplicated in:
-- `server/common/avalonlib.cjs`
-- `firebase/functions/common/avalonlib.js`
-
-The code is now consolidated into a single workspace package to maintain a single source of truth.
+Previously, this code was duplicated across the server and cloud functions. It is now consolidated into a single workspace package.
