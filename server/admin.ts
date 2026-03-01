@@ -10,7 +10,7 @@ interface GameLogRecord {
     state: 'GOOD_WIN' | 'EVIL_WIN' | 'CANCELED';
     roles: { name: string; role: string; assassin: boolean }[];
   };
-  players: { name: string; uid: string }[];
+  players: { name: string; uid: RecordId | string }[];
   options?: Record<string, unknown>;
   timeCreated?: string;
   timeFinished: string;

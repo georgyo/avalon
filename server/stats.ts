@@ -7,7 +7,7 @@ interface GameLogData {
     state: 'GOOD_WIN' | 'EVIL_WIN' | 'CANCELED';
     roles: { name: string; role: string; assassin: boolean }[];
   };
-  players: { name: string; uid: string }[];
+  players: { name: string; uid: RecordId | string }[];
   timeCreated?: string;
   timeFinished: string;
 }
@@ -79,7 +79,8 @@ export function computeStats(game: GameLogData): Stats {
 
     userStats.playtimeSeconds = stats.global.playtimeSeconds;
 
-    stats.users[player.uid] = userStats;
+    const uid = player.uid instanceof RecordId ? String(player.uid.id) : player.uid;
+    stats.users[uid] = userStats;
   }
   return stats;
 }

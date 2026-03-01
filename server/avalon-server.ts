@@ -523,7 +523,7 @@ async function endGameTxn(
       timeFinished: new Date().toISOString()
     };
     await db.query(
-      'CREATE game_log SET id = $id, missions = $missions, outcome = $outcome, players = $players, options = $options, timeCreated = $timeCreated, timeFinished = time::now()',
+      'CREATE game_log SET id = $id, missions = $missions, outcome = $outcome, players = $players.map(|$p| { name: $p.name, uid: type::thing("user", $p.uid) }), options = $options, timeCreated = $timeCreated, timeFinished = time::now()',
       {
         id: new RecordId('game_log', logName),
         missions: gameObj.missions,
@@ -537,7 +537,7 @@ async function endGameTxn(
     // Update user logs
     for (const uid of uids) {
       await db.query(
-        'UPDATE user SET logs = array::union(logs ?? [], [$logName]) WHERE id = $id',
+        'UPDATE user SET logs = array::union(logs ?? [], [type::thing("game_log", $logName)]) WHERE id = $id',
         { id: new RecordId('user', uid), logName }
       );
     }

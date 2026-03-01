@@ -33,8 +33,8 @@ DEFINE FIELD OVERWRITE name ON user TYPE option<string>;
 DEFINE FIELD OVERWRITE lobby ON user TYPE option<string>;
 DEFINE FIELD OVERWRITE lastActive ON user TYPE option<datetime>;
 DEFINE FIELD OVERWRITE created ON user TYPE option<datetime>;
-DEFINE FIELD OVERWRITE logs ON user TYPE option<array<string>>;
-DEFINE FIELD OVERWRITE logs.* ON user TYPE string;
+DEFINE FIELD OVERWRITE logs ON user TYPE option<array<record<game_log>>>;
+DEFINE FIELD OVERWRITE logs.* ON user TYPE record<game_log>;
 DEFINE FIELD OVERWRITE stats ON user TYPE option<object>;
 DEFINE FIELD OVERWRITE stats.* ON user TYPE option<number>;
 DEFINE INDEX OVERWRITE email_idx ON user FIELDS email UNIQUE;
@@ -42,7 +42,7 @@ DEFINE INDEX OVERWRITE email_idx ON user FIELDS email UNIQUE;
 -- lobby: one record per active game lobby
 DEFINE TABLE OVERWRITE lobby SCHEMAFULL
   PERMISSIONS
-    FOR select FULL
+    FOR select WHERE record::id($auth.id) IN users.*.uid
     FOR create, update, delete NONE
 ;
 -- admin: the lobby owner
@@ -178,7 +178,7 @@ DEFINE FIELD OVERWRITE outcome.votes.*.* ON game_log TYPE bool;
 DEFINE FIELD OVERWRITE players ON game_log TYPE array;
 DEFINE FIELD OVERWRITE players.* ON game_log TYPE object;
 DEFINE FIELD OVERWRITE players.*.name ON game_log TYPE string;
-DEFINE FIELD OVERWRITE players.*.uid ON game_log TYPE string;
+DEFINE FIELD OVERWRITE players.*.uid ON game_log TYPE record<user>;
 
 -- stats: global game statistics
 DEFINE TABLE OVERWRITE stats SCHEMAFULL
