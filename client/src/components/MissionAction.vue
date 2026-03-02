@@ -44,8 +44,8 @@ export default defineComponent({
   },
   computed: {
     stillWaitingFor(): string[] {
-      return _.difference(this.avalon.game.currentProposal.team,
-                          this.avalon.game.currentMission.team).filter(
+      return (_.difference(this.avalon.game.currentProposal.team,
+                          this.avalon.game.currentMission.team) as string[]).filter(
                             (n: string) => n != this.avalon.user.name);
     },
     waitingForText(): string {

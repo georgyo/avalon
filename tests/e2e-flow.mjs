@@ -137,7 +137,7 @@ async function testFlow() {
     } else {
       // Lobby creation failed - check if it's a server error vs code error
       console.log('  Lobby not created. Checking error...');
-      if (lobbyText.includes('AxiosError') || lobbyText.includes('Request failed')) {
+      if (lobbyText.includes('SurrealError') || lobbyText.includes('Request failed')) {
         console.log('  NOTE: API error from server (not a client code issue)');
       }
     }
@@ -151,7 +151,7 @@ async function testFlow() {
         !e.includes('net::ERR') &&
         !e.includes('Failed to fetch') &&
         !e.includes('api.mailcheck') &&
-        !e.includes('AxiosError') &&
+        !e.includes('SurrealError') &&
         !e.includes('NetworkError') &&
         !e.includes('Network Error') &&
         !e.includes('WebSocket')

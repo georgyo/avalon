@@ -12,14 +12,6 @@ export default defineConfig({
     vue(),
     vuetify({ autoImport: true }),
   ],
-  server: {
-    proxy: {
-      '/api': {
-        target: 'http://localhost:8001',
-        changeOrigin: true,
-      }
-    }
-  },
   build: {
     outDir: '../server/dist',
     emptyOutDir: true,

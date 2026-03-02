@@ -50,26 +50,18 @@ project.overrideAttrs (oldAttrs: {
 
   buildPhase = ''
     yarn build
-    yarn bundle:server
   '';
 
   installPhase = ''
-    # Install only the bundled server and client dist
+    # Install client static assets and schema
     mkdir -p $out/lib/avalon
 
-    # Copy the bundled server (single file)
-    cp dist-server/server.js $out/lib/avalon/server.js
-
-    # Copy the built client assets next to the server
+    # Copy the built client assets
     cp -r server/dist $out/lib/avalon/dist
 
-    # Create bin wrapper
-    mkdir -p $out/bin
-    cat > $out/bin/avalon-server <<WRAPPER
-    #!/bin/sh
-    exec '${pkgs.nodejs-slim_24}/bin/node' '$out/lib/avalon/server.js' "\$@"
-    WRAPPER
-    chmod +x $out/bin/avalon-server
+    # Copy schema and apply script for deployment
+    cp server/schema.surql $out/lib/avalon/schema.surql
+    cp server/apply-schema.mjs $out/lib/avalon/apply-schema.mjs
   '';
 
 })

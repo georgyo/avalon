@@ -32,7 +32,6 @@ function isErrorIgnorable(msg) {
     msg.includes('net::ERR') ||
     msg.includes('Failed to fetch') ||
     msg.includes('api.mailcheck') ||
-    msg.includes('AxiosError') ||
     msg.includes('NetworkError') ||
     msg.includes('Network Error') ||
     msg.includes('WebSocket') ||

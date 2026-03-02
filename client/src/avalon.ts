@@ -179,11 +179,12 @@ class LobbySubscription {
     // Set up live queries for real-time updates
     try {
       const lobbyLive = await db.live(new Table('lobby'));
-      lobbyLive.subscribe((action, result) => {
-        if (action === 'CLOSE') return;
+      lobbyLive.subscribe((message) => {
+        const { action, value: result } = message;
+        if (action === 'KILLED') return;
         if (!result) return;
         // Filter to our lobby
-        const record = result as LobbyData & { id: { id: string } | string };
+        const record = result as unknown as LobbyData & { id: { id: string } | string };
         const recordId = typeof record.id === 'object' ? String(record.id) : String(record.id);
         if (recordId.includes(this.name) || (record as LobbyData & { id: string }).id === this.name) {
           if (action === 'DELETE') {
@@ -201,8 +202,9 @@ class LobbySubscription {
 
     try {
       const roleLive = await db.live(new Table('player_role'));
-      roleLive.subscribe((action, result) => {
-        if (action === 'CLOSE') return;
+      roleLive.subscribe((message) => {
+        const { action, value: result } = message;
+        if (action === 'KILLED') return;
         if (!result) return;
         const record = result as { lobby: unknown; user: unknown; role: string; sees?: string[] };
         const lobbyStr = String(record.lobby);
@@ -414,9 +416,9 @@ export default class AvalonGame {
     }
   }
 
-  joinLobbyImpl(joinLobbyPromise: Promise<import('axios').AxiosResponse>): Promise<void> {
-    return joinLobbyPromise.then(function(this: AvalonGame, resp: import('axios').AxiosResponse) {
-      this.subscribeToLobby(resp.data.lobby);
+  joinLobbyImpl(joinLobbyPromise: Promise<{ lobby: string; name: string }>): Promise<void> {
+    return joinLobbyPromise.then(function(this: AvalonGame, result: { lobby: string; name: string }) {
+      this.subscribeToLobby(result.lobby);
     }.bind(this));
   }
 
@@ -432,15 +434,15 @@ export default class AvalonGame {
     return this.api.leaveLobby(this.lobby!.name).then(() => this.unsubscribeFromLobby());
   }
 
-  kickPlayer(name: string): Promise<import('axios').AxiosResponse> {
+  kickPlayer(name: string): Promise<void> {
     return this.api.kickPlayer(this.lobby!.name, name);
   }
 
-  cancelGame(): Promise<import('axios').AxiosResponse> {
+  cancelGame(): Promise<void> {
     return this.api.cancelGame(this.lobby!.name, this.user!.name);
   }
 
-  voteTeam(vote: boolean): Promise<import('axios').AxiosResponse> {
+  voteTeam(vote: boolean): Promise<void> {
     return this.api.voteTeam(
       this.lobby!.name,
       this.user!.name,
@@ -449,11 +451,11 @@ export default class AvalonGame {
       vote);
   }
 
-  startGame(options: Record<string, unknown>): Promise<import('axios').AxiosResponse> {
+  startGame(options: Record<string, unknown>): Promise<void> {
     return this.api.startGame(this.lobby!.name, this.config.playerList, this.config.selectedRoleList, options);
   }
 
-  proposeTeam(playerList: string[]): Promise<import('axios').AxiosResponse> {
+  proposeTeam(playerList: string[]): Promise<void> {
     return this.api.proposeTeam(
       this.lobby!.name,
       this.user!.name,
@@ -462,7 +464,7 @@ export default class AvalonGame {
       playerList);
   }
 
-  doMission(vote: boolean): Promise<import('axios').AxiosResponse> {
+  doMission(vote: boolean): Promise<void> {
     return this.api.doMission(
       this.lobby!.name,
       this.user!.name,
@@ -471,7 +473,7 @@ export default class AvalonGame {
       vote);
   }
 
-  assassinate(target: string): Promise<import('axios').AxiosResponse> {
+  assassinate(target: string): Promise<void> {
     return this.api.assassinate(
       this.lobby!.name,
       this.user!.name,
@@ -616,11 +618,11 @@ export default class AvalonGame {
 
     console.debug('I am', uid);
 
-    // Call login API (best-effort)
+    // Call login function (best-effort)
     try {
       await this.api.login('');
     } catch (err) {
-      console.warn('API login failed (server may be offline):', (err as Error).message);
+      console.warn('Login function failed:', (err as Error).message);
     }
 
     // Start polling for user document updates

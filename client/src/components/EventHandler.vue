@@ -63,12 +63,12 @@ export default defineComponent({
       }
     };
     for (const [event, handler] of Object.entries(this.handlers)) {
-      EventBus.on(event, handler);
+      EventBus.on(event, handler as (...args: unknown[]) => void);
     }
   },
   beforeUnmount() {
     for (const [event, handler] of Object.entries(this.handlers)) {
-      EventBus.off(event, handler);
+      EventBus.off(event, handler as (...args: unknown[]) => void);
     }
   }
 })

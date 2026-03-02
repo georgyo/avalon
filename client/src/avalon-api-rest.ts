@@ -1,77 +1,68 @@
-import { getToken } from './auth';
-import axios, { AxiosResponse } from 'axios';
+import { db } from './surrealdb';
+
+// Simple retry wrapper for db.run() in case of MVCC conflicts
+async function dbRun<T = void>(fn: string, args: unknown[] = []): Promise<T> {
+  const maxRetries = 3;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.debug("Calling", fn, 'with', args);
+      return await db.run<T>(fn, args);
+    } catch (err) {
+      const msg = (err as Error).message || '';
+      // Retry on conflict/contention errors
+      if (attempt < maxRetries && (msg.includes('conflict') || msg.includes('contention'))) {
+        const delay = Math.min(100 * Math.pow(2, attempt), 1000);
+        await new Promise(r => setTimeout(r, delay));
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw new Error('Unreachable');
+}
 
 export class AvalonApi {
-  constructor() {
-    axios.defaults.baseURL = "/api";
+  login(emailAddr: string): Promise<void> {
+    return dbRun('fn::login', [emailAddr || null]);
   }
 
-  post(endPoint: string, data: Record<string, unknown>): Promise<AxiosResponse> {
-    const token = getToken();
-    if (!token) {
-      return Promise.reject(new Error('Not authenticated'));
-    }
-
-    console.debug("Calling", endPoint, 'with', data);
-    return axios.post(endPoint, data, {
-      headers: {'X-Avalon-Auth': token}
-    }).catch(err => {
-      if (err.response && err.response.data.message) {
-        throw new Error(err.response.data.message);
-      } else {
-        throw err;
-      }
-    });
+  joinLobby(name: string, lobby: string): Promise<{ lobby: string; name: string }> {
+    return dbRun('fn::join_lobby', [name, lobby]);
   }
 
-  login(emailAddr: string): Promise<AxiosResponse> {
-    return this.post('login', {email: emailAddr});
+  createLobby(name: string): Promise<{ lobby: string; name: string }> {
+    return dbRun('fn::create_lobby', [name]);
   }
 
-  joinLobby(name: string, lobby: string): Promise<AxiosResponse> {
-    return this.post('joinLobby', { name, lobby});
+  leaveLobby(lobby: string): Promise<void> {
+    return dbRun('fn::leave_lobby', [lobby]);
   }
 
-  createLobby(name: string): Promise<AxiosResponse> {
-    return this.post('createLobby', { name } );
+  kickPlayer(lobby: string, name: string): Promise<void> {
+    return dbRun('fn::kick_player', [lobby, name]);
   }
 
-  leaveLobby(lobby: string): Promise<AxiosResponse> {
-    return this.post('leaveLobby', { lobby });
+  cancelGame(lobby: string, name: string): Promise<void> {
+    return dbRun('fn::cancel_game', [lobby, name]);
   }
 
-  kickPlayer(lobby: string, name: string): Promise<AxiosResponse> {
-    return this.post('kickPlayer', { lobby, name });
+  voteTeam(lobby: string, name: string, mission: number, proposal: number, vote: boolean): Promise<void> {
+    return dbRun('fn::vote_team', [lobby, mission, proposal, name, vote]);
   }
 
-  cancelGame(lobby: string, name: string): Promise<AxiosResponse> {
-    return this.post('cancelGame', { lobby, name });
+  startGame(lobby: string, playerList: string[], roles: string[], options: Record<string, unknown>): Promise<void> {
+    return dbRun('fn::start_game', [lobby, playerList, roles, options]);
   }
 
-  voteTeam(lobby: string, name: string, mission: number, proposal: number, vote: boolean): Promise<AxiosResponse> {
-    return this.post('voteTeam',
-      {
-        lobby,
-        name,
-        mission,
-        proposal,
-        vote
-      });
+  proposeTeam(lobby: string, name: string, mission: number, proposal: number, team: string[]): Promise<void> {
+    return dbRun('fn::propose_team', [lobby, mission, proposal, team]);
   }
 
-  startGame(lobby: string, playerList: string[], roles: string[], options: Record<string, unknown>): Promise<AxiosResponse> {
-    return this.post('startGame', {lobby, playerList, roles, options });
+  doMission(lobby: string, name: string, mission: number, proposal: number, vote: boolean): Promise<void> {
+    return dbRun('fn::do_mission', [lobby, mission, proposal, name, vote]);
   }
 
-  proposeTeam(lobby: string, name: string, mission: number, proposal: number, team: string[]): Promise<AxiosResponse> {
-    return this.post('proposeTeam', { lobby, name, mission, proposal, team });
-  }
-
-  doMission(lobby: string, name: string, mission: number, proposal: number, vote: boolean): Promise<AxiosResponse> {
-    return this.post('doMission', { lobby, name, mission, proposal, vote });
-  }
-
-  assassinate(lobby: string, name: string, target: string): Promise<AxiosResponse> {
-    return this.post('assassinate', { lobby, name, target });
+  assassinate(lobby: string, name: string, target: string): Promise<void> {
+    return dbRun('fn::assassinate', [lobby, name, target]);
   }
 }

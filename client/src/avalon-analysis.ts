@@ -147,7 +147,7 @@ export default class GameAnalysis {
       }
     },
     noEvilPlayersOnMissions() {
-      if (_.tail(this.missions).every(m => m.evilOnTeam.length == 0)) {
+      if ((_.tail(this.missions) as typeof this.missions).every(m => m.evilOnTeam.length == 0)) {
         return {
           title: 'Lockdown',
           body: 'No evil players went on any missions' +
@@ -200,7 +200,7 @@ export default class GameAnalysis {
       }
     },
     playingTheLongCon() {
-      for(const [missionIdx, mission] of _.tail(this.missions).entries()) {
+      for(const [missionIdx, mission] of (_.tail(this.missions) as typeof this.missions).entries()) {
         if ((mission.evilOnTeam.length == 1) &&
             (mission.failsRequired < 2) &&
             (mission.numFails == 0)) {
@@ -213,7 +213,7 @@ export default class GameAnalysis {
     },
     universalAcclaim() {
       for(const [missionIdx, mission] of this.missions.entries()) {
-        for(const proposal of _.initial(mission.proposals)) {
+        for(const proposal of _.initial(mission.proposals) as typeof mission.proposals) {
           if (proposal.votes.length == this.game.players.length) {
             return {
               title: 'Universal acclaim',
@@ -303,8 +303,8 @@ export default class GameAnalysis {
       let players = this.game.players.slice(0);
       const completedMissions = this.missions.filter(m => m.state != 'PENDING');
       if (completedMissions.length == 0) return false;
-      for(const mission of _.initial(completedMissions)) {
-        players = _.difference(players, mission.team);
+      for(const mission of _.initial(completedMissions) as typeof completedMissions) {
+        players = _.difference(players, mission.team) as string[];
         if (players.length == 0) break;
       }
       if (players.length > 0) {

@@ -1,7 +1,20 @@
 import fs from 'fs';
-import { connectDb, db } from './surrealdb';
-import { computeAndCombineStats, computeStats } from './stats';
-import { RecordId } from 'surrealdb';
+import { Surreal, RecordId } from 'surrealdb';
+
+const db = new Surreal();
+
+async function connectDb(): Promise<Surreal> {
+  await db.connect(process.env.SURREAL_URL || 'https://avalon-06b8rurustq696ho5iu0ms1rbk.aws-euw1.surreal.cloud/', {
+    namespace: process.env.SURREAL_NS || 'avalon',
+    database: process.env.SURREAL_DB || 'avalon',
+    authentication: {
+      username: process.env.SURREAL_USER || '',
+      password: process.env.SURREAL_PASS || '',
+    },
+  });
+  console.log('Connected to SurrealDB');
+  return db;
+}
 
 interface GameLogRecord {
   id: RecordId;
@@ -78,48 +91,27 @@ async function _recomputeAllStats(): Promise<void> {
 
   console.log('Recomputing stats from', logs.length, 'logs');
 
-  // Combine all stats
-  const combinedStats: { users: Record<string, Record<string, number>>; global: Record<string, number> } = {
-    users: {},
-    global: {}
-  };
-
+  // Stats recomputation now done via SurrealDB functions
+  // For each log, call the stats function
   for (const log of logs) {
-    const stats = computeStats(log);
-    // Combine global
-    for (const [key, val] of Object.entries(stats.global)) {
-      if (typeof val === 'number') {
-        combinedStats.global[key] = (combinedStats.global[key] ?? 0) + val;
-      }
-    }
-    // Combine user stats
-    for (const [uid, userStats] of Object.entries(stats.users)) {
-      if (!combinedStats.users[uid]) combinedStats.users[uid] = {};
-      for (const [key, val] of Object.entries(userStats)) {
-        if (typeof val === 'number') {
-          combinedStats.users[uid][key] = (combinedStats.users[uid][key] ?? 0) + val;
+    const playerData = log.players.map(p => ({
+      name: p.name,
+      uid: p.uid instanceof RecordId ? String(p.uid.id) : String(p.uid).includes(':') ? String(p.uid).split(':').slice(1).join(':') : String(p.uid),
+    }));
+    try {
+      await db.query(
+        `fn::compute_and_combine_stats($outcome_state, $outcome_roles, $players, $time_created, $time_finished)`,
+        {
+          outcome_state: log.outcome.state,
+          outcome_roles: log.outcome.roles,
+          players: playerData,
+          time_created: log.timeCreated ?? null,
+          time_finished: log.timeFinished,
         }
-      }
+      );
+    } catch (err) {
+      console.error('Failed to compute stats for log:', String(log.id), (err as Error).message);
     }
-  }
-
-  // Write combined global stats
-  await db.query(
-    'CREATE stats SET id = $id, games = $games, good_wins = $good_wins, playtimeSeconds = $playtimeSeconds',
-    {
-      id: new RecordId('stats', 'global'),
-      games: combinedStats.global.games ?? 0,
-      good_wins: combinedStats.global.good_wins ?? 0,
-      playtimeSeconds: combinedStats.global.playtimeSeconds ?? 0,
-    }
-  );
-
-  // Write combined user stats
-  for (const [uid, stats] of Object.entries(combinedStats.users)) {
-    await db.query(
-      'UPDATE user SET stats = $stats WHERE id = $id',
-      { id: new RecordId('user', uid), stats }
-    );
   }
 
   console.log('Done recomputing stats');
@@ -131,4 +123,3 @@ void _exportLog;
 void _cleanupLobbies;
 void _cleanupLogs;
 void _recomputeAllStats;
-void computeAndCombineStats;
