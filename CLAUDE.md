@@ -30,7 +30,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Architecture
 
-This is a **multiplayer Avalon card game** with a serverless architecture. All game logic runs as SurrealDB `DEFINE FUNCTION` statements, called directly from the client via `db.run()`.
+This is a **multiplayer Avalon card game** with a serverless architecture. All game logic runs as SurrealDB `DEFINE FUNCTION` statements, exposed as HTTP REST endpoints via `DEFINE API` and called from the client via `fetch()`.
 
 ### Common (`/common/`)
 - Shared game logic workspace package (`@avalon/common`)
@@ -42,19 +42,19 @@ This is a **multiplayer Avalon card game** with a serverless architecture. All g
 - Vue 3.5 SPA with Vuetify 3 UI framework
 - TypeScript source files in `client/src/`
 - Real-time game state via SurrealDB live queries
-- Game actions via `db.run('fn::function_name', [...args])` — no Express server
+- Game actions via HTTP REST endpoints (`DEFINE API`) — no Express server
 - SurrealDB record-based authentication (anonymous + email/password)
 - Build tool: Vite 7
 
 ### Server (`/server/`)
 - No longer an Express server — contains only schema and admin tools
-- `schema.surql` - Complete database schema with all game logic as `DEFINE FUNCTION` statements
+- `schema.surql` - Complete database schema with game logic as `DEFINE FUNCTION` + `DEFINE API` endpoints
 - `apply-schema.mjs` - Script to apply schema to SurrealDB
 - `admin.ts` - Administrative functions (export logs, cleanup, recompute stats)
 
 ## Database (SurrealDB)
 
-The application uses SurrealDB Cloud as its database. All game logic runs inside `DEFINE FUNCTION` statements in the schema.
+The application uses SurrealDB Cloud as its database. Game logic runs inside `DEFINE FUNCTION` statements, exposed as HTTP REST endpoints via `DEFINE API` in the schema.
 
 - **URL**: Configured via `SURREAL_URL` env var
 - **Auth**: Clients use record-based auth; admin tools use root credentials
@@ -69,7 +69,7 @@ The application uses SurrealDB Cloud as its database. All game logic runs inside
 - `game_log` - Completed game records (SELECT: FULL)
 - `stats` - Global game statistics (SELECT: FULL)
 
-### Game Functions (called by clients via `db.run()`)
+### Game Functions (called by clients via HTTP `DEFINE API` endpoints)
 - `fn::login` - Update lastActive, clean stale lobby refs
 - `fn::create_lobby` - Create a new lobby with random 3-char ID
 - `fn::join_lobby` - Join an existing lobby
@@ -109,7 +109,7 @@ The application uses SurrealDB Cloud as its database. All game logic runs inside
 
 **State Flow:**
 1. Players join lobbies via client
-2. Game actions call SurrealDB functions via `db.run()`
+2. Game actions call SurrealDB `DEFINE API` endpoints via HTTP `fetch()`
 3. Functions validate and update database records transactionally
 4. Clients receive real-time updates via SurrealDB live queries
 5. Stats computed inline on game completion (inside `fn::end_game`)
@@ -117,7 +117,7 @@ The application uses SurrealDB Cloud as its database. All game logic runs inside
 **Key Files:**
 - `server/schema.surql` - All game logic as SurrealDB functions
 - `common/avalonlib.ts` - Role definitions (duplicated in `fn::roles()`)
-- `client/src/avalon-api-rest.ts` - Client API wrapper using `db.run()`
+- `client/src/avalon-api-rest.ts` - Client API wrapper using HTTP `fetch()` to `DEFINE API` endpoints
 - `client/src/avalon.ts` - Game state management and lobby subscriptions
 - `client/src/auth.ts` - SurrealDB record authentication
 - `client/src/surrealdb.ts` - Client database connection
@@ -136,7 +136,7 @@ Always use workspace commands from the root directory for consistent dependency 
 ## Tech Stack
 
 - **Frontend:** Vue 3.5, Vuetify 3, Vite 7, TypeScript
-- **Backend:** SurrealDB Cloud (DEFINE FUNCTION for all game logic)
+- **Backend:** SurrealDB Cloud (DEFINE FUNCTION + DEFINE API for all game logic)
 - **Database:** SurrealDB Cloud (real-time via live queries)
 - **Testing:** Playwright (E2E)
 - **Build:** Yarn 4 workspaces, Nix (reproducible builds)

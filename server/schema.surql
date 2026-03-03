@@ -111,6 +111,9 @@ DEFINE FIELD OVERWRITE game.outcome.votes.* ON lobby TYPE object;
 DEFINE FIELD OVERWRITE game.outcome.votes.*.* ON lobby TYPE bool;
 
 -- secret_state: server-only game secrets (roles, votes)
+-- secret_state: hidden game state (roles, votes). SELECT must be FULL because
+-- functions run as the caller and need to read this table. Security relies on
+-- --deny-arbitrary-query preventing clients from issuing direct SELECT queries.
 DEFINE TABLE OVERWRITE secret_state SCHEMAFULL
   PERMISSIONS
     FOR select, create, update, delete FULL

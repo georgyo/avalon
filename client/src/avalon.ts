@@ -113,7 +113,8 @@ class LobbySubscription {
   private _game: Game | null;
   private _config: GameConfig;
   private _eventHandler: (evt: string) => void;
-  private _liveQueryIds: string[];
+   
+  private _liveQueries: { kill(): Promise<void> }[];
   private _pollInterval: ReturnType<typeof setInterval> | null;
 
   constructor(uid: string, lobbyName: string, config: GameConfig, eventHandler: (evt: string) => void) {
@@ -125,7 +126,7 @@ class LobbySubscription {
     this._config = config;
     this.connected = false;
     this._eventHandler = eventHandler;
-    this._liveQueryIds = [];
+    this._liveQueries = [];
     this._pollInterval = null;
   }
 
@@ -195,7 +196,7 @@ class LobbySubscription {
           this._lobbyDataUpdated(record);
         }
       });
-      this._liveQueryIds.push('lobby');
+      this._liveQueries.push(lobbyLive);
     } catch (err) {
       console.warn('Live query for lobby failed, falling back to polling:', err);
     }
@@ -216,7 +217,7 @@ class LobbySubscription {
           }
         }
       });
-      this._liveQueryIds.push('player_role');
+      this._liveQueries.push(roleLive);
     } catch (err) {
       console.warn('Live query for player_role failed, falling back to polling:', err);
     }
@@ -251,8 +252,10 @@ class LobbySubscription {
       this._pollInterval = null;
     }
 
-    // Live queries will be cleaned up when connection is dropped or invalidated
-    this._liveQueryIds = [];
+    for (const lq of this._liveQueries) {
+      lq.kill().catch(() => { /* ignore errors during cleanup */ });
+    }
+    this._liveQueries = [];
     this.connected = false;
   }
 
@@ -602,8 +605,14 @@ export default class AvalonGame {
     try {
       // Try signin first
       await signinWithEmail(emailAddr, password);
-    } catch {
-      // If signin fails, try signup
+    } catch (signinErr) {
+      // Only fall through to signup if the user doesn't exist.
+      // If the error is a wrong password (user exists), rethrow it.
+      const msg = (signinErr as Error).message || '';
+      if (msg.includes('argon2') || msg.includes('password') || msg.includes('credentials')) {
+        throw new Error('Invalid email or password', { cause: signinErr });
+      }
+      // User likely doesn't exist, try signup
       await signupWithEmail(emailAddr, password);
     }
     await this._onAuthenticated();

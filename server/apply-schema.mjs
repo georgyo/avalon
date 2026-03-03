@@ -23,6 +23,7 @@ try {
   console.log('Schema applied, result count:', result.length);
 } catch (err) {
   console.error('Schema apply failed:', err.message);
+  process.exitCode = 1;
   console.log('Trying statement by statement...');
 
   // Fallback: split on lines that end with ; and try each block
@@ -47,6 +48,7 @@ try {
     } catch (e) {
       console.error('FAIL:', block.substring(0, 80).replace(/\n/g, ' '));
       console.error('  Error:', e.message);
+      process.exitCode = 1;
     }
   }
 }

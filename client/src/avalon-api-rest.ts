@@ -1,9 +1,10 @@
 import { API_BASE } from './surrealdb';
+import { getToken } from './auth';
 
 async function apiCall<T = void>(path: string, body?: Record<string, unknown>): Promise<T> {
   const maxRetries = 3;
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    const token = localStorage.getItem('avalon_auth_token');
+    const token = getToken();
     if (!token) throw new Error('Not authenticated');
 
     const response = await fetch(`${API_BASE}${path}`, {
