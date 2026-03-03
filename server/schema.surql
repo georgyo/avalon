@@ -261,7 +261,7 @@ DEFINE FUNCTION OVERWRITE fn::validate_name($name: string) {
   IF $name == '__proto__' OR $name == 'constructor' OR $name == 'prototype' {
     THROW "Invalid player name";
   };
-  IF !string::is_alphanum($name) OR $name != string::uppercase($name) OR string::len($name) == 0 {
+  IF !string::is_alpha($name) OR $name != string::uppercase($name) OR string::len($name) == 0 {
     THROW "Invalid username: must be uppercase letters only";
   };
   LET $role_names = fn::roles().map(|$r| $r.name);
@@ -593,6 +593,25 @@ DEFINE FUNCTION OVERWRITE fn::login($email: any) {
   UPDATE $auth.id SET lastActive = time::now();
 } PERMISSIONS FULL;
 
+-- Generate a unique random 3-char lobby ID, retrying on collision (up to 5 attempts)
+DEFINE FUNCTION OVERWRITE fn::generate_lobby_id($attempt: int) {
+  IF $attempt >= 5 { THROW "Could not generate unique lobby ID"; };
+  LET $chars = 'ABCDEFGHJKLMNPQRSTVWXYZ';
+  LET $i1 = rand::int(0, 22);
+  LET $i2 = rand::int(0, 22);
+  LET $i3 = rand::int(0, 22);
+  LET $lobby_name = string::concat(
+    string::slice($chars, $i1, $i1 + 1),
+    string::slice($chars, $i2, $i2 + 1),
+    string::slice($chars, $i3, $i3 + 1)
+  );
+  LET $existing = (SELECT id FROM lobby WHERE id = type::record('lobby', $lobby_name));
+  IF array::len($existing) > 0 {
+    RETURN fn::generate_lobby_id($attempt + 1);
+  };
+  RETURN $lobby_name;
+} PERMISSIONS FULL;
+
 -- Create a new lobby
 DEFINE FUNCTION OVERWRITE fn::create_lobby($name: string) {
   fn::validate_name($name);
@@ -607,28 +626,7 @@ DEFINE FUNCTION OVERWRITE fn::create_lobby($name: string) {
     RETURN { lobby: $user.lobby, name: $user.name };
   };
 
-  -- Generate random 3-char lobby ID
-  LET $chars = 'ABCDEFGHJKLMNPQRSTVWXYZ';
-  LET $i1 = rand::int(0, 22);
-  LET $i2 = rand::int(0, 22);
-  LET $i3 = rand::int(0, 22);
-  LET $c1 = string::slice($chars, $i1, $i1 + 1);
-  LET $c2 = string::slice($chars, $i2, $i2 + 1);
-  LET $c3 = string::slice($chars, $i3, $i3 + 1);
-  LET $lobby_name = string::concat($c1, $c2, $c3);
-
-  -- Check if lobby already exists, retry with different name if so
-  LET $existing = (SELECT id FROM lobby WHERE id = type::record('lobby', $lobby_name));
-  IF array::len($existing) > 0 {
-    LET $j1 = rand::int(0, 22);
-    LET $j2 = rand::int(0, 22);
-    LET $j3 = rand::int(0, 22);
-    LET $lobby_name = string::concat(
-      string::slice($chars, $j1, $j1 + 1),
-      string::slice($chars, $j2, $j2 + 1),
-      string::slice($chars, $j3, $j3 + 1)
-    );
-  };
+  LET $lobby_name = fn::generate_lobby_id(0);
 
   -- Update user
   UPDATE $auth.id SET lobby = $lobby_name, name = $name;
@@ -1163,6 +1161,9 @@ DEFINE FUNCTION OVERWRITE fn::assassinate($lobby: string, $name: string, $target
 -- HTTP REST endpoints wrapping the game functions above.
 -- Clients call these via fetch() with a Bearer token for auth.
 -- Errors from THROW propagate as HTTP 500 with the error message in the body.
+-- Note: SurrealDB lacks TRY/CATCH, so all errors return 500 regardless of cause
+-- (auth failure, not found, bad input, etc.). The client parses the error message
+-- string rather than branching on status codes.
 
 DEFINE API OVERWRITE "/login" FOR post
     MIDDLEWARE api::timeout(5s)
