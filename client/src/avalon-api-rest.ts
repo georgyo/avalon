@@ -1,76 +1,84 @@
-import { db } from './surrealdb';
+import { API_BASE } from './surrealdb';
 
-// Simple retry wrapper for function calls in case of MVCC conflicts.
-// Uses db.query() instead of db.run() for SurrealDB 3.0 compatibility.
-async function dbRun<T = void>(fn: string, args: unknown[] = []): Promise<T> {
+async function apiCall<T = void>(path: string, body?: Record<string, unknown>): Promise<T> {
   const maxRetries = 3;
-  // Build query: RETURN fn::name($arg0, $arg1, ...)
-  const paramNames = args.map((_, i) => `$_arg${i}`);
-  const query = `RETURN ${fn}(${paramNames.join(', ')})`;
-  const bindings: Record<string, unknown> = {};
-  args.forEach((v, i) => { bindings[`_arg${i}`] = v; });
-
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    const token = localStorage.getItem('avalon_auth_token');
+    if (!token) throw new Error('Not authenticated');
+
+    const response = await fetch(`${API_BASE}${path}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(body ?? {}),
+    });
+
+    if (response.ok) return (await response.json()) as T;
+
+    let errorMessage: string;
     try {
-      console.debug("Calling", fn, 'with', args);
-      const result = await db.query<[T]>(query, bindings);
-      return result[0];
-    } catch (err) {
-      const msg = (err as Error).message || '';
-      // Retry on conflict/contention errors
-      if (attempt < maxRetries && (msg.includes('conflict') || msg.includes('contention'))) {
-        const delay = Math.min(100 * Math.pow(2, attempt), 1000);
-        await new Promise(r => setTimeout(r, delay));
-        continue;
-      }
-      throw err;
+      const errBody = await response.json();
+      // SurrealDB wraps THROW errors as "An error occurred: <message>"
+      errorMessage = typeof errBody === 'string'
+        ? errBody.replace(/^An error occurred: /, '')
+        : errBody.error || errBody.description || response.statusText;
+    } catch {
+      errorMessage = response.statusText;
     }
+
+    if (attempt < maxRetries && (errorMessage.includes('conflict') || errorMessage.includes('contention'))) {
+      await new Promise(r => setTimeout(r, Math.min(100 * Math.pow(2, attempt), 1000)));
+      continue;
+    }
+    throw new Error(errorMessage);
   }
   throw new Error('Unreachable');
 }
 
 export class AvalonApi {
   login(emailAddr: string): Promise<void> {
-    return dbRun('fn::login', [emailAddr || null]);
+    return apiCall('/login', { email: emailAddr || null });
   }
 
   joinLobby(name: string, lobby: string): Promise<{ lobby: string; name: string }> {
-    return dbRun('fn::join_lobby', [name, lobby]);
+    return apiCall(`/lobby/${lobby}/join`, { name });
   }
 
   createLobby(name: string): Promise<{ lobby: string; name: string }> {
-    return dbRun('fn::create_lobby', [name]);
+    return apiCall('/lobby', { name });
   }
 
   leaveLobby(lobby: string): Promise<void> {
-    return dbRun('fn::leave_lobby', [lobby]);
+    return apiCall(`/lobby/${lobby}/leave`);
   }
 
   kickPlayer(lobby: string, name: string): Promise<void> {
-    return dbRun('fn::kick_player', [lobby, name]);
+    return apiCall(`/lobby/${lobby}/kick`, { name });
   }
 
   cancelGame(lobby: string, name: string): Promise<void> {
-    return dbRun('fn::cancel_game', [lobby, name]);
+    return apiCall(`/lobby/${lobby}/cancel`, { name });
   }
 
   voteTeam(lobby: string, name: string, mission: number, proposal: number, vote: boolean): Promise<void> {
-    return dbRun('fn::vote_team', [lobby, mission, proposal, name, vote]);
+    return apiCall(`/lobby/${lobby}/vote-team`, { mission, proposal, name, vote });
   }
 
   startGame(lobby: string, playerList: string[], roles: string[], options: Record<string, unknown>): Promise<void> {
-    return dbRun('fn::start_game', [lobby, playerList, roles, options]);
+    return apiCall(`/lobby/${lobby}/start`, { player_list: playerList, roles, options });
   }
 
   proposeTeam(lobby: string, name: string, mission: number, proposal: number, team: string[]): Promise<void> {
-    return dbRun('fn::propose_team', [lobby, mission, proposal, team]);
+    return apiCall(`/lobby/${lobby}/propose`, { mission, proposal, team });
   }
 
   doMission(lobby: string, name: string, mission: number, proposal: number, vote: boolean): Promise<void> {
-    return dbRun('fn::do_mission', [lobby, mission, proposal, name, vote]);
+    return apiCall(`/lobby/${lobby}/vote-mission`, { mission, proposal, name, vote });
   }
 
   assassinate(lobby: string, name: string, target: string): Promise<void> {
-    return dbRun('fn::assassinate', [lobby, name, target]);
+    return apiCall(`/lobby/${lobby}/assassinate`, { name, target });
   }
 }

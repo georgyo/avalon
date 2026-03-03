@@ -4,6 +4,8 @@ const SURREAL_URL = 'wss://surreal.fu.io/rpc';
 const SURREAL_NS = 'avalon';
 const SURREAL_DB = 'avalon';
 
+export const API_BASE = 'https://surreal.fu.io/api/avalon/avalon';
+
 const db = new Surreal();
 
 let connected = false;

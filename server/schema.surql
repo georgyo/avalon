@@ -19,6 +19,19 @@ DEFINE ACCESS OVERWRITE user_auth ON DATABASE TYPE RECORD
   DURATION FOR TOKEN 24h, FOR SESSION 7d
 ;
 
+-- ============ API CONFIG ============
+
+DEFINE CONFIG OVERWRITE API
+    MIDDLEWARE
+        api::timeout(10s),
+        api::req::body('json'),
+        api::res::body('json'),
+        api::res::headers({
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+            'Access-Control-Allow-Methods': 'POST, OPTIONS'
+        });
+
 -- ============ TABLES ============
 -- Write permissions are FULL so that DEFINE FUNCTION (which runs as the caller)
 -- can mutate records. Reads stay restrictive. Clients are prevented from issuing
@@ -1145,3 +1158,89 @@ DEFINE FUNCTION OVERWRITE fn::assassinate($lobby: string, $name: string, $target
       $lobby_doc.game, $secret_roles_arr, $mission_votes);
   };
 } PERMISSIONS FULL;
+
+-- ============ API ENDPOINTS ============
+-- HTTP REST endpoints wrapping the game functions above.
+-- Clients call these via fetch() with a Bearer token for auth.
+-- Errors from THROW propagate as HTTP 500 with the error message in the body.
+
+DEFINE API OVERWRITE "/login" FOR post
+    MIDDLEWARE api::timeout(5s)
+    PERMISSIONS FULL
+    THEN {
+        RETURN { status: 200, body: fn::login($request.body.email) };
+    };
+
+DEFINE API OVERWRITE "/lobby" FOR post
+    MIDDLEWARE api::timeout(5s)
+    PERMISSIONS FULL
+    THEN {
+        RETURN { status: 200, body: fn::create_lobby($request.body.name) };
+    };
+
+DEFINE API OVERWRITE "/lobby/:lobby/join" FOR post
+    MIDDLEWARE api::timeout(5s)
+    PERMISSIONS FULL
+    THEN {
+        RETURN { status: 200, body: fn::join_lobby($request.body.name, $request.params.lobby) };
+    };
+
+DEFINE API OVERWRITE "/lobby/:lobby/leave" FOR post
+    MIDDLEWARE api::timeout(5s)
+    PERMISSIONS FULL
+    THEN {
+        RETURN { status: 200, body: fn::leave_lobby($request.params.lobby) };
+    };
+
+DEFINE API OVERWRITE "/lobby/:lobby/kick" FOR post
+    MIDDLEWARE api::timeout(5s)
+    PERMISSIONS FULL
+    THEN {
+        RETURN { status: 200, body: fn::kick_player($request.params.lobby, $request.body.name) };
+    };
+
+DEFINE API OVERWRITE "/lobby/:lobby/start" FOR post
+    MIDDLEWARE api::timeout(10s)
+    PERMISSIONS FULL
+    THEN {
+        LET $b = $request.body;
+        RETURN { status: 200, body: fn::start_game($request.params.lobby, $b.player_list, $b.roles, $b.options) };
+    };
+
+DEFINE API OVERWRITE "/lobby/:lobby/cancel" FOR post
+    MIDDLEWARE api::timeout(5s)
+    PERMISSIONS FULL
+    THEN {
+        RETURN { status: 200, body: fn::cancel_game($request.params.lobby, $request.body.name) };
+    };
+
+DEFINE API OVERWRITE "/lobby/:lobby/propose" FOR post
+    MIDDLEWARE api::timeout(5s)
+    PERMISSIONS FULL
+    THEN {
+        LET $b = $request.body;
+        RETURN { status: 200, body: fn::propose_team($request.params.lobby, $b.mission, $b.proposal, $b.team) };
+    };
+
+DEFINE API OVERWRITE "/lobby/:lobby/vote-team" FOR post
+    MIDDLEWARE api::timeout(5s)
+    PERMISSIONS FULL
+    THEN {
+        LET $b = $request.body;
+        RETURN { status: 200, body: fn::vote_team($request.params.lobby, $b.mission, $b.proposal, $b.name, $b.vote) };
+    };
+
+DEFINE API OVERWRITE "/lobby/:lobby/vote-mission" FOR post
+    MIDDLEWARE api::timeout(5s)
+    PERMISSIONS FULL
+    THEN {
+        LET $b = $request.body;
+        RETURN { status: 200, body: fn::do_mission($request.params.lobby, $b.mission, $b.proposal, $b.name, $b.vote) };
+    };
+
+DEFINE API OVERWRITE "/lobby/:lobby/assassinate" FOR post
+    MIDDLEWARE api::timeout(5s)
+    PERMISSIONS FULL
+    THEN {
+        RETURN { status: 200, body: fn::assassinate($request.params.lobby, $request.body.name, $request.body.target) };
+    };
