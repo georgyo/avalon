@@ -4,7 +4,7 @@ import { Surreal, RecordId } from 'surrealdb';
 const db = new Surreal();
 
 async function connectDb(): Promise<Surreal> {
-  await db.connect(process.env.SURREAL_URL || 'https://avalon-06b8rurustq696ho5iu0ms1rbk.aws-euw1.surreal.cloud/', {
+  await db.connect(process.env.SURREAL_URL || 'https://surreal.fu.io/', {
     namespace: process.env.SURREAL_NS || 'avalon',
     database: process.env.SURREAL_DB || 'avalon',
     authentication: {

@@ -153,7 +153,7 @@ class LobbySubscription {
     // Initial fetch of lobby data
     try {
       const lobbyResult = await db.query<[LobbyData[]]>(
-        `SELECT * FROM lobby WHERE id = type::thing('lobby', $name)`,
+        `SELECT * FROM lobby WHERE id = type::record('lobby', $name)`,
         { name: this.name }
       );
       const lobbyData = lobbyResult[0]?.[0];
@@ -225,7 +225,7 @@ class LobbySubscription {
     this._pollInterval = setInterval(async () => {
       try {
         const lobbyResult = await db.query<[LobbyData[]]>(
-          `SELECT * FROM lobby WHERE id = type::thing('lobby', $name)`,
+          `SELECT * FROM lobby WHERE id = type::record('lobby', $name)`,
           { name: this.name }
         );
         const lobbyData = lobbyResult[0]?.[0];
@@ -631,7 +631,7 @@ export default class AvalonGame {
     // Fetch global stats
     try {
       const result = await db.query<[Record<string, unknown>[]]>(
-        `SELECT * FROM stats WHERE id = type::thing('stats', 'global')`
+        `SELECT * FROM stats WHERE id = type::record('stats', 'global')`
       );
       this.globalStats = result[0]?.[0] ?? null;
     } catch {
@@ -647,7 +647,7 @@ export default class AvalonGame {
     const fetchUser = async () => {
       try {
         const result = await db.query<[(UserData & { id?: unknown })[]]>(
-          `SELECT * FROM user WHERE id = type::thing('user', $uid)`,
+          `SELECT * FROM user WHERE id = type::record('user', $uid)`,
           { uid }
         );
         const raw = result[0]?.[0] ?? null;

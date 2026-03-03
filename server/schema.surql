@@ -200,26 +200,26 @@ DEFINE FUNCTION OVERWRITE fn::array_set($arr: array, $idx: int, $val: any) {
     array::concat(array::slice($arr, 0, $idx), [$val]),
     array::slice($arr, $idx + 1)
   );
-};
+} PERMISSIONS FULL;
 
 -- Recursively filter out entries where key == target (helper for object_set)
 DEFINE FUNCTION OVERWRITE fn::filter_entries_ne($entries: array, $key: string) {
   IF array::len($entries) == 0 { RETURN []; };
   LET $first = $entries[0];
-  LET $rest = array::slice($entries, 1, array::len($entries) - 1);
+  LET $rest = array::slice($entries, 1);
   IF $first[0] == $key {
     RETURN fn::filter_entries_ne($rest, $key);
   } ELSE {
     RETURN array::concat([$first], fn::filter_entries_ne($rest, $key));
   };
-};
+} PERMISSIONS FULL;
 
 -- Set a key on an object (immutable, using recursive filter)
 DEFINE FUNCTION OVERWRITE fn::object_set($obj: any, $key: string, $val: any) {
   LET $entries = object::entries($obj);
   LET $filtered = fn::filter_entries_ne($entries, $key);
   RETURN object::from_entries(array::concat($filtered, [[$key, $val]]));
-};
+} PERMISSIONS FULL;
 
 -- Returns the full ROLES array (mirrors common/avalonlib.ts)
 DEFINE FUNCTION OVERWRITE fn::roles() {
@@ -233,7 +233,7 @@ DEFINE FUNCTION OVERWRITE fn::roles() {
     { name: 'EVIL MINION', team: 'evil', sees: ['MORGANA', 'MORDRED', 'ASSASSIN', 'EVIL MINION'], filler: true, selectable: false, assassinationPriority: 4 },
     { name: 'ASSASSIN', team: 'evil', sees: ['MORGANA', 'MORDRED', 'EVIL MINION'], filler: false, selectable: true, assassinationPriority: 10 }
   ];
-};
+} PERMISSIONS FULL;
 
 -- Number of evil players for a given game size
 DEFINE FUNCTION OVERWRITE fn::num_evil($n: int) {
@@ -241,14 +241,14 @@ DEFINE FUNCTION OVERWRITE fn::num_evil($n: int) {
   IF $n == 7 OR $n == 8 OR $n == 9 { RETURN 3; };
   IF $n == 10 { RETURN 4; };
   THROW "Invalid game size";
-};
+} PERMISSIONS FULL;
 
 -- Name validation
 DEFINE FUNCTION OVERWRITE fn::validate_name($name: string) {
   IF $name == '__proto__' OR $name == 'constructor' OR $name == 'prototype' {
     THROW "Invalid player name";
   };
-  IF !string::is::alphanum($name) OR $name != string::uppercase($name) OR string::len($name) == 0 {
+  IF !string::is_alphanum($name) OR $name != string::uppercase($name) OR string::len($name) == 0 {
     THROW "Invalid username: must be uppercase letters only";
   };
   LET $role_names = fn::roles().map(|$r| $r.name);
@@ -256,7 +256,7 @@ DEFINE FUNCTION OVERWRITE fn::validate_name($name: string) {
     THROW "Invalid username: cannot be a role name";
   };
   RETURN true;
-};
+} PERMISSIONS FULL;
 
 -- Build missions array for a given player list
 DEFINE FUNCTION OVERWRITE fn::make_missions($player_list: array) {
@@ -285,12 +285,12 @@ DEFINE FUNCTION OVERWRITE fn::make_missions($player_list: array) {
   -- Mission 4 (index 3) needs 2 fails for 7+ players
   IF $n >= 7 {
     LET $m3 = $missions[3];
-    $missions = fn::array_set($missions, 3, { state: $m3.state, teamSize: $m3.teamSize, failsRequired: 2, team: $m3.team, proposals: $m3.proposals });
+    LET $missions = fn::array_set($missions, 3, { state: $m3.state, teamSize: $m3.teamSize, failsRequired: 2, team: $m3.team, proposals: $m3.proposals });
   };
 
   -- Set first proposal on first mission
   LET $m0 = $missions[0];
-  $missions = fn::array_set($missions, 0, {
+  LET $missions = fn::array_set($missions, 0, {
     state: $m0.state,
     teamSize: $m0.teamSize,
     failsRequired: $m0.failsRequired,
@@ -299,79 +299,79 @@ DEFINE FUNCTION OVERWRITE fn::make_missions($player_list: array) {
   });
 
   RETURN $missions;
-};
+} PERMISSIONS FULL;
 
 -- Next proposal template (round-robin proposer)
 DEFINE FUNCTION OVERWRITE fn::proposal_template($current_proposer: string, $player_list: array) {
   LET $idx = array::find_index($player_list, $current_proposer);
   LET $next = $player_list[($idx + 1) % array::len($player_list)];
   RETURN { proposer: $next, state: 'PENDING', team: <array<string>>[], votes: <array<string>>[] };
-};
+} PERMISSIONS FULL;
 
 -- Filter roles keeping only those whose name is in the allowed array (recursive)
 DEFINE FUNCTION OVERWRITE fn::filter_roles_by_selected($roles: array, $allowed: array) {
   IF array::len($roles) == 0 { RETURN []; };
   LET $first = $roles[0];
-  LET $rest = array::slice($roles, 1, array::len($roles) - 1);
+  LET $rest = array::slice($roles, 1);
   IF $allowed CONTAINS $first.name {
     RETURN array::concat([$first], fn::filter_roles_by_selected($rest, $allowed));
   } ELSE {
     RETURN fn::filter_roles_by_selected($rest, $allowed);
   };
-};
+} PERMISSIONS FULL;
 
 -- Zip players with roles: special first, then filler (recursive)
 DEFINE FUNCTION OVERWRITE fn::zip_player_roles($players: array, $special: array, $filler: any) {
   IF array::len($players) == 0 { RETURN []; };
   LET $player = $players[0];
-  LET $rest_players = array::slice($players, 1, array::len($players) - 1);
+  LET $rest_players = array::slice($players, 1);
   LET $role = IF array::len($special) > 0 { $special[0] } ELSE { $filler };
-  LET $rest_special = IF array::len($special) > 0 { array::slice($special, 1, array::len($special) - 1) } ELSE { [] };
+  LET $rest_special = IF array::len($special) > 0 { array::slice($special, 1) } ELSE { [] };
   RETURN array::concat(
     [{ name: $player, role: $role }],
     fn::zip_player_roles($rest_players, $rest_special, $filler)
   );
-};
+} PERMISSIONS FULL;
 
 -- Find the assignment with highest assassinationPriority (recursive)
 DEFINE FUNCTION OVERWRITE fn::find_assassin_name($assignments: array, $best_name: any, $best_priority: int) {
   IF array::len($assignments) == 0 { RETURN $best_name; };
   LET $first = $assignments[0];
-  LET $rest = array::slice($assignments, 1, array::len($assignments) - 1);
+  LET $rest = array::slice($assignments, 1);
   LET $prio = $first.role.assassinationPriority ?? 0;
   IF $prio > $best_priority {
     RETURN fn::find_assassin_name($rest, $first.name, $prio);
   } ELSE {
     RETURN fn::find_assassin_name($rest, $best_name, $best_priority);
   };
-};
+} PERMISSIONS FULL;
 
 -- Find players matching specific role names (for "sees" computation, recursive)
 DEFINE FUNCTION OVERWRITE fn::find_seen_players($sees_roles: array, $all_assignments: array, $exclude: string) {
   IF array::len($sees_roles) == 0 { RETURN []; };
   LET $target_role = $sees_roles[0];
-  LET $rest_roles = array::slice($sees_roles, 1, array::len($sees_roles) - 1);
+  LET $rest_roles = array::slice($sees_roles, 1);
   LET $found = fn::find_players_with_role($all_assignments, $target_role, $exclude);
   RETURN array::concat($found, fn::find_seen_players($rest_roles, $all_assignments, $exclude));
-};
+} PERMISSIONS FULL;
 
 -- Find all players with a given role name, excluding one player (recursive)
 DEFINE FUNCTION OVERWRITE fn::find_players_with_role($assignments: array, $role_name: string, $exclude: string) {
   IF array::len($assignments) == 0 { RETURN []; };
   LET $first = $assignments[0];
-  LET $rest = array::slice($assignments, 1, array::len($assignments) - 1);
+  LET $rest = array::slice($assignments, 1);
   IF $first.role.name == $role_name AND $first.name != $exclude {
     RETURN array::concat([$first.name], fn::find_players_with_role($rest, $role_name, $exclude));
   } ELSE {
     RETURN fn::find_players_with_role($rest, $role_name, $exclude);
   };
-};
+} PERMISSIONS FULL;
 
 -- Build final result entries from assignments (recursive)
 DEFINE FUNCTION OVERWRITE fn::build_role_entries($assignments: array, $all_assignments: array, $assassin_name: any) {
   IF array::len($assignments) == 0 { RETURN []; };
   LET $a = $assignments[0];
-  LET $rest = array::slice($assignments, 1, array::len($assignments) - 1);
+  LET $rest = array::slice($assignments, 1);
   LET $seen = array::shuffle(fn::find_seen_players($a.role.sees, $all_assignments, $a.name));
   LET $is_assassin = $a.name == $assassin_name;
   LET $entry = [$a.name, {
@@ -382,7 +382,7 @@ DEFINE FUNCTION OVERWRITE fn::build_role_entries($assignments: array, $all_assig
     sees: $seen
   }];
   RETURN array::concat([$entry], fn::build_role_entries($rest, $all_assignments, $assassin_name));
-};
+} PERMISSIONS FULL;
 
 -- Assign roles to players
 DEFINE FUNCTION OVERWRITE fn::assign_roles($player_list: array, $selected_roles: array) {
@@ -416,15 +416,15 @@ DEFINE FUNCTION OVERWRITE fn::assign_roles($player_list: array, $selected_roles:
   LET $result_entries = fn::build_role_entries($all_assignments, $all_assignments, $assassin_name);
 
   RETURN object::from_entries($result_entries);
-};
+} PERMISSIONS FULL;
 
 -- Find element in array where element.name == $target (recursive, closures can't access outer vars)
 DEFINE FUNCTION OVERWRITE fn::find_by_name($arr: array, $target: string) {
   IF array::len($arr) == 0 { RETURN NONE; };
   LET $first = $arr[0];
   IF $first.name == $target { RETURN $first; };
-  RETURN fn::find_by_name(array::slice($arr, 1, array::len($arr) - 1), $target);
-};
+  RETURN fn::find_by_name(array::slice($arr, 1), $target);
+} PERMISSIONS FULL;
 
 -- Compute stats for a completed game and update global + user stats
 DEFINE FUNCTION OVERWRITE fn::compute_and_combine_stats(
@@ -470,7 +470,7 @@ DEFINE FUNCTION OVERWRITE fn::compute_and_combine_stats(
     LET $is_good = $team == 'good';
     LET $won = IF $is_good { $outcome_state == 'GOOD_WIN' } ELSE { $outcome_state != 'GOOD_WIN' };
 
-    UPDATE type::thing('user', $uid) SET
+    UPDATE type::record('user', $uid) SET
       stats.games = (stats.games ?? 0) + 1,
       stats.good = (stats.good ?? 0) + (IF $is_good { 1 } ELSE { 0 }),
       stats.evil = (stats.evil ?? 0) + (IF $is_good { 0 } ELSE { 1 }),
@@ -479,16 +479,16 @@ DEFINE FUNCTION OVERWRITE fn::compute_and_combine_stats(
       stats.evil_wins = (stats.evil_wins ?? 0) + (IF !$is_good AND $won { 1 } ELSE { 0 }),
       stats.playtimeSeconds = (stats.playtimeSeconds ?? 0) + $playtime;
   };
-};
+} PERMISSIONS FULL;
 
 -- Build log_players array recursively (closures can't access outer objects)
 DEFINE FUNCTION OVERWRITE fn::build_log_players($names: array, $users: any) {
   IF array::len($names) == 0 { RETURN []; };
   LET $n = $names[0];
-  LET $rest = array::slice($names, 1, array::len($names) - 1);
-  LET $entry = { name: $n, uid: type::thing('user', $users[$n].uid) };
+  LET $rest = array::slice($names, 1);
+  LET $entry = { name: $n, uid: type::record('user', $users[$n].uid) };
   RETURN array::concat([$entry], fn::build_log_players($rest, $users));
-};
+} PERMISSIONS FULL;
 
 -- End a game: update lobby, cleanup secrets, create log, compute stats
 DEFINE FUNCTION OVERWRITE fn::end_game(
@@ -509,7 +509,7 @@ DEFINE FUNCTION OVERWRITE fn::end_game(
     votes: $mission_votes
   };
 
-  LET $lobby_rec = type::thing('lobby', $lobby_id);
+  LET $lobby_rec = type::record('lobby', $lobby_id);
   LET $users = (SELECT users FROM ONLY $lobby_rec).users;
   LET $player_names = $game.players ?? [];
 
@@ -521,7 +521,7 @@ DEFINE FUNCTION OVERWRITE fn::end_game(
     LET $log_name = ($game.timeCreated ?? time::format(time::now(), "%+")) + '_' + $lobby_id;
     LET $log_players = fn::build_log_players($player_names, $users);
 
-    CREATE type::thing('game_log', $log_name) SET
+    CREATE type::record('game_log', $log_name) SET
       missions = $game.missions ?? [],
       outcome = $outcome,
       players = $log_players,
@@ -532,8 +532,8 @@ DEFINE FUNCTION OVERWRITE fn::end_game(
     -- Update user logs
     FOR $pname IN $player_names {
       LET $puid = $users[$pname].uid;
-      UPDATE type::thing('user', $puid) SET
-        logs = array::union(logs ?? [], [type::thing('game_log', $log_name)]);
+      UPDATE type::record('user', $puid) SET
+        logs = array::union(logs ?? [], [type::record('game_log', $log_name)]);
     };
 
     -- Compute stats
@@ -557,7 +557,7 @@ DEFINE FUNCTION OVERWRITE fn::end_game(
     options: $game.options,
     outcome: $outcome
   };
-};
+} PERMISSIONS FULL;
 
 -- ============ MAIN GAME FUNCTIONS ============
 
@@ -571,14 +571,14 @@ DEFINE FUNCTION OVERWRITE fn::login($email: any) {
 
   -- Check if user's lobby still exists
   IF $user.lobby != NONE {
-    LET $lobby_exists = (SELECT id FROM lobby WHERE id = type::thing('lobby', $user.lobby));
+    LET $lobby_exists = (SELECT id FROM lobby WHERE id = type::record('lobby', $user.lobby));
     IF array::len($lobby_exists) == 0 {
       UPDATE $auth.id SET lobby = NONE;
     };
   };
 
   UPDATE $auth.id SET lastActive = time::now();
-};
+} PERMISSIONS FULL;
 
 -- Create a new lobby
 DEFINE FUNCTION OVERWRITE fn::create_lobby($name: string) {
@@ -599,21 +599,21 @@ DEFINE FUNCTION OVERWRITE fn::create_lobby($name: string) {
   LET $i1 = rand::int(0, 22);
   LET $i2 = rand::int(0, 22);
   LET $i3 = rand::int(0, 22);
-  LET $c1 = string::slice($chars, $i1, 1);
-  LET $c2 = string::slice($chars, $i2, 1);
-  LET $c3 = string::slice($chars, $i3, 1);
+  LET $c1 = string::slice($chars, $i1, $i1 + 1);
+  LET $c2 = string::slice($chars, $i2, $i2 + 1);
+  LET $c3 = string::slice($chars, $i3, $i3 + 1);
   LET $lobby_name = string::concat($c1, $c2, $c3);
 
   -- Check if lobby already exists, retry with different name if so
-  LET $existing = (SELECT id FROM lobby WHERE id = type::thing('lobby', $lobby_name));
+  LET $existing = (SELECT id FROM lobby WHERE id = type::record('lobby', $lobby_name));
   IF array::len($existing) > 0 {
     LET $j1 = rand::int(0, 22);
     LET $j2 = rand::int(0, 22);
     LET $j3 = rand::int(0, 22);
-    $lobby_name = string::concat(
-      string::slice($chars, $j1, 1),
-      string::slice($chars, $j2, 1),
-      string::slice($chars, $j3, 1)
+    LET $lobby_name = string::concat(
+      string::slice($chars, $j1, $j1 + 1),
+      string::slice($chars, $j2, $j2 + 1),
+      string::slice($chars, $j3, $j3 + 1)
     );
   };
 
@@ -622,14 +622,14 @@ DEFINE FUNCTION OVERWRITE fn::create_lobby($name: string) {
 
   -- Create lobby
   LET $init_users = object::from_entries([[$name, { name: $name, uid: $uid }]]);
-  CREATE type::thing('lobby', $lobby_name) SET
+  CREATE type::record('lobby', $lobby_name) SET
     admin = { uid: $uid, name: $name },
     timeCreated = time::now(),
     users = $init_users,
     game = { state: 'INIT' };
 
   RETURN { lobby: $lobby_name, name: $name };
-};
+} PERMISSIONS FULL;
 
 -- Join an existing lobby
 DEFINE FUNCTION OVERWRITE fn::join_lobby($name: string, $lobby: string) {
@@ -643,7 +643,7 @@ DEFINE FUNCTION OVERWRITE fn::join_lobby($name: string, $lobby: string) {
     RETURN { lobby: $user.lobby, name: $user.name };
   };
 
-  LET $lobby_rec = type::thing('lobby', $lobby);
+  LET $lobby_rec = type::record('lobby', $lobby);
   LET $lobby_doc = (SELECT * FROM ONLY $lobby_rec);
   IF $lobby_doc == NONE { THROW "Lobby does not exist"; };
 
@@ -662,7 +662,7 @@ DEFINE FUNCTION OVERWRITE fn::join_lobby($name: string, $lobby: string) {
   UPDATE $auth.id SET name = $name, lobby = $lobby, lastActive = time::now();
 
   RETURN { lobby: $lobby, name: $name };
-};
+} PERMISSIONS FULL;
 
 -- Leave the current lobby
 DEFINE FUNCTION OVERWRITE fn::leave_lobby($lobby: string) {
@@ -671,7 +671,7 @@ DEFINE FUNCTION OVERWRITE fn::leave_lobby($lobby: string) {
   IF $user == NONE { THROW "User not found"; };
   LET $my_name = $user.name;
 
-  LET $lobby_rec = type::thing('lobby', $lobby);
+  LET $lobby_rec = type::record('lobby', $lobby);
   LET $lobby_doc = (SELECT * FROM ONLY $lobby_rec);
   IF $lobby_doc == NONE { THROW "Lobby does not exist"; };
 
@@ -713,12 +713,12 @@ DEFINE FUNCTION OVERWRITE fn::leave_lobby($lobby: string) {
       UPDATE $lobby_rec SET admin = { uid: $new_admin.uid, name: $new_admin.name };
     };
   };
-};
+} PERMISSIONS FULL;
 
 -- Kick a player from the lobby (admin only)
 DEFINE FUNCTION OVERWRITE fn::kick_player($lobby: string, $name: string) {
   LET $uid = record::id($auth.id);
-  LET $lobby_rec = type::thing('lobby', $lobby);
+  LET $lobby_rec = type::record('lobby', $lobby);
   LET $lobby_doc = (SELECT * FROM ONLY $lobby_rec);
   IF $lobby_doc == NONE { THROW "Lobby does not exist"; };
 
@@ -730,11 +730,11 @@ DEFINE FUNCTION OVERWRITE fn::kick_player($lobby: string, $name: string) {
   IF $target.uid == $uid { THROW "Cannot kick yourself"; };
 
   -- Clear kicked user's lobby
-  UPDATE type::thing('user', $target.uid) SET lobby = NONE;
+  UPDATE type::record('user', $target.uid) SET lobby = NONE;
 
   -- Remove from lobby
   UPDATE $lobby_rec SET users[$name] = NONE;
-};
+} PERMISSIONS FULL;
 
 -- Start a new game
 DEFINE FUNCTION OVERWRITE fn::start_game(
@@ -744,7 +744,7 @@ DEFINE FUNCTION OVERWRITE fn::start_game(
   $options: any
 ) {
   LET $uid = record::id($auth.id);
-  LET $lobby_rec = type::thing('lobby', $lobby);
+  LET $lobby_rec = type::record('lobby', $lobby);
   LET $lobby_doc = (SELECT * FROM ONLY $lobby_rec);
   IF $lobby_doc == NONE { THROW "Lobby does not exist"; };
 
@@ -801,19 +801,19 @@ DEFINE FUNCTION OVERWRITE fn::start_game(
     LET $player_uid = $lobby_doc.users[$role_entry.name].uid;
     CREATE player_role SET
       lobby = $lobby_rec,
-      user = type::thing('user', $player_uid),
+      user = type::record('user', $player_uid),
       uid = $player_uid,
       name = $role_entry.name,
       role = $role_entry.role,
       assassin = $role_entry.assassin,
       sees = $role_entry.sees;
   };
-};
+} PERMISSIONS FULL;
 
 -- Cancel an active game
 DEFINE FUNCTION OVERWRITE fn::cancel_game($lobby: string, $name: string) {
   LET $uid = record::id($auth.id);
-  LET $lobby_rec = type::thing('lobby', $lobby);
+  LET $lobby_rec = type::record('lobby', $lobby);
   LET $lobby_doc = (SELECT * FROM ONLY $lobby_rec);
   IF $lobby_doc == NONE { THROW "Lobby does not exist"; };
   IF $lobby_doc.game.state != 'ACTIVE' { THROW "Game state not active"; };
@@ -838,7 +838,7 @@ DEFINE FUNCTION OVERWRITE fn::cancel_game($lobby: string, $name: string) {
     $secret_roles_arr,
     $mission_votes
   );
-};
+} PERMISSIONS FULL;
 
 -- Propose a team for a mission
 DEFINE FUNCTION OVERWRITE fn::propose_team(
@@ -848,7 +848,7 @@ DEFINE FUNCTION OVERWRITE fn::propose_team(
   $team: array
 ) {
   LET $uid = record::id($auth.id);
-  LET $lobby_rec = type::thing('lobby', $lobby);
+  LET $lobby_rec = type::record('lobby', $lobby);
   LET $lobby_doc = (SELECT * FROM ONLY $lobby_rec);
   IF $lobby_doc == NONE { THROW "Lobby does not exist"; };
 
@@ -890,7 +890,7 @@ DEFINE FUNCTION OVERWRITE fn::propose_team(
   UPDATE $lobby_rec SET
     game.phase = 'PROPOSAL_VOTE',
     game.missions = $new_missions;
-};
+} PERMISSIONS FULL;
 
 -- Vote on a team proposal
 DEFINE FUNCTION OVERWRITE fn::vote_team(
@@ -901,7 +901,7 @@ DEFINE FUNCTION OVERWRITE fn::vote_team(
   $vote: bool
 ) {
   LET $uid = record::id($auth.id);
-  LET $lobby_rec = type::thing('lobby', $lobby);
+  LET $lobby_rec = type::record('lobby', $lobby);
   LET $lobby_doc = (SELECT * FROM ONLY $lobby_rec);
   IF $lobby_doc == NONE { THROW "Lobby does not exist"; };
 
@@ -925,7 +925,7 @@ DEFINE FUNCTION OVERWRITE fn::vote_team(
   -- Record public vote (name in votes list means they voted)
   LET $pub_votes = $p.votes;
   IF !($pub_votes CONTAINS $name) {
-    $pub_votes = array::push($pub_votes, $name);
+    LET $pub_votes = array::push($pub_votes, $name);
   };
 
   -- Record secret vote
@@ -996,7 +996,7 @@ DEFINE FUNCTION OVERWRITE fn::vote_team(
     UPDATE $lobby_rec SET game.missions = $new_missions;
     UPDATE $secret_doc.id SET votes.proposal = $new_proposal_votes;
   };
-};
+} PERMISSIONS FULL;
 
 -- Vote on a mission (success/fail)
 DEFINE FUNCTION OVERWRITE fn::do_mission(
@@ -1007,7 +1007,7 @@ DEFINE FUNCTION OVERWRITE fn::do_mission(
   $vote: bool
 ) {
   LET $uid = record::id($auth.id);
-  LET $lobby_rec = type::thing('lobby', $lobby);
+  LET $lobby_rec = type::record('lobby', $lobby);
   LET $lobby_doc = (SELECT * FROM ONLY $lobby_rec);
   IF $lobby_doc == NONE { THROW "Lobby does not exist"; };
 
@@ -1108,12 +1108,12 @@ DEFINE FUNCTION OVERWRITE fn::do_mission(
     UPDATE $lobby_rec SET game.missions = $new_missions;
     UPDATE $secret_doc.id SET votes.mission = $new_sec_mission_votes;
   };
-};
+} PERMISSIONS FULL;
 
 -- Assassinate a player (assassin only, during ASSASSINATION phase)
 DEFINE FUNCTION OVERWRITE fn::assassinate($lobby: string, $name: string, $target: string) {
   LET $uid = record::id($auth.id);
-  LET $lobby_rec = type::thing('lobby', $lobby);
+  LET $lobby_rec = type::record('lobby', $lobby);
   LET $lobby_doc = (SELECT * FROM ONLY $lobby_rec);
   IF $lobby_doc == NONE { THROW "Lobby does not exist"; };
 
@@ -1144,4 +1144,4 @@ DEFINE FUNCTION OVERWRITE fn::assassinate($lobby: string, $name: string, $target
     fn::end_game($lobby, 'GOOD_WIN', 'Three successful missions', $target,
       $lobby_doc.game, $secret_roles_arr, $mission_votes);
   };
-};
+} PERMISSIONS FULL;

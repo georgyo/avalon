@@ -1,6 +1,6 @@
 import { Surreal } from 'surrealdb';
 
-const SURREAL_URL = 'wss://avalon-06b8rurustq696ho5iu0ms1rbk.aws-euw1.surreal.cloud/rpc';
+const SURREAL_URL = 'wss://surreal.fu.io/rpc';
 const SURREAL_NS = 'avalon';
 const SURREAL_DB = 'avalon';
 

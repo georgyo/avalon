@@ -1,12 +1,20 @@
 import { db } from './surrealdb';
 
-// Simple retry wrapper for db.run() in case of MVCC conflicts
+// Simple retry wrapper for function calls in case of MVCC conflicts.
+// Uses db.query() instead of db.run() for SurrealDB 3.0 compatibility.
 async function dbRun<T = void>(fn: string, args: unknown[] = []): Promise<T> {
   const maxRetries = 3;
+  // Build query: RETURN fn::name($arg0, $arg1, ...)
+  const paramNames = args.map((_, i) => `$_arg${i}`);
+  const query = `RETURN ${fn}(${paramNames.join(', ')})`;
+  const bindings: Record<string, unknown> = {};
+  args.forEach((v, i) => { bindings[`_arg${i}`] = v; });
+
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       console.debug("Calling", fn, 'with', args);
-      return await db.run<T>(fn, args);
+      const result = await db.query<[T]>(query, bindings);
+      return result[0];
     } catch (err) {
       const msg = (err as Error).message || '';
       // Retry on conflict/contention errors
