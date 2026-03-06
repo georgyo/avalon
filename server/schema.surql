@@ -575,27 +575,6 @@ DEFINE FUNCTION OVERWRITE fn::end_game(
   };
 } PERMISSIONS FULL;
 
--- ============ MAIN GAME FUNCTIONS ============
-
--- Login: update lastActive, clean stale lobby refs
-DEFINE FUNCTION OVERWRITE fn::login($email: any) {
-  LET $uid = record::id($auth.id);
-  LET $user = (SELECT * FROM ONLY $auth.id);
-  IF $user == NONE {
-    THROW "User not found";
-  };
-
-  -- Check if user's lobby still exists
-  IF $user.lobby != NONE {
-    LET $lobby_exists = (SELECT id FROM lobby WHERE id = type::record('lobby', $user.lobby));
-    IF array::len($lobby_exists) == 0 {
-      UPDATE $auth.id SET lobby = NONE;
-    };
-  };
-
-  UPDATE $auth.id SET lastActive = time::now();
-} PERMISSIONS FULL;
-
 -- Generate a unique random 3-char lobby ID, retrying on collision (up to 5 attempts)
 DEFINE FUNCTION OVERWRITE fn::generate_lobby_id($attempt: int) {
   IF $attempt >= 5 { THROW "Could not generate unique lobby ID"; };
@@ -615,636 +594,629 @@ DEFINE FUNCTION OVERWRITE fn::generate_lobby_id($attempt: int) {
   RETURN $lobby_name;
 } PERMISSIONS FULL;
 
--- Create a new lobby
-DEFINE FUNCTION OVERWRITE fn::create_lobby($name: string) {
-  fn::validate_name($name);
-  LET $uid = record::id($auth.id);
-  LET $user = (SELECT * FROM ONLY $auth.id);
-
-  IF $user == NONE { THROW "User not found"; };
-
-  -- If user is already in a lobby, return that
-  IF $user.lobby != NONE {
-    UPDATE $auth.id SET lastActive = time::now();
-    RETURN { lobby: $user.lobby, name: $user.name };
-  };
-
-  LET $lobby_name = fn::generate_lobby_id(0);
-
-  -- Update user
-  UPDATE $auth.id SET lobby = $lobby_name, name = $name;
-
-  -- Create lobby
-  LET $init_users = object::from_entries([[$name, { name: $name, uid: $uid }]]);
-  CREATE type::record('lobby', $lobby_name) SET
-    admin = { uid: $uid, name: $name },
-    timeCreated = time::now(),
-    users = $init_users,
-    game = { state: 'INIT' };
-
-  RETURN { lobby: $lobby_name, name: $name };
-} PERMISSIONS FULL;
-
--- Join an existing lobby
-DEFINE FUNCTION OVERWRITE fn::join_lobby($name: string, $lobby: string) {
-  fn::validate_name($name);
-  LET $uid = record::id($auth.id);
-  LET $user = (SELECT * FROM ONLY $auth.id);
-  IF $user == NONE { THROW "User not found"; };
-
-  -- If user already in a lobby, return that
-  IF $user.lobby != NONE {
-    RETURN { lobby: $user.lobby, name: $user.name };
-  };
-
-  LET $lobby_rec = type::record('lobby', $lobby);
-  LET $lobby_doc = (SELECT * FROM ONLY $lobby_rec);
-  IF $lobby_doc == NONE { THROW "Lobby does not exist"; };
-
-  IF $lobby_doc.users[$name] != NONE {
-    THROW "Name taken";
-  };
-
-  IF $lobby_doc.game.state == 'ACTIVE' {
-    THROW "Cannot join while game is in progress";
-  };
-
-  -- Add user to lobby
-  UPDATE $lobby_rec SET users[$name] = { name: $name, uid: $uid };
-
-  -- Update user record
-  UPDATE $auth.id SET name = $name, lobby = $lobby, lastActive = time::now();
-
-  RETURN { lobby: $lobby, name: $name };
-} PERMISSIONS FULL;
-
--- Leave the current lobby
-DEFINE FUNCTION OVERWRITE fn::leave_lobby($lobby: string) {
-  LET $uid = record::id($auth.id);
-  LET $user = (SELECT * FROM ONLY $auth.id);
-  IF $user == NONE { THROW "User not found"; };
-  LET $my_name = $user.name;
-
-  LET $lobby_rec = type::record('lobby', $lobby);
-  LET $lobby_doc = (SELECT * FROM ONLY $lobby_rec);
-  IF $lobby_doc == NONE { THROW "Lobby does not exist"; };
-
-  -- If game is active, cancel it
-  IF $lobby_doc.game.state == 'ACTIVE' {
-    LET $secret = (SELECT * FROM secret_state WHERE lobby = $lobby_rec LIMIT 1);
-    LET $secret_doc = $secret[0];
-    LET $secret_roles_arr = IF $secret_doc != NONE {
-      object::values($secret_doc.roles).map(|$r| { name: $r.name, role: $r.role, assassin: $r.assassin })
-    } ELSE { [] };
-    LET $mission_votes = IF $secret_doc != NONE { $secret_doc.votes.mission ?? [] } ELSE { [] };
-
-    fn::end_game(
-      $lobby,
-      'CANCELED',
-      string::concat($my_name, ' left the game'),
-      NONE,
-      $lobby_doc.game,
-      $secret_roles_arr,
-      $mission_votes
-    );
-  };
-
-  -- Remove user from lobby
-  UPDATE $lobby_rec SET users[$my_name] = NONE;
-  LET $updated_users = (SELECT users FROM ONLY $lobby_rec).users;
-
-  -- Clear user's lobby
-  UPDATE $auth.id SET lobby = NONE, lastActive = time::now();
-
-  -- Handle admin handoff
-  IF $lobby_doc.admin.uid == $uid {
-    LET $remaining = object::keys($updated_users);
-    IF array::len($remaining) == 0 {
-      DELETE $lobby_rec;
-    } ELSE {
-      LET $new_admin_name = $remaining[0];
-      LET $new_admin = $updated_users[$new_admin_name];
-      UPDATE $lobby_rec SET admin = { uid: $new_admin.uid, name: $new_admin.name };
-    };
-  };
-} PERMISSIONS FULL;
-
--- Kick a player from the lobby (admin only)
-DEFINE FUNCTION OVERWRITE fn::kick_player($lobby: string, $name: string) {
-  LET $uid = record::id($auth.id);
-  LET $lobby_rec = type::record('lobby', $lobby);
-  LET $lobby_doc = (SELECT * FROM ONLY $lobby_rec);
-  IF $lobby_doc == NONE { THROW "Lobby does not exist"; };
-
-  IF $lobby_doc.admin.uid != $uid { THROW "Not lobby admin"; };
-  IF $lobby_doc.game.state == 'ACTIVE' { THROW "Cancel game first"; };
-
-  LET $target = $lobby_doc.users[$name];
-  IF $target == NONE { THROW "No such user"; };
-  IF $target.uid == $uid { THROW "Cannot kick yourself"; };
-
-  -- Clear kicked user's lobby
-  UPDATE type::record('user', $target.uid) SET lobby = NONE;
-
-  -- Remove from lobby
-  UPDATE $lobby_rec SET users[$name] = NONE;
-} PERMISSIONS FULL;
-
--- Start a new game
-DEFINE FUNCTION OVERWRITE fn::start_game(
-  $lobby: string,
-  $player_list: array,
-  $roles: array,
-  $options: any
-) {
-  LET $uid = record::id($auth.id);
-  LET $lobby_rec = type::record('lobby', $lobby);
-  LET $lobby_doc = (SELECT * FROM ONLY $lobby_rec);
-  IF $lobby_doc == NONE { THROW "Lobby does not exist"; };
-
-  IF $lobby_doc.admin.uid != $uid { THROW "Not lobby admin"; };
-  IF $lobby_doc.game.state == 'ACTIVE' { THROW "Game already in progress"; };
-
-  -- Validate player list
-  LET $n = array::len($player_list);
-  IF $n < 5 OR $n > 10 { THROW "Bad player list: need 5-10 players"; };
-
-  LET $lobby_user_keys = object::keys($lobby_doc.users);
-  IF $n != array::len($lobby_user_keys) {
-    THROW "Player list does not match lobby users";
-  };
-  FOR $pname IN $player_list {
-    IF $lobby_doc.users[$pname] == NONE {
-      THROW string::concat("Player not in lobby: ", $pname);
-    };
-  };
-
-  -- Validate roles
-  LET $all_role_names = fn::roles().map(|$r| $r.name);
-  FOR $r IN $roles {
-    IF !($all_role_names CONTAINS $r) {
-      THROW string::concat("Bad role: ", $r);
-    };
-  };
-
-  -- Assign roles
-  LET $assigned = fn::assign_roles($player_list, $roles);
-  LET $now = time::format(time::now(), "%+");
-
-  -- Build game state
-  LET $missions = fn::make_missions($player_list);
-
-  UPDATE $lobby_rec SET game = {
-    state: 'ACTIVE',
-    phase: 'TEAM_PROPOSAL',
-    timeCreated: $now,
-    missions: $missions,
-    players: $player_list,
-    roles: object::values($assigned).map(|$r| $r.role),
-    options: $options ?? {}
-  };
-
-  -- Create secret state
-  CREATE secret_state SET
-    lobby = $lobby_rec,
-    roles = $assigned,
-    votes = { mission: [], proposal: {} };
-
-  -- Create player_role records
-  FOR $role_entry IN object::values($assigned) {
-    LET $player_uid = $lobby_doc.users[$role_entry.name].uid;
-    CREATE player_role SET
-      lobby = $lobby_rec,
-      user = type::record('user', $player_uid),
-      uid = $player_uid,
-      name = $role_entry.name,
-      role = $role_entry.role,
-      assassin = $role_entry.assassin,
-      sees = $role_entry.sees;
-  };
-} PERMISSIONS FULL;
-
--- Cancel an active game
-DEFINE FUNCTION OVERWRITE fn::cancel_game($lobby: string, $name: string) {
-  LET $uid = record::id($auth.id);
-  LET $lobby_rec = type::record('lobby', $lobby);
-  LET $lobby_doc = (SELECT * FROM ONLY $lobby_rec);
-  IF $lobby_doc == NONE { THROW "Lobby does not exist"; };
-  IF $lobby_doc.game.state != 'ACTIVE' { THROW "Game state not active"; };
-
-  IF $lobby_doc.users[$name] == NONE OR $lobby_doc.users[$name].uid != $uid {
-    THROW "You are not who you say you are";
-  };
-
-  LET $secret = (SELECT * FROM secret_state WHERE lobby = $lobby_rec LIMIT 1);
-  LET $secret_doc = $secret[0];
-  LET $secret_roles_arr = IF $secret_doc != NONE {
-    object::values($secret_doc.roles).map(|$r| { name: $r.name, role: $r.role, assassin: $r.assassin })
-  } ELSE { [] };
-  LET $mission_votes = IF $secret_doc != NONE { $secret_doc.votes.mission ?? [] } ELSE { [] };
-
-  fn::end_game(
-    $lobby,
-    'CANCELED',
-    string::concat('Canceled by ', $name),
-    NONE,
-    $lobby_doc.game,
-    $secret_roles_arr,
-    $mission_votes
-  );
-} PERMISSIONS FULL;
-
--- Propose a team for a mission
-DEFINE FUNCTION OVERWRITE fn::propose_team(
-  $lobby: string,
-  $mission: int,
-  $proposal: int,
-  $team: array
-) {
-  LET $uid = record::id($auth.id);
-  LET $lobby_rec = type::record('lobby', $lobby);
-  LET $lobby_doc = (SELECT * FROM ONLY $lobby_rec);
-  IF $lobby_doc == NONE { THROW "Lobby does not exist"; };
-
-  LET $game = $lobby_doc.game;
-  IF $game.state != 'ACTIVE' { THROW "Game state not active"; };
-  IF $game.phase != 'TEAM_PROPOSAL' { THROW "Wrong game phase"; };
-
-  LET $missions = $game.missions;
-  IF $mission >= array::len($missions) { THROW "Mission not found"; };
-  LET $m = $missions[$mission];
-  IF $m.state != 'PENDING' { THROW "Mission not pending"; };
-
-  IF $proposal >= array::len($m.proposals) { THROW "Proposal not found"; };
-  LET $p = $m.proposals[$proposal];
-  IF $p.state != 'PENDING' { THROW "Proposal not pending"; };
-
-  -- Verify proposer
-  LET $proposer_uid = $lobby_doc.users[$p.proposer].uid;
-  IF $uid != $proposer_uid { THROW "You are not the proposer"; };
-
-  -- Deduplicate team
-  LET $unique_team = array::distinct($team);
-  IF array::len($unique_team) != $m.teamSize {
-    THROW string::concat("Bad team size. Need ", <string>$m.teamSize);
-  };
-  FOR $t IN $unique_team {
-    IF !($game.players CONTAINS $t) {
-      THROW string::concat("Bad team member: ", $t);
-    };
-  };
-
-  -- Update proposal with team and change phase
-  LET $new_proposals = fn::array_set($m.proposals, $proposal, { proposer: $p.proposer, state: 'PENDING', team: $unique_team, votes: $p.votes });
-  LET $new_missions = fn::array_set($missions, $mission, {
-    state: $m.state, teamSize: $m.teamSize, failsRequired: $m.failsRequired,
-    team: $m.team, numFails: $m.numFails, proposals: $new_proposals
-  });
-
-  UPDATE $lobby_rec SET
-    game.phase = 'PROPOSAL_VOTE',
-    game.missions = $new_missions;
-} PERMISSIONS FULL;
-
--- Vote on a team proposal
-DEFINE FUNCTION OVERWRITE fn::vote_team(
-  $lobby: string,
-  $mission: int,
-  $proposal: int,
-  $name: string,
-  $vote: bool
-) {
-  LET $uid = record::id($auth.id);
-  LET $lobby_rec = type::record('lobby', $lobby);
-  LET $lobby_doc = (SELECT * FROM ONLY $lobby_rec);
-  IF $lobby_doc == NONE { THROW "Lobby does not exist"; };
-
-  LET $game = $lobby_doc.game;
-  IF $game.state != 'ACTIVE' { THROW "Game state not active"; };
-  IF $game.phase != 'PROPOSAL_VOTE' { THROW "Wrong game phase"; };
-
-  LET $missions = $game.missions;
-  IF $mission >= array::len($missions) { THROW "Mission not found"; };
-  LET $m = $missions[$mission];
-  IF $m.state != 'PENDING' { THROW "Mission not pending"; };
-  IF $proposal >= array::len($m.proposals) { THROW "Proposal not found"; };
-  LET $p = $m.proposals[$proposal];
-  IF $p.state != 'PENDING' { THROW "Proposal not pending"; };
-
-  -- Verify identity
-  IF $lobby_doc.users[$name] == NONE OR $lobby_doc.users[$name].uid != $uid {
-    THROW "You are not who you say you are";
-  };
-
-  -- Record public vote (name in votes list means they voted)
-  LET $pub_votes = $p.votes;
-  IF !($pub_votes CONTAINS $name) {
-    LET $pub_votes = array::push($pub_votes, $name);
-  };
-
-  -- Record secret vote
-  LET $secret = (SELECT * FROM secret_state WHERE lobby = $lobby_rec LIMIT 1);
-  LET $secret_doc = $secret[0];
-  IF $secret_doc == NONE { THROW "Secret state not found"; };
-
-  LET $new_proposal_votes = fn::object_set($secret_doc.votes.proposal, $name, $vote);
-
-  -- Update proposal votes in missions
-  LET $new_proposals = fn::array_set($m.proposals, $proposal, { proposer: $p.proposer, state: $p.state, team: $p.team, votes: $pub_votes });
-  LET $new_missions = fn::array_set($missions, $mission, {
-    state: $m.state, teamSize: $m.teamSize, failsRequired: $m.failsRequired,
-    team: $m.team, numFails: $m.numFails, proposals: $new_proposals
-  });
-
-  -- Check if all players have voted
-  LET $num_voted = array::len(object::keys($new_proposal_votes));
-  LET $num_players = array::len($game.players);
-
-  IF $num_voted >= $num_players {
-    -- Resolve the proposal
-    LET $approvers = object::entries($new_proposal_votes).filter(|$e| $e[1] == true).map(|$e| $e[0]);
-
-    LET $threshold = math::floor($num_players / 2) + 1;
-
-    IF array::len($approvers) < $threshold {
-      -- REJECTED
-      LET $rej_proposals = fn::array_set($m.proposals, $proposal, { proposer: $p.proposer, state: 'REJECTED', team: $p.team, votes: $approvers });
-
-      IF $proposal == 4 {
-        -- 5th rejection = evil wins
-        LET $rej_missions = fn::array_set($missions, $mission, {
-          state: $m.state, teamSize: $m.teamSize, failsRequired: $m.failsRequired,
-          team: $m.team, numFails: $m.numFails, proposals: $rej_proposals
-        });
-        LET $secret_roles_arr = object::values($secret_doc.roles).map(|$r| { name: $r.name, role: $r.role, assassin: $r.assassin });
-        UPDATE $lobby_rec SET game.missions = $rej_missions;
-        fn::end_game($lobby, 'EVIL_WIN', 'Five team proposals in a row rejected', NONE,
-          (SELECT game FROM ONLY $lobby_rec).game, $secret_roles_arr, $secret_doc.votes.mission ?? []);
-        UPDATE $secret_doc.id SET votes.proposal = $new_proposal_votes;
-        RETURN NONE;
-      } ELSE {
-        -- Next proposal
-        LET $next_proposal = fn::proposal_template($p.proposer, $game.players);
-        LET $rej_proposals_with_next = array::push($rej_proposals, $next_proposal);
-        LET $rej_missions = fn::array_set($missions, $mission, {
-          state: $m.state, teamSize: $m.teamSize, failsRequired: $m.failsRequired,
-          team: $m.team, numFails: $m.numFails, proposals: $rej_proposals_with_next
-        });
-        UPDATE $lobby_rec SET game.phase = 'TEAM_PROPOSAL', game.missions = $rej_missions;
-        UPDATE $secret_doc.id SET votes.proposal = {};
-        RETURN NONE;
-      };
-    } ELSE {
-      -- APPROVED
-      LET $app_proposals = fn::array_set($m.proposals, $proposal, { proposer: $p.proposer, state: 'APPROVED', team: $p.team, votes: $approvers });
-      LET $app_missions = fn::array_set($missions, $mission, {
-        state: $m.state, teamSize: $m.teamSize, failsRequired: $m.failsRequired,
-        team: $m.team, numFails: $m.numFails, proposals: $app_proposals
-      });
-      UPDATE $lobby_rec SET game.phase = 'MISSION_VOTE', game.missions = $app_missions;
-      UPDATE $secret_doc.id SET votes.proposal = {}, votes.mission = array::push($secret_doc.votes.mission, {});
-      RETURN NONE;
-    };
-  } ELSE {
-    -- Not all voted yet, just persist
-    UPDATE $lobby_rec SET game.missions = $new_missions;
-    UPDATE $secret_doc.id SET votes.proposal = $new_proposal_votes;
-  };
-} PERMISSIONS FULL;
-
--- Vote on a mission (success/fail)
-DEFINE FUNCTION OVERWRITE fn::do_mission(
-  $lobby: string,
-  $mission: int,
-  $proposal: int,
-  $name: string,
-  $vote: bool
-) {
-  LET $uid = record::id($auth.id);
-  LET $lobby_rec = type::record('lobby', $lobby);
-  LET $lobby_doc = (SELECT * FROM ONLY $lobby_rec);
-  IF $lobby_doc == NONE { THROW "Lobby does not exist"; };
-
-  LET $game = $lobby_doc.game;
-  IF $game.state != 'ACTIVE' { THROW "Game state not active"; };
-  IF $game.phase != 'MISSION_VOTE' { THROW "Wrong game phase"; };
-
-  LET $missions = $game.missions;
-  IF $mission >= array::len($missions) { THROW "Mission not found"; };
-  LET $m = $missions[$mission];
-  IF $m.state != 'PENDING' { THROW "Mission not pending"; };
-  IF $proposal >= array::len($m.proposals) { THROW "Proposal not found"; };
-  LET $p = $m.proposals[$proposal];
-  IF $p.state != 'APPROVED' { THROW "Proposal not approved"; };
-
-  -- Verify identity
-  IF $lobby_doc.users[$name] == NONE OR $lobby_doc.users[$name].uid != $uid {
-    THROW "You are not who you say you are";
-  };
-
-  LET $secret = (SELECT * FROM secret_state WHERE lobby = $lobby_rec LIMIT 1);
-  LET $secret_doc = $secret[0];
-  IF $secret_doc == NONE { THROW "Secret state not found"; };
-
-  -- Good players cannot fail. If good player tries to fail, force success.
-  LET $actual_vote = IF $vote == false AND $secret_doc.roles[$name].team != 'evil' { true } ELSE { $vote };
-
-  -- Track who has voted on the mission
-  LET $team = IF !($m.team CONTAINS $name) { array::push($m.team, $name) } ELSE { $m.team };
-
-  -- Record secret mission vote (immutable pattern)
-  LET $sec_mission_votes = $secret_doc.votes.mission ?? [];
-  LET $existing_mission_votes = $sec_mission_votes[$mission] ?? {};
-  LET $new_mission_entry = fn::object_set($existing_mission_votes, $name, $actual_vote);
-  LET $new_sec_mission_votes = fn::array_set($sec_mission_votes, $mission, $new_mission_entry);
-
-  -- Update mission with team tracking
-  LET $new_missions = fn::array_set($missions, $mission, {
-    state: $m.state, teamSize: $m.teamSize, failsRequired: $m.failsRequired,
-    team: $team, numFails: $m.numFails, proposals: $m.proposals
-  });
-
-  -- Check if all team members have voted
-  LET $num_voted = array::len(object::keys($new_mission_entry));
-
-  IF $num_voted >= $m.teamSize {
-    -- Resolve mission
-    LET $num_fails = array::len(object::values($new_mission_entry).filter(|$v| $v == false));
-
-    LET $mission_state = IF $num_fails < $m.failsRequired { 'SUCCESS' } ELSE { 'FAIL' };
-    LET $resolved_missions = fn::array_set($missions, $mission, {
-      state: $mission_state, teamSize: $m.teamSize, failsRequired: $m.failsRequired,
-      team: $p.team, numFails: $num_fails, proposals: $m.proposals
-    });
-
-    -- Count missions
-    LET $failed = array::len($resolved_missions.filter(|$mi| $mi.state == 'FAIL'));
-    LET $succeeded = array::len($resolved_missions.filter(|$mi| $mi.state == 'SUCCESS'));
-
-    LET $secret_roles_arr = object::values($secret_doc.roles).map(|$r| { name: $r.name, role: $r.role, assassin: $r.assassin });
-
-    IF $failed == 3 {
-      UPDATE $lobby_rec SET game.missions = $resolved_missions;
-      UPDATE $secret_doc.id SET votes.mission = $new_sec_mission_votes;
-      fn::end_game($lobby, 'EVIL_WIN', 'Three failed missions', NONE,
-        (SELECT game FROM ONLY $lobby_rec).game, $secret_roles_arr, $new_sec_mission_votes);
-      RETURN NONE;
-    } ELSE IF $succeeded == 3 {
-      IF $game.roles CONTAINS 'MERLIN' {
-        -- Assassination phase
-        UPDATE $lobby_rec SET game.phase = 'ASSASSINATION', game.missions = $resolved_missions;
-        UPDATE $secret_doc.id SET votes.mission = $new_sec_mission_votes;
-        RETURN NONE;
-      } ELSE {
-        UPDATE $lobby_rec SET game.missions = $resolved_missions;
-        UPDATE $secret_doc.id SET votes.mission = $new_sec_mission_votes;
-        fn::end_game($lobby, 'GOOD_WIN', 'Three missions succeeded', NONE,
-          (SELECT game FROM ONLY $lobby_rec).game, $secret_roles_arr, $new_sec_mission_votes);
-        RETURN NONE;
-      };
-    } ELSE {
-      -- Next mission
-      LET $next_mi = $mission + 1;
-      LET $next_mission = $resolved_missions[$next_mi];
-      LET $next_proposal = fn::proposal_template($p.proposer, $game.players);
-      LET $next_proposals = array::push($next_mission.proposals, $next_proposal);
-      LET $final_missions = fn::array_set($resolved_missions, $next_mi, {
-        state: $next_mission.state, teamSize: $next_mission.teamSize,
-        failsRequired: $next_mission.failsRequired, team: $next_mission.team,
-        numFails: $next_mission.numFails, proposals: $next_proposals
-      });
-      UPDATE $lobby_rec SET game.phase = 'TEAM_PROPOSAL', game.missions = $final_missions;
-      UPDATE $secret_doc.id SET votes.mission = $new_sec_mission_votes;
-      RETURN NONE;
-    };
-  } ELSE {
-    -- Not all voted yet
-    UPDATE $lobby_rec SET game.missions = $new_missions;
-    UPDATE $secret_doc.id SET votes.mission = $new_sec_mission_votes;
-  };
-} PERMISSIONS FULL;
-
--- Assassinate a player (assassin only, during ASSASSINATION phase)
-DEFINE FUNCTION OVERWRITE fn::assassinate($lobby: string, $name: string, $target: string) {
-  LET $uid = record::id($auth.id);
-  LET $lobby_rec = type::record('lobby', $lobby);
-  LET $lobby_doc = (SELECT * FROM ONLY $lobby_rec);
-  IF $lobby_doc == NONE { THROW "Lobby does not exist"; };
-
-  IF $lobby_doc.game.state != 'ACTIVE' { THROW "Game state not active"; };
-  IF $lobby_doc.game.phase != 'ASSASSINATION' { THROW "Wrong game phase"; };
-
-  -- Verify identity
-  IF $lobby_doc.users[$name] == NONE OR $lobby_doc.users[$name].uid != $uid {
-    THROW "You are not who you say you are";
-  };
-
-  LET $secret = (SELECT * FROM secret_state WHERE lobby = $lobby_rec LIMIT 1);
-  LET $secret_doc = $secret[0];
-  IF $secret_doc == NONE { THROW "Secret state not found"; };
-
-  -- Verify assassin
-  IF $secret_doc.roles[$name].assassin != true {
-    THROW "You are not the assassin";
-  };
-
-  LET $secret_roles_arr = object::values($secret_doc.roles).map(|$r| { name: $r.name, role: $r.role, assassin: $r.assassin });
-  LET $mission_votes = $secret_doc.votes.mission ?? [];
-
-  IF $secret_doc.roles[$target].role == 'MERLIN' {
-    fn::end_game($lobby, 'EVIL_WIN', 'Merlin assassinated', $target,
-      $lobby_doc.game, $secret_roles_arr, $mission_votes);
-  } ELSE {
-    fn::end_game($lobby, 'GOOD_WIN', 'Three successful missions', $target,
-      $lobby_doc.game, $secret_roles_arr, $mission_votes);
-  };
-} PERMISSIONS FULL;
-
 -- ============ API ENDPOINTS ============
--- HTTP REST endpoints wrapping the game functions above.
+-- HTTP REST endpoints with game logic inlined.
 -- Clients call these via fetch() with a Bearer token for auth.
 -- Errors from THROW propagate as HTTP 500 with the error message in the body.
 -- Note: SurrealDB lacks TRY/CATCH, so all errors return 500 regardless of cause
 -- (auth failure, not found, bad input, etc.). The client parses the error message
 -- string rather than branching on status codes.
 
+-- Login: update lastActive, clean stale lobby refs
 DEFINE API OVERWRITE "/login" FOR post
     MIDDLEWARE api::timeout(5s)
     PERMISSIONS FULL
     THEN {
-        RETURN { status: 200, body: fn::login($request.body.email) };
+        LET $uid = record::id($auth.id);
+        LET $user = (SELECT * FROM ONLY $auth.id);
+        IF $user == NONE {
+          THROW "User not found";
+        };
+
+        -- Check if user's lobby still exists
+        IF $user.lobby != NONE {
+          LET $lobby_exists = (SELECT id FROM lobby WHERE id = type::record('lobby', $user.lobby));
+          IF array::len($lobby_exists) == 0 {
+            UPDATE $auth.id SET lobby = NONE;
+          };
+        };
+
+        UPDATE $auth.id SET lastActive = time::now();
+        RETURN { status: 200, body: NONE };
     };
 
+-- Create a new lobby
 DEFINE API OVERWRITE "/lobby" FOR post
     MIDDLEWARE api::timeout(5s)
     PERMISSIONS FULL
     THEN {
-        RETURN { status: 200, body: fn::create_lobby($request.body.name) };
+        LET $name = $request.body.name;
+        fn::validate_name($name);
+        LET $uid = record::id($auth.id);
+        LET $user = (SELECT * FROM ONLY $auth.id);
+
+        IF $user == NONE { THROW "User not found"; };
+
+        -- If user is already in a lobby, return that
+        IF $user.lobby != NONE {
+          UPDATE $auth.id SET lastActive = time::now();
+          RETURN { status: 200, body: { lobby: $user.lobby, name: $user.name } };
+        };
+
+        LET $lobby_name = fn::generate_lobby_id(0);
+
+        -- Update user
+        UPDATE $auth.id SET lobby = $lobby_name, name = $name;
+
+        -- Create lobby
+        LET $init_users = object::from_entries([[$name, { name: $name, uid: $uid }]]);
+        CREATE type::record('lobby', $lobby_name) SET
+          admin = { uid: $uid, name: $name },
+          timeCreated = time::now(),
+          users = $init_users,
+          game = { state: 'INIT' };
+
+        RETURN { status: 200, body: { lobby: $lobby_name, name: $name } };
     };
 
+-- Join an existing lobby
 DEFINE API OVERWRITE "/lobby/:lobby/join" FOR post
     MIDDLEWARE api::timeout(5s)
     PERMISSIONS FULL
     THEN {
-        RETURN { status: 200, body: fn::join_lobby($request.body.name, $request.params.lobby) };
+        LET $name = $request.body.name;
+        LET $lobby = $request.params.lobby;
+        fn::validate_name($name);
+        LET $uid = record::id($auth.id);
+        LET $user = (SELECT * FROM ONLY $auth.id);
+        IF $user == NONE { THROW "User not found"; };
+
+        -- If user already in a lobby, return that
+        IF $user.lobby != NONE {
+          RETURN { status: 200, body: { lobby: $user.lobby, name: $user.name } };
+        };
+
+        LET $lobby_rec = type::record('lobby', $lobby);
+        LET $lobby_doc = (SELECT * FROM ONLY $lobby_rec);
+        IF $lobby_doc == NONE { THROW "Lobby does not exist"; };
+
+        IF $lobby_doc.users[$name] != NONE {
+          THROW "Name taken";
+        };
+
+        IF $lobby_doc.game.state == 'ACTIVE' {
+          THROW "Cannot join while game is in progress";
+        };
+
+        -- Add user to lobby
+        UPDATE $lobby_rec SET users[$name] = { name: $name, uid: $uid };
+
+        -- Update user record
+        UPDATE $auth.id SET name = $name, lobby = $lobby, lastActive = time::now();
+
+        RETURN { status: 200, body: { lobby: $lobby, name: $name } };
     };
 
+-- Leave the current lobby
 DEFINE API OVERWRITE "/lobby/:lobby/leave" FOR post
     MIDDLEWARE api::timeout(5s)
     PERMISSIONS FULL
     THEN {
-        RETURN { status: 200, body: fn::leave_lobby($request.params.lobby) };
+        LET $lobby = $request.params.lobby;
+        LET $uid = record::id($auth.id);
+        LET $user = (SELECT * FROM ONLY $auth.id);
+        IF $user == NONE { THROW "User not found"; };
+        LET $my_name = $user.name;
+
+        LET $lobby_rec = type::record('lobby', $lobby);
+        LET $lobby_doc = (SELECT * FROM ONLY $lobby_rec);
+        IF $lobby_doc == NONE { THROW "Lobby does not exist"; };
+
+        -- If game is active, cancel it
+        IF $lobby_doc.game.state == 'ACTIVE' {
+          LET $secret = (SELECT * FROM secret_state WHERE lobby = $lobby_rec LIMIT 1);
+          LET $secret_doc = $secret[0];
+          LET $secret_roles_arr = IF $secret_doc != NONE {
+            object::values($secret_doc.roles).map(|$r| { name: $r.name, role: $r.role, assassin: $r.assassin })
+          } ELSE { [] };
+          LET $mission_votes = IF $secret_doc != NONE { $secret_doc.votes.mission ?? [] } ELSE { [] };
+
+          fn::end_game(
+            $lobby,
+            'CANCELED',
+            string::concat($my_name, ' left the game'),
+            NONE,
+            $lobby_doc.game,
+            $secret_roles_arr,
+            $mission_votes
+          );
+        };
+
+        -- Remove user from lobby
+        UPDATE $lobby_rec SET users[$my_name] = NONE;
+        LET $updated_users = (SELECT users FROM ONLY $lobby_rec).users;
+
+        -- Clear user's lobby
+        UPDATE $auth.id SET lobby = NONE, lastActive = time::now();
+
+        -- Handle admin handoff
+        IF $lobby_doc.admin.uid == $uid {
+          LET $remaining = object::keys($updated_users);
+          IF array::len($remaining) == 0 {
+            DELETE $lobby_rec;
+          } ELSE {
+            LET $new_admin_name = $remaining[0];
+            LET $new_admin = $updated_users[$new_admin_name];
+            UPDATE $lobby_rec SET admin = { uid: $new_admin.uid, name: $new_admin.name };
+          };
+        };
+
+        RETURN { status: 200, body: NONE };
     };
 
+-- Kick a player from the lobby (admin only)
 DEFINE API OVERWRITE "/lobby/:lobby/kick" FOR post
     MIDDLEWARE api::timeout(5s)
     PERMISSIONS FULL
     THEN {
-        RETURN { status: 200, body: fn::kick_player($request.params.lobby, $request.body.name) };
+        LET $lobby = $request.params.lobby;
+        LET $name = $request.body.name;
+        LET $uid = record::id($auth.id);
+        LET $lobby_rec = type::record('lobby', $lobby);
+        LET $lobby_doc = (SELECT * FROM ONLY $lobby_rec);
+        IF $lobby_doc == NONE { THROW "Lobby does not exist"; };
+
+        IF $lobby_doc.admin.uid != $uid { THROW "Not lobby admin"; };
+        IF $lobby_doc.game.state == 'ACTIVE' { THROW "Cancel game first"; };
+
+        LET $target = $lobby_doc.users[$name];
+        IF $target == NONE { THROW "No such user"; };
+        IF $target.uid == $uid { THROW "Cannot kick yourself"; };
+
+        -- Clear kicked user's lobby
+        UPDATE type::record('user', $target.uid) SET lobby = NONE;
+
+        -- Remove from lobby
+        UPDATE $lobby_rec SET users[$name] = NONE;
+
+        RETURN { status: 200, body: NONE };
     };
 
+-- Start a new game
 DEFINE API OVERWRITE "/lobby/:lobby/start" FOR post
     MIDDLEWARE api::timeout(10s)
     PERMISSIONS FULL
     THEN {
-        LET $b = $request.body;
-        RETURN { status: 200, body: fn::start_game($request.params.lobby, $b.player_list, $b.roles, $b.options) };
+        LET $lobby = $request.params.lobby;
+        LET $player_list = $request.body.player_list;
+        LET $roles = $request.body.roles;
+        LET $options = $request.body.options;
+        LET $uid = record::id($auth.id);
+        LET $lobby_rec = type::record('lobby', $lobby);
+        LET $lobby_doc = (SELECT * FROM ONLY $lobby_rec);
+        IF $lobby_doc == NONE { THROW "Lobby does not exist"; };
+
+        IF $lobby_doc.admin.uid != $uid { THROW "Not lobby admin"; };
+        IF $lobby_doc.game.state == 'ACTIVE' { THROW "Game already in progress"; };
+
+        -- Validate player list
+        LET $n = array::len($player_list);
+        IF $n < 5 OR $n > 10 { THROW "Bad player list: need 5-10 players"; };
+
+        LET $lobby_user_keys = object::keys($lobby_doc.users);
+        IF $n != array::len($lobby_user_keys) {
+          THROW "Player list does not match lobby users";
+        };
+        FOR $pname IN $player_list {
+          IF $lobby_doc.users[$pname] == NONE {
+            THROW string::concat("Player not in lobby: ", $pname);
+          };
+        };
+
+        -- Validate roles
+        LET $all_role_names = fn::roles().map(|$r| $r.name);
+        FOR $r IN $roles {
+          IF !($all_role_names CONTAINS $r) {
+            THROW string::concat("Bad role: ", $r);
+          };
+        };
+
+        -- Assign roles
+        LET $assigned = fn::assign_roles($player_list, $roles);
+        LET $now = time::format(time::now(), "%+");
+
+        -- Build game state
+        LET $missions = fn::make_missions($player_list);
+
+        UPDATE $lobby_rec SET game = {
+          state: 'ACTIVE',
+          phase: 'TEAM_PROPOSAL',
+          timeCreated: $now,
+          missions: $missions,
+          players: $player_list,
+          roles: object::values($assigned).map(|$r| $r.role),
+          options: $options ?? {}
+        };
+
+        -- Create secret state
+        CREATE secret_state SET
+          lobby = $lobby_rec,
+          roles = $assigned,
+          votes = { mission: [], proposal: {} };
+
+        -- Create player_role records
+        FOR $role_entry IN object::values($assigned) {
+          LET $player_uid = $lobby_doc.users[$role_entry.name].uid;
+          CREATE player_role SET
+            lobby = $lobby_rec,
+            user = type::record('user', $player_uid),
+            uid = $player_uid,
+            name = $role_entry.name,
+            role = $role_entry.role,
+            assassin = $role_entry.assassin,
+            sees = $role_entry.sees;
+        };
+
+        RETURN { status: 200, body: NONE };
     };
 
+-- Cancel an active game
 DEFINE API OVERWRITE "/lobby/:lobby/cancel" FOR post
     MIDDLEWARE api::timeout(5s)
     PERMISSIONS FULL
     THEN {
-        RETURN { status: 200, body: fn::cancel_game($request.params.lobby, $request.body.name) };
+        LET $lobby = $request.params.lobby;
+        LET $name = $request.body.name;
+        LET $uid = record::id($auth.id);
+        LET $lobby_rec = type::record('lobby', $lobby);
+        LET $lobby_doc = (SELECT * FROM ONLY $lobby_rec);
+        IF $lobby_doc == NONE { THROW "Lobby does not exist"; };
+        IF $lobby_doc.game.state != 'ACTIVE' { THROW "Game state not active"; };
+
+        IF $lobby_doc.users[$name] == NONE OR $lobby_doc.users[$name].uid != $uid {
+          THROW "You are not who you say you are";
+        };
+
+        LET $secret = (SELECT * FROM secret_state WHERE lobby = $lobby_rec LIMIT 1);
+        LET $secret_doc = $secret[0];
+        LET $secret_roles_arr = IF $secret_doc != NONE {
+          object::values($secret_doc.roles).map(|$r| { name: $r.name, role: $r.role, assassin: $r.assassin })
+        } ELSE { [] };
+        LET $mission_votes = IF $secret_doc != NONE { $secret_doc.votes.mission ?? [] } ELSE { [] };
+
+        fn::end_game(
+          $lobby,
+          'CANCELED',
+          string::concat('Canceled by ', $name),
+          NONE,
+          $lobby_doc.game,
+          $secret_roles_arr,
+          $mission_votes
+        );
+
+        RETURN { status: 200, body: NONE };
     };
 
+-- Propose a team for a mission
 DEFINE API OVERWRITE "/lobby/:lobby/propose" FOR post
     MIDDLEWARE api::timeout(5s)
     PERMISSIONS FULL
     THEN {
-        LET $b = $request.body;
-        RETURN { status: 200, body: fn::propose_team($request.params.lobby, $b.mission, $b.proposal, $b.team) };
+        LET $lobby = $request.params.lobby;
+        LET $mission = $request.body.mission;
+        LET $proposal = $request.body.proposal;
+        LET $team = $request.body.team;
+        LET $uid = record::id($auth.id);
+        LET $lobby_rec = type::record('lobby', $lobby);
+        LET $lobby_doc = (SELECT * FROM ONLY $lobby_rec);
+        IF $lobby_doc == NONE { THROW "Lobby does not exist"; };
+
+        LET $game = $lobby_doc.game;
+        IF $game.state != 'ACTIVE' { THROW "Game state not active"; };
+        IF $game.phase != 'TEAM_PROPOSAL' { THROW "Wrong game phase"; };
+
+        LET $missions = $game.missions;
+        IF $mission >= array::len($missions) { THROW "Mission not found"; };
+        LET $m = $missions[$mission];
+        IF $m.state != 'PENDING' { THROW "Mission not pending"; };
+
+        IF $proposal >= array::len($m.proposals) { THROW "Proposal not found"; };
+        LET $p = $m.proposals[$proposal];
+        IF $p.state != 'PENDING' { THROW "Proposal not pending"; };
+
+        -- Verify proposer
+        LET $proposer_uid = $lobby_doc.users[$p.proposer].uid;
+        IF $uid != $proposer_uid { THROW "You are not the proposer"; };
+
+        -- Deduplicate team
+        LET $unique_team = array::distinct($team);
+        IF array::len($unique_team) != $m.teamSize {
+          THROW string::concat("Bad team size. Need ", <string>$m.teamSize);
+        };
+        FOR $t IN $unique_team {
+          IF !($game.players CONTAINS $t) {
+            THROW string::concat("Bad team member: ", $t);
+          };
+        };
+
+        -- Update proposal with team and change phase
+        LET $new_proposals = fn::array_set($m.proposals, $proposal, { proposer: $p.proposer, state: 'PENDING', team: $unique_team, votes: $p.votes });
+        LET $new_missions = fn::array_set($missions, $mission, {
+          state: $m.state, teamSize: $m.teamSize, failsRequired: $m.failsRequired,
+          team: $m.team, numFails: $m.numFails, proposals: $new_proposals
+        });
+
+        UPDATE $lobby_rec SET
+          game.phase = 'PROPOSAL_VOTE',
+          game.missions = $new_missions;
+
+        RETURN { status: 200, body: NONE };
     };
 
+-- Vote on a team proposal
 DEFINE API OVERWRITE "/lobby/:lobby/vote-team" FOR post
     MIDDLEWARE api::timeout(5s)
     PERMISSIONS FULL
     THEN {
-        LET $b = $request.body;
-        RETURN { status: 200, body: fn::vote_team($request.params.lobby, $b.mission, $b.proposal, $b.name, $b.vote) };
+        LET $lobby = $request.params.lobby;
+        LET $mission = $request.body.mission;
+        LET $proposal = $request.body.proposal;
+        LET $name = $request.body.name;
+        LET $vote = $request.body.vote;
+        LET $uid = record::id($auth.id);
+        LET $lobby_rec = type::record('lobby', $lobby);
+        LET $lobby_doc = (SELECT * FROM ONLY $lobby_rec);
+        IF $lobby_doc == NONE { THROW "Lobby does not exist"; };
+
+        LET $game = $lobby_doc.game;
+        IF $game.state != 'ACTIVE' { THROW "Game state not active"; };
+        IF $game.phase != 'PROPOSAL_VOTE' { THROW "Wrong game phase"; };
+
+        LET $missions = $game.missions;
+        IF $mission >= array::len($missions) { THROW "Mission not found"; };
+        LET $m = $missions[$mission];
+        IF $m.state != 'PENDING' { THROW "Mission not pending"; };
+        IF $proposal >= array::len($m.proposals) { THROW "Proposal not found"; };
+        LET $p = $m.proposals[$proposal];
+        IF $p.state != 'PENDING' { THROW "Proposal not pending"; };
+
+        -- Verify identity
+        IF $lobby_doc.users[$name] == NONE OR $lobby_doc.users[$name].uid != $uid {
+          THROW "You are not who you say you are";
+        };
+
+        -- Record public vote (name in votes list means they voted)
+        LET $pub_votes = $p.votes;
+        IF !($pub_votes CONTAINS $name) {
+          LET $pub_votes = array::push($pub_votes, $name);
+        };
+
+        -- Record secret vote
+        LET $secret = (SELECT * FROM secret_state WHERE lobby = $lobby_rec LIMIT 1);
+        LET $secret_doc = $secret[0];
+        IF $secret_doc == NONE { THROW "Secret state not found"; };
+
+        LET $new_proposal_votes = fn::object_set($secret_doc.votes.proposal, $name, $vote);
+
+        -- Update proposal votes in missions
+        LET $new_proposals = fn::array_set($m.proposals, $proposal, { proposer: $p.proposer, state: $p.state, team: $p.team, votes: $pub_votes });
+        LET $new_missions = fn::array_set($missions, $mission, {
+          state: $m.state, teamSize: $m.teamSize, failsRequired: $m.failsRequired,
+          team: $m.team, numFails: $m.numFails, proposals: $new_proposals
+        });
+
+        -- Check if all players have voted
+        LET $num_voted = array::len(object::keys($new_proposal_votes));
+        LET $num_players = array::len($game.players);
+
+        IF $num_voted >= $num_players {
+          -- Resolve the proposal
+          LET $approvers = object::entries($new_proposal_votes).filter(|$e| $e[1] == true).map(|$e| $e[0]);
+
+          LET $threshold = math::floor($num_players / 2) + 1;
+
+          IF array::len($approvers) < $threshold {
+            -- REJECTED
+            LET $rej_proposals = fn::array_set($m.proposals, $proposal, { proposer: $p.proposer, state: 'REJECTED', team: $p.team, votes: $approvers });
+
+            IF $proposal == 4 {
+              -- 5th rejection = evil wins
+              LET $rej_missions = fn::array_set($missions, $mission, {
+                state: $m.state, teamSize: $m.teamSize, failsRequired: $m.failsRequired,
+                team: $m.team, numFails: $m.numFails, proposals: $rej_proposals
+              });
+              LET $secret_roles_arr = object::values($secret_doc.roles).map(|$r| { name: $r.name, role: $r.role, assassin: $r.assassin });
+              UPDATE $lobby_rec SET game.missions = $rej_missions;
+              fn::end_game($lobby, 'EVIL_WIN', 'Five team proposals in a row rejected', NONE,
+                (SELECT game FROM ONLY $lobby_rec).game, $secret_roles_arr, $secret_doc.votes.mission ?? []);
+              UPDATE $secret_doc.id SET votes.proposal = $new_proposal_votes;
+              RETURN { status: 200, body: NONE };
+            } ELSE {
+              -- Next proposal
+              LET $next_proposal = fn::proposal_template($p.proposer, $game.players);
+              LET $rej_proposals_with_next = array::push($rej_proposals, $next_proposal);
+              LET $rej_missions = fn::array_set($missions, $mission, {
+                state: $m.state, teamSize: $m.teamSize, failsRequired: $m.failsRequired,
+                team: $m.team, numFails: $m.numFails, proposals: $rej_proposals_with_next
+              });
+              UPDATE $lobby_rec SET game.phase = 'TEAM_PROPOSAL', game.missions = $rej_missions;
+              UPDATE $secret_doc.id SET votes.proposal = {};
+              RETURN { status: 200, body: NONE };
+            };
+          } ELSE {
+            -- APPROVED
+            LET $app_proposals = fn::array_set($m.proposals, $proposal, { proposer: $p.proposer, state: 'APPROVED', team: $p.team, votes: $approvers });
+            LET $app_missions = fn::array_set($missions, $mission, {
+              state: $m.state, teamSize: $m.teamSize, failsRequired: $m.failsRequired,
+              team: $m.team, numFails: $m.numFails, proposals: $app_proposals
+            });
+            UPDATE $lobby_rec SET game.phase = 'MISSION_VOTE', game.missions = $app_missions;
+            UPDATE $secret_doc.id SET votes.proposal = {}, votes.mission = array::push($secret_doc.votes.mission, {});
+            RETURN { status: 200, body: NONE };
+          };
+        } ELSE {
+          -- Not all voted yet, just persist
+          UPDATE $lobby_rec SET game.missions = $new_missions;
+          UPDATE $secret_doc.id SET votes.proposal = $new_proposal_votes;
+          RETURN { status: 200, body: NONE };
+        };
     };
 
+-- Vote on a mission (success/fail)
 DEFINE API OVERWRITE "/lobby/:lobby/vote-mission" FOR post
     MIDDLEWARE api::timeout(5s)
     PERMISSIONS FULL
     THEN {
-        LET $b = $request.body;
-        RETURN { status: 200, body: fn::do_mission($request.params.lobby, $b.mission, $b.proposal, $b.name, $b.vote) };
+        LET $lobby = $request.params.lobby;
+        LET $mission = $request.body.mission;
+        LET $proposal = $request.body.proposal;
+        LET $name = $request.body.name;
+        LET $vote = $request.body.vote;
+        LET $uid = record::id($auth.id);
+        LET $lobby_rec = type::record('lobby', $lobby);
+        LET $lobby_doc = (SELECT * FROM ONLY $lobby_rec);
+        IF $lobby_doc == NONE { THROW "Lobby does not exist"; };
+
+        LET $game = $lobby_doc.game;
+        IF $game.state != 'ACTIVE' { THROW "Game state not active"; };
+        IF $game.phase != 'MISSION_VOTE' { THROW "Wrong game phase"; };
+
+        LET $missions = $game.missions;
+        IF $mission >= array::len($missions) { THROW "Mission not found"; };
+        LET $m = $missions[$mission];
+        IF $m.state != 'PENDING' { THROW "Mission not pending"; };
+        IF $proposal >= array::len($m.proposals) { THROW "Proposal not found"; };
+        LET $p = $m.proposals[$proposal];
+        IF $p.state != 'APPROVED' { THROW "Proposal not approved"; };
+
+        -- Verify identity
+        IF $lobby_doc.users[$name] == NONE OR $lobby_doc.users[$name].uid != $uid {
+          THROW "You are not who you say you are";
+        };
+
+        LET $secret = (SELECT * FROM secret_state WHERE lobby = $lobby_rec LIMIT 1);
+        LET $secret_doc = $secret[0];
+        IF $secret_doc == NONE { THROW "Secret state not found"; };
+
+        -- Good players cannot fail. If good player tries to fail, force success.
+        LET $actual_vote = IF $vote == false AND $secret_doc.roles[$name].team != 'evil' { true } ELSE { $vote };
+
+        -- Track who has voted on the mission
+        LET $team = IF !($m.team CONTAINS $name) { array::push($m.team, $name) } ELSE { $m.team };
+
+        -- Record secret mission vote (immutable pattern)
+        LET $sec_mission_votes = $secret_doc.votes.mission ?? [];
+        LET $existing_mission_votes = $sec_mission_votes[$mission] ?? {};
+        LET $new_mission_entry = fn::object_set($existing_mission_votes, $name, $actual_vote);
+        LET $new_sec_mission_votes = fn::array_set($sec_mission_votes, $mission, $new_mission_entry);
+
+        -- Update mission with team tracking
+        LET $new_missions = fn::array_set($missions, $mission, {
+          state: $m.state, teamSize: $m.teamSize, failsRequired: $m.failsRequired,
+          team: $team, numFails: $m.numFails, proposals: $m.proposals
+        });
+
+        -- Check if all team members have voted
+        LET $num_voted = array::len(object::keys($new_mission_entry));
+
+        IF $num_voted >= $m.teamSize {
+          -- Resolve mission
+          LET $num_fails = array::len(object::values($new_mission_entry).filter(|$v| $v == false));
+
+          LET $mission_state = IF $num_fails < $m.failsRequired { 'SUCCESS' } ELSE { 'FAIL' };
+          LET $resolved_missions = fn::array_set($missions, $mission, {
+            state: $mission_state, teamSize: $m.teamSize, failsRequired: $m.failsRequired,
+            team: $p.team, numFails: $num_fails, proposals: $m.proposals
+          });
+
+          -- Count missions
+          LET $failed = array::len($resolved_missions.filter(|$mi| $mi.state == 'FAIL'));
+          LET $succeeded = array::len($resolved_missions.filter(|$mi| $mi.state == 'SUCCESS'));
+
+          LET $secret_roles_arr = object::values($secret_doc.roles).map(|$r| { name: $r.name, role: $r.role, assassin: $r.assassin });
+
+          IF $failed == 3 {
+            UPDATE $lobby_rec SET game.missions = $resolved_missions;
+            UPDATE $secret_doc.id SET votes.mission = $new_sec_mission_votes;
+            fn::end_game($lobby, 'EVIL_WIN', 'Three failed missions', NONE,
+              (SELECT game FROM ONLY $lobby_rec).game, $secret_roles_arr, $new_sec_mission_votes);
+            RETURN { status: 200, body: NONE };
+          } ELSE IF $succeeded == 3 {
+            IF $game.roles CONTAINS 'MERLIN' {
+              -- Assassination phase
+              UPDATE $lobby_rec SET game.phase = 'ASSASSINATION', game.missions = $resolved_missions;
+              UPDATE $secret_doc.id SET votes.mission = $new_sec_mission_votes;
+              RETURN { status: 200, body: NONE };
+            } ELSE {
+              UPDATE $lobby_rec SET game.missions = $resolved_missions;
+              UPDATE $secret_doc.id SET votes.mission = $new_sec_mission_votes;
+              fn::end_game($lobby, 'GOOD_WIN', 'Three missions succeeded', NONE,
+                (SELECT game FROM ONLY $lobby_rec).game, $secret_roles_arr, $new_sec_mission_votes);
+              RETURN { status: 200, body: NONE };
+            };
+          } ELSE {
+            -- Next mission
+            LET $next_mi = $mission + 1;
+            LET $next_mission = $resolved_missions[$next_mi];
+            LET $next_proposal = fn::proposal_template($p.proposer, $game.players);
+            LET $next_proposals = array::push($next_mission.proposals, $next_proposal);
+            LET $final_missions = fn::array_set($resolved_missions, $next_mi, {
+              state: $next_mission.state, teamSize: $next_mission.teamSize,
+              failsRequired: $next_mission.failsRequired, team: $next_mission.team,
+              numFails: $next_mission.numFails, proposals: $next_proposals
+            });
+            UPDATE $lobby_rec SET game.phase = 'TEAM_PROPOSAL', game.missions = $final_missions;
+            UPDATE $secret_doc.id SET votes.mission = $new_sec_mission_votes;
+            RETURN { status: 200, body: NONE };
+          };
+        } ELSE {
+          -- Not all voted yet
+          UPDATE $lobby_rec SET game.missions = $new_missions;
+          UPDATE $secret_doc.id SET votes.mission = $new_sec_mission_votes;
+          RETURN { status: 200, body: NONE };
+        };
     };
 
+-- Assassinate a player (assassin only, during ASSASSINATION phase)
 DEFINE API OVERWRITE "/lobby/:lobby/assassinate" FOR post
     MIDDLEWARE api::timeout(5s)
     PERMISSIONS FULL
     THEN {
-        RETURN { status: 200, body: fn::assassinate($request.params.lobby, $request.body.name, $request.body.target) };
+        LET $lobby = $request.params.lobby;
+        LET $name = $request.body.name;
+        LET $target = $request.body.target;
+        LET $uid = record::id($auth.id);
+        LET $lobby_rec = type::record('lobby', $lobby);
+        LET $lobby_doc = (SELECT * FROM ONLY $lobby_rec);
+        IF $lobby_doc == NONE { THROW "Lobby does not exist"; };
+
+        IF $lobby_doc.game.state != 'ACTIVE' { THROW "Game state not active"; };
+        IF $lobby_doc.game.phase != 'ASSASSINATION' { THROW "Wrong game phase"; };
+
+        -- Verify identity
+        IF $lobby_doc.users[$name] == NONE OR $lobby_doc.users[$name].uid != $uid {
+          THROW "You are not who you say you are";
+        };
+
+        LET $secret = (SELECT * FROM secret_state WHERE lobby = $lobby_rec LIMIT 1);
+        LET $secret_doc = $secret[0];
+        IF $secret_doc == NONE { THROW "Secret state not found"; };
+
+        -- Verify assassin
+        IF $secret_doc.roles[$name].assassin != true {
+          THROW "You are not the assassin";
+        };
+
+        LET $secret_roles_arr = object::values($secret_doc.roles).map(|$r| { name: $r.name, role: $r.role, assassin: $r.assassin });
+        LET $mission_votes = $secret_doc.votes.mission ?? [];
+
+        IF $secret_doc.roles[$target].role == 'MERLIN' {
+          fn::end_game($lobby, 'EVIL_WIN', 'Merlin assassinated', $target,
+            $lobby_doc.game, $secret_roles_arr, $mission_votes);
+        } ELSE {
+          fn::end_game($lobby, 'GOOD_WIN', 'Three successful missions', $target,
+            $lobby_doc.game, $secret_roles_arr, $mission_votes);
+        };
+
+        RETURN { status: 200, body: NONE };
     };
