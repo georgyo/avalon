@@ -37,17 +37,6 @@ async function testFlow() {
     return path;
   }
 
-  // Abort Firestore requests to force offline mode (the real-time channel
-  // protocol can't be used in a headless test environment)
-  let firestoreRequestCount = 0;
-  await page.route('**/firestore.googleapis.com/**', async (route) => {
-    firestoreRequestCount++;
-    if (firestoreRequestCount <= 3) {
-      console.log('  [abort] firestore request #' + firestoreRequestCount);
-    }
-    await route.abort('connectionfailed');
-  });
-
   try {
     // ========== Step 1: Load app ==========
     console.log('\n=== Step 1: Load the app ===');
@@ -148,8 +137,8 @@ async function testFlow() {
     } else {
       // Lobby creation failed - check if it's a server error vs code error
       console.log('  Lobby not created. Checking error...');
-      if (lobbyText.includes('AxiosError') || lobbyText.includes('Request failed')) {
-        console.log('  NOTE: API error from production server (not a client code issue)');
+      if (lobbyText.includes('SurrealError') || lobbyText.includes('Request failed')) {
+        console.log('  NOTE: API error from server (not a client code issue)');
       }
     }
 
@@ -159,16 +148,13 @@ async function testFlow() {
       console.log('JavaScript runtime errors:');
       jsErrors.forEach(e => console.log('  -', e));
       const codeErrors = jsErrors.filter(e =>
-        !e.includes('Firebase') &&
-        !e.includes('firestore') &&
-        !e.includes('Firestore') &&
         !e.includes('net::ERR') &&
         !e.includes('Failed to fetch') &&
-        !e.includes('PERMISSION_DENIED') &&
-        !e.includes('Missing or insufficient permissions') &&
         !e.includes('api.mailcheck') &&
-        !e.includes('client is offline') &&
-        !e.includes('AxiosError')
+        !e.includes('SurrealError') &&
+        !e.includes('NetworkError') &&
+        !e.includes('Network Error') &&
+        !e.includes('WebSocket')
       );
       if (codeErrors.length > 0) {
         console.log('FAIL: Code errors detected');

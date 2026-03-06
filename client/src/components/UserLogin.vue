@@ -27,7 +27,6 @@
         <v-window v-model="tab">
           <v-window-item value="email">
           <div class="pa-4 login-form">
-          <template v-if='!emailSubmitted'>
             <v-text-field
              label="Email Address"
              ref='userEmailField'
@@ -38,22 +37,18 @@
              @keyup.enter='submitEmailAddress()'
              :error-messages='errorMessage'
              autofocus />
+            <v-text-field
+             label="Password"
+             v-model='password'
+             type="password"
+             autocomplete="current-password"
+             @keyup='clearErrorMessage()'
+             @keyup.enter='submitEmailAddress()'
+             :error-messages='errorMessage' />
             <v-btn
              @click='submitEmailAddress()' :loading="isSubmittingEmailAddr">
               Login
             </v-btn>
-          </template>
-          <template v-else>
-            <v-card class="bg-blue-grey-lighten-4">
-              <v-card-text class="text-center">
-                  <p>Check your email for the verification link</p>
-              </v-card-text>
-            </v-card>
-            <v-btn class='mt-4'
-             @click='resetForm()'>
-              Try Again
-            </v-btn>
-          </template>
           </div>
         </v-window-item>
       <v-window-item value="anonymous">
@@ -87,9 +82,9 @@ export default defineComponent({
     return {
       tab: 'email',
       emailAddr: '',
+      password: '',
       errorMessage: '',
       isSubmittingEmailAddr: false,
-      emailSubmitted: false
     };
   },
   props: {
@@ -106,8 +101,8 @@ export default defineComponent({
         this.isSubmittingEmailAddr = true;
         this.clearErrorMessage();
         this.avalon!.confirmingEmailError = '';
-        this.avalon!.submitEmailAddr(this.emailAddr).then(() => {
-            this.emailSubmitted = true;
+        this.avalon!.submitEmailAddr(this.emailAddr, this.password).then(() => {
+            // Successfully logged in
         }).catch((err: Error) => {
             this.errorMessage = err.message;
         }).finally(() => {
@@ -120,9 +115,6 @@ export default defineComponent({
       .then()
       .catch((err: Error) => this.errorMessage = err.message)
     },
-    resetForm() {
-        this.emailSubmitted = false;
-    }
   }
 })
 </script>

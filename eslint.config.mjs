@@ -5,7 +5,7 @@ import globals from 'globals';
 
 export default tseslint.config(
   {
-    ignores: ['**/dist/**', '**/node_modules/**', 'firebase/functions/**', 'dist-server/**'],
+    ignores: ['**/dist/**', '**/node_modules/**', 'dist-server/**'],
   },
   js.configs.recommended,
   // Server: TypeScript with Node globals
@@ -28,7 +28,7 @@ export default tseslint.config(
   },
   // Admin and test files have intentionally unused functions
   {
-    files: ['server/admin.ts', 'server/test.ts'],
+    files: ['server/admin.ts'],
     rules: {
       '@typescript-eslint/no-unused-vars': 'off',
     },

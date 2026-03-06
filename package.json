@@ -4,19 +4,16 @@
   "workspaces": [
     "common",
     "client",
-    "server",
-    "firebase/functions"
+    "server"
   ],
   "bin": {
-    "avalon-admin": "./server/admin.ts",
-    "avalon-server": "./server/server.ts"
+    "avalon-admin": "./server/admin.ts"
   },
   "scripts": {
     "build:common": "yarn workspace @avalon/common build",
     "build": "yarn build:common && yarn workspace @avalon/client build",
-    "bundle:server": "yarn build:common && esbuild server/server.ts --bundle --platform=node --target=node24 --outfile=dist-server/server.js --format=esm --define:__BUNDLED__=true --banner:js=\"import{createRequire}from'module';import{fileURLToPath as _f}from'url';import{dirname as _d}from'path';const require=createRequire(import.meta.url);const __filename=_f(import.meta.url);const __dirname=_d(__filename);\"",
-    "start": "yarn workspace @avalon/server start",
-    "admin": "yarn workspace @avalon/server tsx admin.ts",
+    "apply-schema": "node --env-file=.env server/apply-schema.mjs",
+    "admin": "tsx --env-file=.env server/admin.ts",
     "test": "node tests/e2e-flow.mjs",
     "test:browser": "node tests/e2e-browser.mjs",
     "test:game": "node tests/e2e-full-game.mjs"

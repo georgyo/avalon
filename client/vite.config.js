@@ -12,14 +12,6 @@ export default defineConfig({
     vue(),
     vuetify({ autoImport: true }),
   ],
-  server: {
-    proxy: {
-      '/api': {
-        target: 'https://avalon.onl',
-        changeOrigin: true,
-      }
-    }
-  },
   build: {
     outDir: '../server/dist',
     emptyOutDir: true,

@@ -15,7 +15,7 @@ bd sync               # Sync with git
 ## Repo-Specific Context
 
 ### Project Overview
-This is a multiplayer Avalon card game. The codebase is a Yarn 4 monorepo with four workspace packages: `common/`, `client/`, `server/`, and `firebase/functions/`.
+This is a multiplayer Avalon card game. The codebase is a Yarn 4 monorepo with three workspace packages: `common/`, `client/`, and `server/`. Uses SurrealDB Cloud for the database.
 
 ### Key Files to Know
 - `common/avalonlib.js` - Core game logic (roles, rules, player counts)
@@ -30,8 +30,7 @@ This is a multiplayer Avalon card game. The codebase is a Yarn 4 monorepo with f
 - Use `yarn` commands, not `npm` - this is a Yarn 4 workspace
 - Client dev server proxies `/api` to `https://avalon.onl` - change `client/vite.config.js` for local dev
 - The `common/` package is TypeScript-only - run `yarn build:common` after editing (automatic in `yarn build`)
-- Firebase functions use their own `node_modules` - run `cd firebase/functions && npm install` separately
-- Server lint is `eslint *.js` (only top-level JS files), client lint covers `src/`
+- Server lint is `eslint *.ts` (only top-level TS files), client lint covers `src/`
 
 ### Verifying Changes
 ```bash

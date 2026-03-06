@@ -7,7 +7,7 @@
        class="bg-light-blue-lighten-4">
         <font-awesome-layers class="mission-icon">
           <template v-if='mission.state == "PENDING"'>
-            <font-awesome-icon :icon='["far", "circle"]' :color='isFutureMission(mission, idx) ? "gray" : "black"' />
+            <font-awesome-icon :icon='["far", "circle"]' :color='isFutureMission(mission, Number(idx)) ? "gray" : "black"' />
             <font-awesome-layers-text class="gray8" style="font-size: 0.5em" :value="mission.teamSize" />
           </template>
           <font-awesome-icon v-else-if='mission.state == "FAIL"' color="red" :icon='["far", "times-circle"]' />
@@ -20,8 +20,8 @@
       <v-window-item v-for="(mission, idx) in avalon.game.missions" :key="'missionItem' + idx" :value="idx">
         <v-card flat :class='classForMission(mission)'>
           <v-card-text class="text-caption">
-            <div>Mission {{ idx + 1 }}:
-              {{ (idx == avalon.game.currentMissionIdx) && (avalon.game.phase != 'ASSASSINATION') ? 'CURRENT' : mission.state }}
+            <div>Mission {{ Number(idx) + 1 }}:
+              {{ (Number(idx) == avalon.game.currentMissionIdx) && (avalon.game.phase != 'ASSASSINATION') ? 'CURRENT' : mission.state }}
               <span v-if="mission.numFails > 0">({{ mission.numFails }} {{ mission.numFails > 1 ? 'fails' : 'fail'}})</span>
             </div>
             <div v-if='mission.state == "PENDING"'>

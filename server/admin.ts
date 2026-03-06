@@ -1,136 +1,125 @@
-import { getFirestore } from 'firebase-admin/firestore';
-import { getAuth } from 'firebase-admin/auth';
-import './firebaseKey'; // must be imported first to initialize Firebase
-
 import fs from 'fs';
+import { Surreal, RecordId } from 'surrealdb';
 
-const db = getFirestore();
+const db = new Surreal();
 
-// @ts-expect-error - statsLib is untyped
-import statsLib from '../firebase/functions/common/stats.js';
-
-function _recursDeleteUsers(users: { uid: string; email?: string }[]): Promise<void> | void {
-  console.log('Remaining', users.length);
-  if (users.length == 0) return;
-  const user = users.pop()!;
-  if (!user.email) {
-    return getAuth().deleteUser(user.uid).then(function() {
-      console.log("Deleted user", user.uid);
-      return _recursDeleteUsers(users);
-    });
-  } else {
-    return _recursDeleteUsers(users);
-  }
-}
-
-function _recursLookupUsers(users: { email: string; uid: string }[]): void {
-  if (users.length == 0) return;
-  const user = users.pop()!;
-  const domain = user.email.split('@')[1];
-  const WHITELIST = ['gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com'];
-  if (WHITELIST.includes(domain)) {
-    return _recursLookupUsers(users);
-  }
-  // ValidatorPizzaClient is not defined - this function is broken
-  console.log('Would validate:', user.email, user.uid, domain);
-}
-
-function _exportLogSnapshot(logSnapshot: FirebaseFirestore.DocumentSnapshot): void {
-    const data = logSnapshot.data();
-    fs.writeFileSync(logSnapshot.id, JSON.stringify(data, null, ' '));
-}
-
-function _exportLogs(): Promise<void[]> {
-  return db.collection('logs').get().then(snapshot => Promise.all(snapshot.docs.map(_exportLogSnapshot)));
-}
-
-function _exportLog(logId: string): Promise<void> {
-  return db.collection('logs').doc(logId).get().then(_exportLogSnapshot);
-}
-
-//_exportLogs().then(() => 0);
-
-function _lookupUsers(): Promise<void> {
- return getAuth().listUsers(1000).then(function(users) {
-    return _recursLookupUsers(users.users as unknown as { email: string; uid: string }[]);
+async function connectDb(): Promise<Surreal> {
+  await db.connect(process.env.SURREAL_URL || 'https://surreal.fu.io/', {
+    namespace: process.env.SURREAL_NS || 'avalon',
+    database: process.env.SURREAL_DB || 'avalon',
+    authentication: {
+      username: process.env.SURREAL_USER || '',
+      password: process.env.SURREAL_PASS || '',
+    },
   });
+  console.log('Connected to SurrealDB');
+  return db;
 }
 
-//_lookupUsers().then(() => 0);
+interface GameLogRecord {
+  id: RecordId;
+  missions: unknown[];
+  outcome: {
+    state: 'GOOD_WIN' | 'EVIL_WIN' | 'CANCELED';
+    roles: { name: string; role: string; assassin: boolean }[];
+  };
+  players: { name: string; uid: RecordId | string }[];
+  options?: Record<string, unknown>;
+  timeCreated?: string;
+  timeFinished: string;
+}
 
-//db.collection('logs').doc('2020-04-08T16:26:17.145Z_HLW').get().then(doc => exports.computeStats(doc.data())).then(stats => exports.combineStats(stats, true));
+async function _exportLogs(): Promise<void> {
+  await connectDb();
+  const result = await db.query<[GameLogRecord[]]>('SELECT * FROM game_log');
+  const logs = result[0] ?? [];
+  for (const log of logs) {
+    const id = typeof log.id === 'object' ? String(log.id) : log.id;
+    fs.writeFileSync(String(id), JSON.stringify(log, null, ' '));
+  }
+  console.log(`Exported ${logs.length} logs`);
+}
 
-//statsLib.recomputeAllStats(db);
+async function _exportLog(logId: string): Promise<void> {
+  await connectDb();
+  const result = await db.query<[GameLogRecord[]]>(
+    'SELECT * FROM game_log WHERE id = $id',
+    { id: new RecordId('game_log', logId) }
+  );
+  const log = result[0]?.[0];
+  if (log) {
+    fs.writeFileSync(logId, JSON.stringify(log, null, ' '));
+    console.log('Exported', logId);
+  } else {
+    console.log('Log not found:', logId);
+  }
+}
 
-function _cleanupLobbies(): Promise<void> {
-  const batch = db.batch();
-  const MAX_BATCH_SIZE = 300;
-  let counter = 0;
+async function _cleanupLobbies(): Promise<void> {
+  await connectDb();
+  const result = await db.query<[{ count: number }[]]>(
+    `DELETE FROM lobby WHERE
+      (timeCreated < time::now() - 2d AND game.state = 'INIT')
+      OR timeCreated < time::now() - 7d
+    RETURN BEFORE`
+  );
+  const deleted = result[0]?.length ?? 0;
+  console.log(`Deleted ${deleted} lobbies`);
+}
 
-  return db.collection('lobbies').get().then(
-    function(querySnapshot) {
-      querySnapshot.forEach(function(queryDocumentSnapshot) {
-        if (counter >= MAX_BATCH_SIZE) return;
+async function _cleanupLogs(): Promise<void> {
+  await connectDb();
+  const result = await db.query<[{ count: number }[]]>(
+    'DELETE FROM game_log WHERE timeCreated < time::now() - 60d RETURN BEFORE'
+  );
+  const deleted = result[0]?.length ?? 0;
+  console.log(`Deleted ${deleted} logs`);
+}
 
-        const lobbyCreatedTimestamp = queryDocumentSnapshot.get("timeCreated").toMillis();
-        const ageInDays = (Date.now() - lobbyCreatedTimestamp) / (1000 * 60 * 60 * 24);
-        console.log(queryDocumentSnapshot.id, "is", ageInDays, "days old");
-        if (((ageInDays > 2) && (queryDocumentSnapshot.get("game").state == 'INIT')) || (ageInDays > 7)) {
-          counter++;
-          console.log("Deleting lobby " + queryDocumentSnapshot.id);
-          batch.delete(queryDocumentSnapshot.ref);
-          // XXX this is bad since the user record will still point here
+async function _recomputeAllStats(): Promise<void> {
+  await connectDb();
+
+  // Reset global stats
+  await db.query('DELETE FROM stats');
+
+  // Reset user stats
+  await db.query('UPDATE user SET stats = {}');
+
+  // Recompute from all logs
+  const result = await db.query<[GameLogRecord[]]>('SELECT * FROM game_log');
+  const logs = result[0] ?? [];
+
+  console.log('Recomputing stats from', logs.length, 'logs');
+
+  // Stats recomputation now done via SurrealDB functions
+  // For each log, call the stats function
+  for (const log of logs) {
+    const playerData = log.players.map(p => ({
+      name: p.name,
+      uid: p.uid instanceof RecordId ? String(p.uid.id) : String(p.uid).includes(':') ? String(p.uid).split(':').slice(1).join(':') : String(p.uid),
+    }));
+    try {
+      await db.query(
+        `fn::compute_and_combine_stats($outcome_state, $outcome_roles, $players, $time_created, $time_finished)`,
+        {
+          outcome_state: log.outcome.state,
+          outcome_roles: log.outcome.roles,
+          players: playerData,
+          time_created: log.timeCreated ?? null,
+          time_finished: log.timeFinished,
         }
-      });
-    }).then(function() {
-      if (counter == 0) {
-        console.log('Nothing to be done');
-      } else {
-        console.log("committing batch...");
-        return batch.commit().then(() => {});
-      }
-    });
+      );
+    } catch (err) {
+      console.error('Failed to compute stats for log:', String(log.id), (err as Error).message);
+    }
+  }
+
+  console.log('Done recomputing stats');
 }
-
-// XXX welp, this is an exact copy of the function above. Should probably extract it?
-function _cleanupLogs(): Promise<void> {
-  const batch = db.batch();
-  const MAX_BATCH_SIZE = 300;
-  let counter = 0;
-
-  return db.collection('logs').get().then(
-    function(querySnapshot) {
-      querySnapshot.forEach(function(queryDocumentSnapshot) {
-        if (counter >= MAX_BATCH_SIZE) return;
-
-        const lobbyCreatedTimestamp = queryDocumentSnapshot.get("timeCreated").toMillis();
-        const ageInDays = (Date.now() - lobbyCreatedTimestamp) / (1000 * 60 * 60 * 24);
-        console.log(queryDocumentSnapshot.id, "is", ageInDays, "days old");
-        if (ageInDays > 60) {
-          counter++;
-          console.log("Deleting log " + queryDocumentSnapshot.id);
-          batch.delete(queryDocumentSnapshot.ref);
-        }
-      });
-    }).then(function() {
-      if (counter == 0) {
-        console.log('Nothing to be done');
-      } else {
-        console.log("committing batch...");
-        return batch.commit().then(() => {});
-      }
-    });
-}
-
-//_cleanupLogs().then(() => 0);
-//_cleanupLobbies().then(() => 0);
 
 // Keep unused refs to suppress lint while maintaining access for manual use
-void _recursDeleteUsers;
-void _recursLookupUsers;
 void _exportLogs;
 void _exportLog;
-void _lookupUsers;
 void _cleanupLobbies;
 void _cleanupLogs;
-void statsLib;
+void _recomputeAllStats;
