@@ -230,20 +230,20 @@ class LobbySubscription {
       return;
     }
 
-    if (oldDoc.admin.uid != newDoc.data()!.admin.uid) {
+    if (oldDoc.admin.uid != this._doc.admin.uid) {
       this._eventHandler('LOBBY_NEW_ADMIN');
     }
 
-    if ((keys(oldDoc.users).length != keys(newDoc.data()!.users).length) ||
-        !keys(oldDoc.users).every(u => newDoc.data()!.users[u])) {
+    if ((keys(oldDoc.users).length != keys(this._doc.users).length) ||
+        !keys(oldDoc.users).every(u => this._doc.users[u])) {
       this._eventHandler('PLAYER_LIST_CHANGED');
     }
 
-    if (oldDoc.game.state != newDoc.data()!.game.state) {
+    if (oldDoc.game.state != this._doc.game.state) {
       this._eventHandler(
-        newDoc.data()!.game.state == 'ACTIVE' ? 'GAME_STARTED' : 'GAME_ENDED'
+        this._doc.game.state == 'ACTIVE' ? 'GAME_STARTED' : 'GAME_ENDED'
       );
-    } else if (oldDoc.game.phase != newDoc.data()!.game.phase) {
+    } else if (oldDoc.game.phase != this._doc.game.phase) {
       if (this.game.phase == 'TEAM_PROPOSAL') {
         if (this.game.currentProposalIdx > 0) {
           this._eventHandler('PROPOSAL_REJECTED');
