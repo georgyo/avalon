@@ -1,7 +1,7 @@
-import firebase from 'firebase/compat/app'
-import 'firebase/compat/auth'
-import 'firebase/compat/firestore'
-import _ from 'lodash'
+import { initializeApp } from 'firebase/app'
+import { getAuth, signOut, signInAnonymously as firebaseSignInAnonymously, sendSignInLinkToEmail, signInWithEmailLink, onAuthStateChanged, type User, type UserCredential } from 'firebase/auth'
+import { getFirestore, doc, onSnapshot, getDoc, type DocumentSnapshot } from 'firebase/firestore'
+import { bindAll, difference, keys, keyBy, values } from 'lodash-es'
 import * as avalonLib from '@avalon/common/avalonlib';
 import {AvalonApi} from './avalon-api-rest';
 import firebaseConfig from './firebase-config';
@@ -18,8 +18,9 @@ declare global {
 
 const HOSTNAME = window.location.origin + '/';
 
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
+const firebaseApp = initializeApp(firebaseConfig);
+const auth = getAuth(firebaseApp);
+const db = getFirestore(firebaseApp);
 
 function onFirebaseError(err: Error): void {
   console.error(err);
@@ -157,11 +158,11 @@ class LobbySubscription {
 
   start(): void {
     this._subscriptions.lobbyDoc =
-      db.collection('lobbies').doc(this.name).onSnapshot(
+      onSnapshot(doc(db, 'lobbies', this.name),
         this._lobbyDocUpdated.bind(this),
         onFirebaseError);
     this._subscriptions.roleDoc =
-      db.collection('lobbies').doc(this.name).collection('roles').doc(this._uid).onSnapshot(
+      onSnapshot(doc(db, 'lobbies', this.name, 'roles', this._uid),
         this._roleDocUpdated.bind(this));
   }
 
@@ -178,7 +179,7 @@ class LobbySubscription {
     this.connected = false;
   }
 
-  private _roleDocUpdated(roleDoc: firebase.firestore.DocumentSnapshot): void {
+  private _roleDocUpdated(roleDoc: DocumentSnapshot): void {
     const rawData = roleDoc.data() as { role: string; sees?: string[] } | undefined;
     // enhance role: replace role name string with full Role object
     if (rawData) {
@@ -188,10 +189,10 @@ class LobbySubscription {
     }
   }
 
-  private _lobbyDocUpdated(newDoc: firebase.firestore.DocumentSnapshot): void {
+  private _lobbyDocUpdated(newDoc: DocumentSnapshot): void {
     const oldDoc = this._doc;
 
-    if (!newDoc.exists) {
+    if (!newDoc.exists()) {
       // shouldn't really happen
       console.error('lobby', this.name, 'disappeared from underneath us');
       this.stop();
@@ -210,17 +211,17 @@ class LobbySubscription {
       // const logName = '2020-04-07T02:08:27.212Z_TPB'; // five rejected in a row
       const logName = '2020-04-14T02:50:34.684Z_SQL'; // Actual Merlin achievement
       //const logName = '2020-03-26T01:56:50.603Z_CHR';
-      db.collection('logs').doc(logName).get().then((doc) => {
-        console.log('got ', doc.data());
-        this._game = doc.data();
+      getDoc(doc(db, 'logs', logName)).then((docSnap) => {
+        console.log('got ', docSnap.data());
+        this._game = docSnap.data();
         this._game.players = this._game.players.map(p => p.name); // flatten it to just names
         this._eventHandler('GAME_ENDED');
       }); /* */
 
       /* -- debug -- view random lobby
       const lobbyName = 'WDR';
-      db.collection('lobbies').doc(lobbyName).get().then((lobbyDoc) => {
-        this._game = lobbyDoc.get('game');
+      getDoc(doc(db, 'lobbies', lobbyName)).then((lobbyDoc) => {
+        this._game = lobbyDoc.data().game;
 
         this._eventHandler('GAME_ENDED');
       });
@@ -233,8 +234,8 @@ class LobbySubscription {
       this._eventHandler('LOBBY_NEW_ADMIN');
     }
 
-    if ((_.keys(oldDoc.users).length != _.keys(newDoc.data()!.users).length) ||
-        !_.keys(oldDoc.users).every(u => newDoc.data()!.users[u])) {
+    if ((keys(oldDoc.users).length != keys(newDoc.data()!.users).length) ||
+        !keys(oldDoc.users).every(u => newDoc.data()!.users[u])) {
       this._eventHandler('PLAYER_LIST_CHANGED');
     }
 
@@ -289,15 +290,15 @@ class GameConfig {
   }
 
   updatePlayerList(newList: Record<string, LobbyUser>, notifyForEachPlayer: boolean): void {
-    const nameList: string[] = _.values(newList).map(u => u.name);
+    const nameList: string[] = values(newList).map(u => u.name);
 
     if (this.playerList.length == 0) {
       this.playerList = nameList;
       return;
     }
 
-    const removedPlayers = _.difference(this.playerList, nameList);
-    const newPlayers = _.difference(nameList, this.playerList);
+    const removedPlayers = difference(this.playerList, nameList);
+    const newPlayers = difference(nameList, this.playerList);
 
     removedPlayers.forEach(r => {
       this.playerList.splice(this.playerList.indexOf(r), 1);
@@ -318,7 +319,7 @@ class GameConfig {
   setupRoles(): void {
     this.roles = avalonLib.ROLES;
     this.selectableRoles = this.roles.filter(r => r.selectable);
-    this.roleMap = _.keyBy(this.roles, r => r.name) as Record<string, Role>;
+    this.roleMap = keyBy(this.roles, r => r.name) as Record<string, Role>;
   }
 }
 
@@ -354,7 +355,7 @@ export default class AvalonGame {
     this.globalStats = null;
     this.hostname = process.env.NODE_ENV == 'development' ? 'http://localhost:8080/' : HOSTNAME;
 
-    _.bindAll(this);
+    bindAll(this);
 
     this._eventCallback = eventCallback;
     this.config = new GameConfig(this.notifyEvent.bind(this));
@@ -462,13 +463,13 @@ export default class AvalonGame {
     return this.lobby!.game;
   }
 
-  userDocUpdated(userDoc: firebase.firestore.DocumentSnapshot): void {
+  userDocUpdated(userDoc: DocumentSnapshot): void {
     this._authStateInitialized = true;
 
-    if (!userDoc.exists) {
+    if (!userDoc.exists()) {
       // User doc doesn't exist yet (server may be offline)
       // Create a minimal user object from Firebase auth to allow the app to proceed
-      const authUser = firebase.auth().currentUser;
+      const authUser = auth.currentUser;
       if (authUser) {
         console.warn('user doc does not exist, using Firebase auth user');
         this.user = {
@@ -535,7 +536,7 @@ export default class AvalonGame {
   }
 
   logout(): void {
-    firebase.auth().signOut();
+    signOut(auth);
   }
 
   async validateEmailAddr(email: string): Promise<boolean> {
@@ -563,14 +564,14 @@ export default class AvalonGame {
   async submitEmailAddr(emailAddr: string): Promise<void> {
     const isValidAddr = await this.validateEmailAddr(emailAddr);
     if (!isValidAddr) return;
-    return firebase.auth().sendSignInLinkToEmail(emailAddr, {
+    return sendSignInLinkToEmail(auth, emailAddr, {
       url: encodeURI(this.hostname + '?confirmEmail=' + emailAddr),
       handleCodeInApp: true
-    });
+    }).then(() => {});
   }
 
-  async signInAnonymously(): Promise<firebase.auth.UserCredential> {
-    return firebase.auth().signInAnonymously()
+  async signInAnonymously(): Promise<UserCredential> {
+    return firebaseSignInAnonymously(auth)
   }
 
   init(): void {
@@ -581,14 +582,14 @@ export default class AvalonGame {
       alert('Maybe next time?');
     }
 
-    firebase.auth().onAuthStateChanged(function (this: AvalonGame, userCred: firebase.User | null) {
+    onAuthStateChanged(auth, function (this: AvalonGame, userCred: User | null) {
       if (userCred == null) {
         // not logged in
         // maybe there's an email link?
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.has("confirmEmail")) {
           const emailAddr = urlParams.get("confirmEmail")!;
-          return firebase.auth().signInWithEmailLink(emailAddr, window.location.href).then(function(this: AvalonGame) {
+          return signInWithEmailLink(auth, emailAddr, window.location.href).then(function(this: AvalonGame) {
             this.confirmingEmailError = null;
           }.bind(this)).catch(function(this: AvalonGame, err: Error) {
             this.confirmingEmailError = err.message;
@@ -617,12 +618,12 @@ export default class AvalonGame {
         });
 
         // Set up Firestore listener regardless of API login status
-        this.userDocUnsubscribe = db.collection('users').doc(userCred.uid).onSnapshot(
+        this.userDocUnsubscribe = onSnapshot(doc(db, 'users', userCred.uid),
           this.userDocUpdated.bind(this),
           onFirebaseError);
 
-        db.collection('stats').doc('global').get().then(doc => {
-          this.globalStats = doc.data();
+        getDoc(doc(db, 'stats', 'global')).then(docSnap => {
+          this.globalStats = docSnap.data() as Record<string, unknown>;
         });
 
         // strip params from URL (if we followed a confirmEmail link but we're already logged in)

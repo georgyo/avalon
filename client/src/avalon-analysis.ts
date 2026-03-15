@@ -1,4 +1,4 @@
-import _ from 'lodash'
+import { keyBy, invert, mapValues, tail, initial, difference, isEqual, sortBy } from 'lodash-es'
 import type { Role, GameData, Mission, RoleAssignment, ProposerStats } from './types';
 
 interface Badge {
@@ -16,8 +16,8 @@ export default class GameAnalysis {
 
   constructor(game: GameData, roleMap: Record<string, Role>) {
     this.game = game;
-    this.rolesByName = _.keyBy(game.outcome!.roles, 'name');
-    this.namesByRole = _.invert(_.mapValues(this.rolesByName, r => r.role)); // this is lossy for non-unique roles!
+    this.rolesByName = keyBy(game.outcome!.roles, 'name');
+    this.namesByRole = invert(mapValues(this.rolesByName, r => r.role)); // this is lossy for non-unique roles!
     this.evilPlayers = game.outcome!.roles.filter(r => roleMap[r.role].team == 'evil').map(r => r.name);
     this.goodPlayers = game.outcome!.roles.filter(r => roleMap[r.role].team == 'good').map(r => r.name);
     this.missions = game.missions.map(m => {
@@ -147,7 +147,7 @@ export default class GameAnalysis {
       }
     },
     noEvilPlayersOnMissions() {
-      if (_.tail(this.missions).every(m => m.evilOnTeam.length == 0)) {
+      if (tail(this.missions).every(m => m.evilOnTeam.length == 0)) {
         return {
           title: 'Lockdown',
           body: 'No evil players went on any missions' +
@@ -200,7 +200,7 @@ export default class GameAnalysis {
       }
     },
     playingTheLongCon() {
-      for(const [missionIdx, mission] of _.tail(this.missions).entries()) {
+      for(const [missionIdx, mission] of tail(this.missions).entries()) {
         if ((mission.evilOnTeam.length == 1) &&
             (mission.failsRequired < 2) &&
             (mission.numFails == 0)) {
@@ -213,7 +213,7 @@ export default class GameAnalysis {
     },
     universalAcclaim() {
       for(const [missionIdx, mission] of this.missions.entries()) {
-        for(const proposal of _.initial(mission.proposals)) {
+        for(const proposal of initial(mission.proposals)) {
           if (proposal.votes.length == this.game.players.length) {
             return {
               title: 'Universal acclaim',
@@ -234,7 +234,7 @@ export default class GameAnalysis {
           evilPlayersOnBadMissions = evilPlayersOnBadMissions.concat(mission.evilOnTeam);
         }
       }
-      const candidates = _.difference(evilPlayersOnGoodMissions, evilPlayersOnBadMissions);
+      const candidates = difference(evilPlayersOnGoodMissions, evilPlayersOnBadMissions);
       if (candidates.length) {
         return {
           title: 'Biding my time',
@@ -283,7 +283,7 @@ export default class GameAnalysis {
       let teamProposalCount = 0;
       outer: for (const mission of this.missions) {
         for(const proposal of mission.proposals) {
-          if (_.isEqual(_.sortBy(lastTeam), _.sortBy(proposal.team))) {
+          if (isEqual(sortBy(lastTeam), sortBy(proposal.team))) {
             teamProposalCount = teamProposalCount + 1;
           } else {
             if (teamProposalCount >= 3) break outer;
@@ -303,8 +303,8 @@ export default class GameAnalysis {
       let players = this.game.players.slice(0);
       const completedMissions = this.missions.filter(m => m.state != 'PENDING');
       if (completedMissions.length == 0) return false;
-      for(const mission of _.initial(completedMissions)) {
-        players = _.difference(players, mission.team);
+      for(const mission of initial(completedMissions)) {
+        players = difference(players, mission.team);
         if (players.length == 0) break;
       }
       if (players.length > 0) {
@@ -348,7 +348,7 @@ export default class GameAnalysis {
       }
     },
     psychicPowers() {
-      const players = _.keyBy(this.game.players.map((name: string) => ({
+      const players = keyBy(this.game.players.map((name: string) => ({
           name,
           goodProposals: 0,
           badProposals: 0
