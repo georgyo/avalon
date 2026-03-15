@@ -25,7 +25,7 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue'
-import _ from 'lodash';
+import { difference } from 'lodash-es';
 
 export default defineComponent({
   name: 'MissionAction',
@@ -44,7 +44,7 @@ export default defineComponent({
   },
   computed: {
     stillWaitingFor(): string[] {
-      return _.difference(this.avalon.game.currentProposal.team,
+      return difference(this.avalon.game.currentProposal.team,
                           this.avalon.game.currentMission.team).filter(
                             (n: string) => n != this.avalon.user.name);
     },
