@@ -55,7 +55,7 @@ This is a **multiplayer Avalon card game** with four main components:
 - TypeScript source files in `client/src/`
 - Real-time game state via Firebase Firestore listeners
 - REST API calls to Express server for game actions
-- Build tool: Vite 7, dev proxy to `https://avalon.onl/api`
+- Build tool: Vite 8, dev proxy to `https://avalon.onl/api`
 
 ### Server (`/server/`)
 - Express.js REST API server (TypeScript)
@@ -104,7 +104,7 @@ Always use workspace commands from the root directory for consistent dependency 
 
 ## Tech Stack
 
-- **Frontend:** Vue 3.5, Vuetify 3, Vite 7, TypeScript
+- **Frontend:** Vue 3.5, Vuetify 3, Vite 8, TypeScript
 - **Backend:** Node.js 20, Express 4, Firebase Admin SDK
 - **Database:** Firebase Firestore (real-time)
 - **Testing:** Playwright (E2E)

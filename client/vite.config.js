@@ -23,10 +23,6 @@ export default defineConfig({
   build: {
     outDir: '../server/dist',
     emptyOutDir: true,
-    commonjsOptions: {
-      include: [/common/, /node_modules/],
-      transformMixedEsModules: true,
-    },
   },
   resolve: {
     extensions: ['.mjs', '.js', '.ts', '.jsx', '.tsx', '.json', '.vue'],
