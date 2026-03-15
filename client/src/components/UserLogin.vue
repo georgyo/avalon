@@ -2,15 +2,6 @@
   <v-card class="welcome bg-cyan-lighten-5">
     <div class="d-flex flex-column align-center">
       <v-card-title class="welcome-title">
-
-       <v-alert
-        v-if="avalon.confirmingEmailError"
-        type="error"
-       >
-        {{ avalon.confirmingEmailError }} Please try logging in again.
-        </v-alert>
-
-
         <div class='welcome'>
             <span class="welcome-heading">Avalon: The Resistance <span class="font-weight-thin">Online</span></span>
             <p class='mt-4 pt-2'>
@@ -20,61 +11,28 @@
             </p>
         </div>
       </v-card-title>
-        <v-tabs v-model="tab" center-active grow>
-          <v-tab value="email" data-testid="email-tab">Email</v-tab>
-          <v-tab value="anonymous" data-testid="anonymous-tab">Anonymous</v-tab>
-        </v-tabs>
-        <v-window v-model="tab">
-          <v-window-item value="email">
-          <div class="pa-4 login-form">
-          <template v-if='!emailSubmitted'>
-            <v-text-field
-             label="Email Address"
-             ref='userEmailField'
-             v-model='emailAddr'
-             type="email"
-             autocomplete="email"
-             @keyup='clearErrorMessage()'
-             @keyup.enter='submitEmailAddress()'
-             :error-messages='errorMessage'
-             autofocus />
-            <v-btn
-             @click='submitEmailAddress()' :loading="isSubmittingEmailAddr">
-              Login
-            </v-btn>
-          </template>
-          <template v-else>
-            <v-card class="bg-blue-grey-lighten-4">
-              <v-card-text class="text-center">
-                  <p>Check your email for the verification link</p>
-              </v-card-text>
-            </v-card>
-            <v-btn class='mt-4'
-             @click='resetForm()'>
-              Try Again
-            </v-btn>
-          </template>
-          </div>
-        </v-window-item>
-      <v-window-item value="anonymous">
-        <div class="pa-4">
+      <div class="pa-4">
         <v-btn
-             @click='signInAnonymously()'>
-              Login
-          </v-btn>
-        </div>
-      </v-window-item>
-        </v-window>
-
-        </div>
-      <div class="d-flex flex-column align-end">
-        <div class='mt-4 pt-4'>
-          <v-btn size="small" href='mailto:avalon@shamm.as' target="_blank" color='grey-lighten-2'>
-            <v-icon start size="small" icon="fa:fas fa-envelope-square" />
-            <span>Email</span>
-          </v-btn>
-        </div>
+          @click='signInAnonymously()'
+          :loading="isLoggingIn"
+          :error-messages='errorMessage'
+          data-testid="anonymous-login"
+          size="large"
+          color="primary"
+        >
+          Play Now
+        </v-btn>
+        <div v-if="errorMessage" class="text-error mt-2">{{ errorMessage }}</div>
       </div>
+    </div>
+    <div class="d-flex flex-column align-end">
+      <div class='mt-4 pt-4'>
+        <v-btn size="small" href='mailto:avalon@shamm.as' target="_blank" color='grey-lighten-2'>
+          <v-icon start size="small" icon="fa:fas fa-envelope-square" />
+          <span>Email</span>
+        </v-btn>
+      </div>
+    </div>
   </v-card>
 </template>
 
@@ -85,11 +43,8 @@ export default defineComponent({
   name: 'UserLogin',
   data() {
     return {
-      tab: 'email',
-      emailAddr: '',
       errorMessage: '',
-      isSubmittingEmailAddr: false,
-      emailSubmitted: false
+      isLoggingIn: false,
     };
   },
   props: {
@@ -99,30 +54,17 @@ export default defineComponent({
     document.title = 'Avalon (Not Logged In)'
   },
   methods: {
-    clearErrorMessage() {
-        this.errorMessage = '';
-    },
-    submitEmailAddress() {
-        this.isSubmittingEmailAddr = true;
-        this.clearErrorMessage();
-        this.avalon!.confirmingEmailError = '';
-        this.avalon!.submitEmailAddr(this.emailAddr).then(() => {
-            this.emailSubmitted = true;
-        }).catch((err: Error) => {
-            this.errorMessage = err.message;
-        }).finally(() => {
-            this.isSubmittingEmailAddr = false;
+    signInAnonymously() {
+      this.errorMessage = '';
+      this.isLoggingIn = true;
+      this.avalon!.signInAnonymously()
+        .catch((err: Error) => {
+          this.errorMessage = err.message;
+        })
+        .finally(() => {
+          this.isLoggingIn = false;
         });
     },
-    signInAnonymously() {
-      this.clearErrorMessage();
-      this.avalon!.signInAnonymously()
-      .then()
-      .catch((err: Error) => this.errorMessage = err.message)
-    },
-    resetForm() {
-        this.emailSubmitted = false;
-    }
   }
 })
 </script>
@@ -146,12 +88,6 @@ export default defineComponent({
   font-size: 1.75rem;
   font-weight: 400;
   line-height: 1.3;
-}
-
-.login-form {
-  width: 100%;
-  max-width: 450px;
-  min-width: 280px;
 }
 
 @media (min-width: 600px) {

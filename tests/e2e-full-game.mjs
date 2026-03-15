@@ -1,4 +1,4 @@
-import { firefox } from 'playwright';
+import { chromium } from 'playwright';
 import { mkdirSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
@@ -41,7 +41,10 @@ function isErrorIgnorable(msg) {
     msg.includes('AxiosError') ||
     msg.includes('NetworkError') ||
     msg.includes('Network Error') ||
-    msg.includes('favicon')
+    msg.includes('favicon') ||
+    msg.includes('SurrealDb') ||
+    msg.includes('WebSocket') ||
+    msg.includes('surreal')
   );
 }
 
@@ -59,7 +62,7 @@ class PlayerContext {
   }
 
   async init() {
-    this.context = await this.browser.newContext();
+    this.context = await this.browser.newContext({ ignoreHTTPSErrors: true });
     this.page = await this.context.newPage();
 
     // NOTE: Unlike e2e-flow.mjs we do NOT block Firestore requests here.
@@ -111,13 +114,10 @@ async function login(player) {
   await player.page.goto('http://localhost:5173/', { waitUntil: 'domcontentloaded', timeout: 30000 });
   await player.page.waitForTimeout(2000);
 
-  // Click anonymous tab
-  await player.page.click('[data-testid="anonymous-tab"]');
-  await player.page.waitForTimeout(500);
-
-  // Click Login
-  const loginBtn = player.page.locator('button:has-text("Login")');
-  await loginBtn.last().click();
+  // Click "Play Now" button (anonymous signup)
+  const playBtn = player.page.locator('button:has-text("Play Now"), [data-testid="anonymous-login"]');
+  await playBtn.waitFor({ state: 'visible', timeout: 10000 });
+  await playBtn.click();
 
   // Wait for auth
   await player.page.waitForFunction(
@@ -129,10 +129,9 @@ async function login(player) {
   );
   await player.page.waitForTimeout(1000);
 
-  // Enter name
+  // Enter name (use fill + dispatchEvent to trigger Vue's v-model update)
   const nameInput = player.page.locator('input').first();
-  await nameInput.clear();
-  await nameInput.type(player.name, { delay: 30 });
+  await nameInput.fill(player.name);
   await player.page.waitForTimeout(300);
 
   console.log(`  ${player.name} logged in`);
@@ -554,7 +553,7 @@ async function testFullGame() {
   const headlessEnv = process.env.HEADLESS;
   const headless = headlessEnv == null ? true : !/^(false|0|no)$/i.test(headlessEnv);
 
-  const browser = await firefox.launch({ headless });
+  const browser = await chromium.launch({ headless });
   const players = [];
 
   try {

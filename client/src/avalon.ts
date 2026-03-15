@@ -1,13 +1,10 @@
-import { initializeApp } from 'firebase/app'
-import { getAuth, signOut, signInAnonymously as firebaseSignInAnonymously, sendSignInLinkToEmail, signInWithEmailLink, onAuthStateChanged, type User, type UserCredential } from 'firebase/auth'
-import { getFirestore, doc, onSnapshot, getDoc, type DocumentSnapshot } from 'firebase/firestore'
-import { bindAll, difference, keys, keyBy, values } from 'lodash-es'
+import { Surreal, RecordId, Table, jsonify } from 'surrealdb';
+import { markRaw } from 'vue';
+import { bindAll, difference, keys, keyBy, values } from 'lodash-es';
 import * as avalonLib from '@avalon/common/avalonlib';
-import {AvalonApi} from './avalon-api-rest';
-import firebaseConfig from './firebase-config';
-import type { Role, GameData, Mission, Proposal, LobbyData, LobbyUser, UserData, RoleDoc } from './types';
-
-import axios from 'axios';
+import { AvalonApi } from './avalon-api-surreal';
+import surrealConfig from './surreal-config';
+import type { Role, GameData, Mission, Proposal, LobbyData, LobbyUser, UserData, RoleDoc, PlayerRoleData } from './types';
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -16,14 +13,24 @@ declare global {
   }
 }
 
-const HOSTNAME = window.location.origin + '/';
+const TOKEN_KEY = 'avalon_surreal_token';
 
-const firebaseApp = initializeApp(firebaseConfig);
-const auth = getAuth(firebaseApp);
-const db = getFirestore(firebaseApp);
+// Extract the raw ID portion from a RecordId (e.g. RecordId('lobby','ABC') -> 'ABC')
+function recordIdRaw(rid: RecordId | string | null | undefined): string {
+  if (rid == null) return '';
+  if (typeof rid === 'string') {
+    // Handle "table:id" format strings
+    const parts = rid.split(':');
+    return parts.length > 1 ? parts.slice(1).join(':') : rid;
+  }
+  return String(rid.id ?? rid);
+}
 
-function onFirebaseError(err: Error): void {
-  console.error(err);
+function recordIdsEqual(a: RecordId | string | null | undefined, b: RecordId | string | null | undefined): boolean {
+  if (a == null && b == null) return true;
+  if (a == null || b == null) return false;
+  // Compare the raw ID portions
+  return recordIdRaw(a) === recordIdRaw(b);
 }
 
 class Game {
@@ -117,23 +124,28 @@ class LobbySubscription {
   name: string;
   connected: boolean;
   private _uid: string;
+  private _db: Surreal;
   private _doc: LobbyData | null;
   private _roleDoc: RoleDoc | null;
   private _game: Game | null;
   private _config: GameConfig;
   private _eventHandler: (evt: string) => void;
-  private _subscriptions: Record<string, (() => void) | undefined>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private _liveQueries: { lobby?: any; role?: any };
+  private _pollInterval: ReturnType<typeof setInterval> | null;
 
-  constructor(uid: string, lobbyName: string, config: GameConfig, eventHandler: (evt: string) => void) {
+  constructor(uid: string, lobbyName: string, db: Surreal, config: GameConfig, eventHandler: (evt: string) => void) {
     this.name = lobbyName;
     this._uid = uid;
+    this._db = db;
     this._doc = null;
     this._roleDoc = null;
     this._game = null;
     this._config = config;
     this.connected = false;
     this._eventHandler = eventHandler;
-    this._subscriptions = { };
+    this._liveQueries = {};
+    this._pollInterval = null;
   }
 
   get data(): LobbyData {
@@ -144,7 +156,7 @@ class LobbySubscription {
     return this.data.users;
   }
 
-  get admin(): { uid: string; name: string } {
+  get admin(): { uid: string | RecordId; name: string } {
     return this.data.admin;
   }
 
@@ -156,86 +168,132 @@ class LobbySubscription {
     return this._roleDoc;
   }
 
-  start(): void {
-    this._subscriptions.lobbyDoc =
-      onSnapshot(doc(db, 'lobbies', this.name),
-        this._lobbyDocUpdated.bind(this),
-        onFirebaseError);
-    this._subscriptions.roleDoc =
-      onSnapshot(doc(db, 'lobbies', this.name, 'roles', this._uid),
-        this._roleDocUpdated.bind(this));
+  async start(): Promise<void> {
+    const lobbyId = new RecordId('lobby', this.name);
+
+    // Initial fetch of lobby data
+    try {
+      const lobbyData = await this._db.select<LobbyData>(lobbyId);
+      if (lobbyData) {
+        this._lobbyDocUpdated(jsonify(lobbyData) as LobbyData);
+      }
+    } catch (err) {
+      console.warn('Failed to fetch lobby data:', err);
+    }
+
+    // Live query on lobby table
+    const lobbyLive = await this._db.live(new Table('lobby'));
+    lobbyLive.subscribe((action: string, result: LobbyData) => {
+      if (action === 'CLOSE') return;
+      const plain = jsonify(result) as LobbyData & { id?: string };
+      if (plain?.id && recordIdRaw(plain.id) === this.name) {
+        if (action === 'DELETE') {
+          console.error('lobby', this.name, 'was deleted');
+          this.stop();
+          return;
+        }
+        this._lobbyDocUpdated(plain);
+      }
+    });
+    this._liveQueries.lobby = markRaw(lobbyLive);
+
+    // Live query on player_role table (permissions filter to own records)
+    const roleLive = await this._db.live(new Table('player_role'));
+    roleLive.subscribe((action: string, result: PlayerRoleData) => {
+      if (action === 'CLOSE') return;
+      if (action === 'DELETE') {
+        this._roleDoc = null;
+        return;
+      }
+      const plain = jsonify(result) as PlayerRoleData;
+      if (plain && recordIdRaw(plain.lobby) === this.name) {
+        this._roleDocUpdated(plain);
+      }
+    });
+    this._liveQueries.role = markRaw(roleLive);
+
+    // Initial fetch of role data
+    try {
+      const roleResults = await this._db.query<[PlayerRoleData[]]>(
+        'SELECT * FROM player_role WHERE lobby = $lobby LIMIT 1',
+        { lobby: lobbyId }
+      );
+      if (roleResults[0] && roleResults[0].length > 0) {
+        this._roleDocUpdated(jsonify(roleResults[0][0]) as PlayerRoleData);
+      }
+    } catch {
+      // No role yet, that's fine
+    }
+
+    // Poll for updates as a fallback in case live queries don't fire
+    this._pollInterval = setInterval(async () => {
+      if (!this.connected) return;
+      try {
+        const lobbyData = await this._db.select<LobbyData>(lobbyId);
+        if (lobbyData) {
+          this._lobbyDocUpdated(jsonify(lobbyData) as LobbyData);
+        }
+        // Also check for role updates
+        const roleResults = await this._db.query<[PlayerRoleData[]]>(
+          'SELECT * FROM player_role WHERE lobby = $lobby LIMIT 1',
+          { lobby: lobbyId }
+        );
+        if (roleResults[0] && roleResults[0].length > 0) {
+          this._roleDocUpdated(jsonify(roleResults[0][0]) as PlayerRoleData);
+        } else if (this._roleDoc != null) {
+          // Role was deleted (game ended)
+          this._roleDoc = null;
+        }
+      } catch {
+        // ignore polling errors
+      }
+    }, 2000);
   }
 
-  stop(): void {
-    if (this._subscriptions.lobbyDoc) {
-      this._subscriptions.lobbyDoc();
+  async stop(): Promise<void> {
+    if (this._pollInterval) {
+      clearInterval(this._pollInterval);
+      this._pollInterval = null;
     }
-
-    if (this._subscriptions.roleDoc) {
-      this._subscriptions.roleDoc();
+    if (this._liveQueries.lobby) {
+      try { await this._liveQueries.lobby.kill(); } catch { /* ignore */ }
     }
-
-    this._subscriptions = { };
+    if (this._liveQueries.role) {
+      try { await this._liveQueries.role.kill(); } catch { /* ignore */ }
+    }
+    this._liveQueries = {};
     this.connected = false;
   }
 
-  private _roleDocUpdated(roleDoc: DocumentSnapshot): void {
-    const rawData = roleDoc.data() as { role: string; sees?: string[] } | undefined;
-    // enhance role: replace role name string with full Role object
-    if (rawData) {
-      this._roleDoc = { ...rawData, role: this._config.roleMap[rawData.role] };
+  private _roleDocUpdated(data: PlayerRoleData): void {
+    if (data) {
+      this._roleDoc = {
+        role: this._config.roleMap[data.role],
+        sees: data.sees,
+      };
     } else {
       this._roleDoc = null;
     }
   }
 
-  private _lobbyDocUpdated(newDoc: DocumentSnapshot): void {
+  private _lobbyDocUpdated(newData: LobbyData): void {
     const oldDoc = this._doc;
 
-    if (!newDoc.exists()) {
-      // shouldn't really happen
-      console.error('lobby', this.name, 'disappeared from underneath us');
-      this.stop();
-      return;
-    }
-
-    this._doc = newDoc.data() as LobbyData;
+    this._doc = newData;
     this._game = new Game(this._doc.game, this._config);
 
-    if ((oldDoc == null) ||
-        (oldDoc.name != this._doc.name)) {
+    if (oldDoc == null) {
       this.connected = true;
       this._eventHandler('LOBBY_CONNECTED');
-
-      /* -- debug -- view old log
-      // const logName = '2020-04-07T02:08:27.212Z_TPB'; // five rejected in a row
-      const logName = '2020-04-14T02:50:34.684Z_SQL'; // Actual Merlin achievement
-      //const logName = '2020-03-26T01:56:50.603Z_CHR';
-      getDoc(doc(db, 'logs', logName)).then((docSnap) => {
-        console.log('got ', docSnap.data());
-        this._game = docSnap.data();
-        this._game.players = this._game.players.map(p => p.name); // flatten it to just names
-        this._eventHandler('GAME_ENDED');
-      }); /* */
-
-      /* -- debug -- view random lobby
-      const lobbyName = 'WDR';
-      getDoc(doc(db, 'lobbies', lobbyName)).then((lobbyDoc) => {
-        this._game = lobbyDoc.data().game;
-
-        this._eventHandler('GAME_ENDED');
-      });
-      */
-
       return;
     }
 
-    if (oldDoc.admin.uid != this._doc.admin.uid) {
+    if (!recordIdsEqual(oldDoc.admin.uid, this._doc.admin.uid)) {
       this._eventHandler('LOBBY_NEW_ADMIN');
     }
 
     if ((keys(oldDoc.users).length != keys(this._doc.users).length) ||
-        !keys(oldDoc.users).every(u => this._doc.users[u])) {
+        !keys(oldDoc.users).every(u => this._doc!.users[u])) {
       this._eventHandler('PLAYER_LIST_CHANGED');
     }
 
@@ -324,20 +382,20 @@ class GameConfig {
 }
 
 export default class AvalonGame {
+  db: Surreal;
   api: AvalonApi;
   lobby: LobbySubscription | null;
   user: UserData | null;
-  userDocUnsubscribe: (() => void) | null;
   globalStats: Record<string, unknown> | null;
-  hostname: string;
   config: GameConfig;
-  confirmingEmailError: string | null;
   private _authStateInitialized: boolean;
   private _eventCallback: ((event: string, data?: string) => void) | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private _userLiveQuery: any | null;
 
   constructor(eventCallback: (event: string, data?: string) => void) {
-    // XXX TODO: find a better place for this:
-    Array.prototype.joinWithAnd = function() {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    Array.prototype.joinWithAnd = function(this: any[]) {
       if (this.length == 0) return '';
       if (this.length == 1) return this[0];
       const arrCopy = this.slice(0);
@@ -345,15 +403,16 @@ export default class AvalonGame {
       return arrCopy.join(', ') + ' and ' + lastElem;
     };
 
-    this.api = new AvalonApi();
+    // markRaw prevents Vue from wrapping the Surreal instance in a Proxy,
+    // which would break access to private class fields (#connection).
+    this.db = markRaw(new Surreal());
+    this.api = new AvalonApi(this.db);
 
     this._authStateInitialized = false;
-    this.confirmingEmailError = null;
     this.lobby = null;
     this.user = null;
-    this.userDocUnsubscribe = null;
     this.globalStats = null;
-    this.hostname = process.env.NODE_ENV == 'development' ? 'http://localhost:8080/' : HOSTNAME;
+    this._userLiveQuery = null;
 
     bindAll(this);
 
@@ -369,34 +428,54 @@ export default class AvalonGame {
     }
   }
 
-  joinLobbyImpl(joinLobbyPromise: Promise<import('axios').AxiosResponse>): Promise<void> {
-    return joinLobbyPromise.then(function(this: AvalonGame, resp: import('axios').AxiosResponse) {
-      this.subscribeToLobby(resp.data.lobby);
-    }.bind(this));
+  async joinLobby(name: string, lobby: string): Promise<void> {
+    const resp = await this.api.joinLobby(name, lobby);
+    // Update local user state immediately (don't wait for live query)
+    const lobbyCode = resp.lobby as string;
+    if (this.user) {
+      this.user.name = resp.name as string;
+      (this.user as Record<string, unknown>).lobby = lobbyCode;
+    }
+    await this.subscribeToLobby(lobbyCode);
   }
 
-  joinLobby(name: string, lobby: string): Promise<void> {
-    return this.joinLobbyImpl(this.api.joinLobby(name, lobby));
+  async createLobby(name: string): Promise<void> {
+    try {
+      const resp = await this.api.createLobby(name);
+      // Update local user state immediately (don't wait for live query)
+      const lobbyCode = resp.lobby as string;
+      if (this.user) {
+        this.user.name = resp.name as string;
+        (this.user as Record<string, unknown>).lobby = lobbyCode;
+      }
+      await this.subscribeToLobby(lobbyCode);
+    } catch (err) {
+      // Retry on lobby code collision
+      if (err instanceof Error && err.message === 'LOBBY_CODE_COLLISION') {
+        return this.createLobby(name);
+      }
+      throw err;
+    }
   }
 
-  createLobby(name: string): Promise<void> {
-    return this.joinLobbyImpl(this.api.createLobby(name));
-    //return new Promise((resolve, reject) => setTimeout(() => resolve(name), 3000));
+  async leaveLobby(): Promise<void> {
+    await this.api.leaveLobby(this.lobby!.name);
+    this.unsubscribeFromLobby();
+    // Clear local user lobby state immediately
+    if (this.user) {
+      (this.user as Record<string, unknown>).lobby = null;
+    }
   }
 
-  leaveLobby(): Promise<void> {
-    return this.api.leaveLobby(this.lobby!.name).then(() => this.unsubscribeFromLobby());
-  }
-
-  kickPlayer(name: string): Promise<import('axios').AxiosResponse> {
+  kickPlayer(name: string): Promise<Record<string, unknown>> {
     return this.api.kickPlayer(this.lobby!.name, name);
   }
 
-  cancelGame(): Promise<import('axios').AxiosResponse> {
+  cancelGame(): Promise<Record<string, unknown>> {
     return this.api.cancelGame(this.lobby!.name, this.user!.name);
   }
 
-  voteTeam(vote: boolean): Promise<import('axios').AxiosResponse> {
+  voteTeam(vote: boolean): Promise<Record<string, unknown>> {
     return this.api.voteTeam(
       this.lobby!.name,
       this.user!.name,
@@ -405,11 +484,11 @@ export default class AvalonGame {
       vote);
   }
 
-  startGame(options: Record<string, unknown>): Promise<import('axios').AxiosResponse> {
+  startGame(options: Record<string, unknown>): Promise<Record<string, unknown>> {
     return this.api.startGame(this.lobby!.name, this.config.playerList, this.config.selectedRoleList, options);
   }
 
-  proposeTeam(playerList: string[]): Promise<import('axios').AxiosResponse> {
+  proposeTeam(playerList: string[]): Promise<Record<string, unknown>> {
     return this.api.proposeTeam(
       this.lobby!.name,
       this.user!.name,
@@ -418,7 +497,7 @@ export default class AvalonGame {
       playerList);
   }
 
-  doMission(vote: boolean): Promise<import('axios').AxiosResponse> {
+  doMission(vote: boolean): Promise<Record<string, unknown>> {
     return this.api.doMission(
       this.lobby!.name,
       this.user!.name,
@@ -427,7 +506,7 @@ export default class AvalonGame {
       vote);
   }
 
-  assassinate(target: string): Promise<import('axios').AxiosResponse> {
+  assassinate(target: string): Promise<Record<string, unknown>> {
     return this.api.assassinate(
       this.lobby!.name,
       this.user!.name,
@@ -438,8 +517,6 @@ export default class AvalonGame {
     if (!this._authStateInitialized) {
       return false;
     }
-
-    // either not logged in or if logged in, then we're not in lobby or we've loaded the lobby already
     return (this.user == null) || !this.user.lobby || this.isInLobby;
   }
 
@@ -448,7 +525,7 @@ export default class AvalonGame {
   }
 
   get isAdmin(): boolean {
-    return this.isInLobby && (this.lobby!.admin.uid == this.user!.uid);
+    return this.isInLobby && recordIdsEqual(this.lobby!.admin.uid, this.user!.uid);
   }
 
   get isInLobby(): boolean {
@@ -463,35 +540,24 @@ export default class AvalonGame {
     return this.lobby!.game;
   }
 
-  userDocUpdated(userDoc: DocumentSnapshot): void {
+  private async userDocUpdated(userData: UserData): Promise<void> {
     this._authStateInitialized = true;
 
-    if (!userDoc.exists()) {
-      // User doc doesn't exist yet (server may be offline)
-      // Create a minimal user object from Firebase auth to allow the app to proceed
-      const authUser = auth.currentUser;
-      if (authUser) {
-        console.warn('user doc does not exist, using Firebase auth user');
-        this.user = {
-          uid: authUser.uid,
-          name: authUser.displayName || 'Anonymous',
-          email: authUser.email,
-          lobby: null
-        };
-      }
-      return;
+    const oldLobby = this.user?.lobby;
+    this.user = userData;
+    // Store the record ID string as uid for compatibility
+    if (userData.id) {
+      this.user.uid = String(userData.id);
     }
 
-    this.user = userDoc.data() as UserData;
-
     if (!this.user.lobby && (this.lobby != null)) {
-      const oldLobby = this.lobby.name;
+      const oldLobbyName = this.lobby.name;
       this.unsubscribeFromLobby();
-      this.notifyEvent('DISCONNECTED_FROM_LOBBY', oldLobby);
+      this.notifyEvent('DISCONNECTED_FROM_LOBBY', oldLobbyName);
     }
 
     if (this.user.lobby && (this.lobby == null)) {
-      this.subscribeToLobby(this.user.lobby);
+      await this.subscribeToLobby(recordIdRaw(this.user.lobby));
     }
   }
 
@@ -502,13 +568,16 @@ export default class AvalonGame {
     }
   }
 
-  subscribeToLobby(lobby: string): void {
+  async subscribeToLobby(lobbyCode: string): Promise<void> {
     if (this.lobby != null) {
-      // want to avoid double-subscriptions (from user doc and create/join func calls)
       return;
     }
-    this.lobby = new LobbySubscription(this.user!.uid, lobby, this.config,
-      function(this: AvalonGame, evt: string) {
+    this.lobby = new LobbySubscription(
+      this.user!.uid,
+      lobbyCode,
+      this.db,
+      this.config,
+      ((evt: string) => {
         switch(evt) {
           case 'LOBBY_CONNECTED':
             this.lobbyConnected();
@@ -523,9 +592,9 @@ export default class AvalonGame {
             console.debug('received', evt, 'in avalon game engine');
         }
         this.notifyEvent(evt);
-      }.bind(this)
+      })
     );
-    this.lobby.start();
+    await this.lobby.start();
   }
 
   lobbyConnected(): void {
@@ -535,100 +604,124 @@ export default class AvalonGame {
     }
   }
 
-  logout(): void {
-    signOut(auth);
-  }
-
-  async validateEmailAddr(email: string): Promise<boolean> {
-    // best-effort email address parsing
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      throw new Error("Not a valid email address");
-    } else {
-      const components = email.split('@');
-      const domain = components[1];
-      // short-circuit common domains
-      const WHITELIST = ['gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 'live.com'];
-      if (WHITELIST.includes(domain)) {
-        return true;
-      }
-
-      const response = await axios.get('https://api.mailcheck.ai/domain/' + domain);
-      if (response.status != 200) {
-        throw new Error('Cannot verify email. Try again later');
-      }
-
-      return response.data.mx && !response.data.disposable;
+  async logout(): Promise<void> {
+    // Kill user live query before invalidating
+    if (this._userLiveQuery) {
+      try { await this._userLiveQuery.kill(); } catch { /* ignore */ }
+      this._userLiveQuery = null;
     }
+    this.unsubscribeFromLobby();
+    await this.db.invalidate();
+    localStorage.removeItem(TOKEN_KEY);
+    this.user = null;
+    this._authStateInitialized = true;
   }
 
-  async submitEmailAddr(emailAddr: string): Promise<void> {
-    const isValidAddr = await this.validateEmailAddr(emailAddr);
-    if (!isValidAddr) return;
-    return sendSignInLinkToEmail(auth, emailAddr, {
-      url: encodeURI(this.hostname + '?confirmEmail=' + emailAddr),
-      handleCodeInApp: true
-    }).then(() => {});
-  }
+  async signInAnonymously(): Promise<void> {
+    const tokens = await this.db.signup({
+      namespace: surrealConfig.namespace,
+      database: surrealConfig.database,
+      access: surrealConfig.access,
+      variables: {},
+    });
 
-  async signInAnonymously(): Promise<UserCredential> {
-    return firebaseSignInAnonymously(auth)
-  }
-
-  init(): void {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.has("purchaseSuccess")) {
-      alert('Thank you. Your support means a lot.');
-    } else if (urlParams.has('purchaseCanceled')) {
-      alert('Maybe next time?');
+    // Store token for reconnection
+    if (tokens?.access) {
+      localStorage.setItem(TOKEN_KEY, tokens.access);
     }
 
-    onAuthStateChanged(auth, function (this: AvalonGame, userCred: User | null) {
-      if (userCred == null) {
-        // not logged in
-        // maybe there's an email link?
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.has("confirmEmail")) {
-          const emailAddr = urlParams.get("confirmEmail")!;
-          return signInWithEmailLink(auth, emailAddr, window.location.href).then(function(this: AvalonGame) {
-            this.confirmingEmailError = null;
-          }.bind(this)).catch(function(this: AvalonGame, err: Error) {
-            this.confirmingEmailError = err.message;
-            this._authStateInitialized = true;
-          }.bind(this)).finally(function(this: AvalonGame) {
-            // strip params from URL
-            window.history.replaceState(null, '', window.location.pathname);
-          }.bind(this));
-        } else {
-          // no email link, so we are not logged in for real
-          this._authStateInitialized = true;
-        }
+    // Login API call (best-effort)
+    try {
+      await this.api.login();
+    } catch (err) {
+      console.warn('API login failed:', err);
+    }
 
-        if (this.userDocUnsubscribe != null) {
-          this.userDocUnsubscribe();
-          this.userDocUnsubscribe = null;
-        }
-        this.user = null;
+    // Set up user data listening
+    await this._setupUserListener();
+  }
+
+  private async _setupUserListener(): Promise<void> {
+    // Get current user data
+    try {
+      const results = await this.db.query<[UserData[]]>('SELECT * FROM user WHERE id = $auth.id');
+      if (results[0] && results[0].length > 0) {
+        this.userDocUpdated(jsonify(results[0][0]) as UserData);
       } else {
-        // we have user credentials
-        console.debug('I am', userCred.uid);
-
-        // Call login API (best-effort, don't block initialization if it fails)
-        this.api.login(userCred.email!).catch(function(err: Error) {
-          console.warn('API login failed (server may be offline):', err.message);
-        });
-
-        // Set up Firestore listener regardless of API login status
-        this.userDocUnsubscribe = onSnapshot(doc(db, 'users', userCred.uid),
-          this.userDocUpdated.bind(this),
-          onFirebaseError);
-
-        getDoc(doc(db, 'stats', 'global')).then(docSnap => {
-          this.globalStats = docSnap.data() as Record<string, unknown>;
-        });
-
-        // strip params from URL (if we followed a confirmEmail link but we're already logged in)
-        window.history.replaceState(null, '', window.location.pathname);
+        this._authStateInitialized = true;
       }
-    }.bind(this));
+    } catch (err) {
+      console.warn('Failed to fetch user data:', err);
+      this._authStateInitialized = true;
+    }
+
+    // Live query on user table (permissions filter to own record)
+    try {
+      const userLive = await this.db.live(new Table('user'));
+      userLive.subscribe((action: string, result: UserData) => {
+        if (action === 'CLOSE') return;
+        if (action === 'DELETE') {
+          this.user = null;
+          this._authStateInitialized = true;
+          return;
+        }
+        this.userDocUpdated(jsonify(result) as UserData);
+      });
+      this._userLiveQuery = markRaw(userLive);
+    } catch (err) {
+      console.warn('Failed to set up user live query:', err);
+    }
+
+    // Fetch global stats
+    try {
+      const statsResults = await this.db.query<[Record<string, unknown>[]]>(
+        'SELECT * FROM global_stats:global'
+      );
+      if (statsResults[0] && statsResults[0].length > 0) {
+        this.globalStats = jsonify(statsResults[0][0]) as Record<string, unknown>;
+      }
+    } catch {
+      // Stats not available, that's ok
+    }
+  }
+
+  async init(): Promise<void> {
+    try {
+      // Connect to SurrealDB
+      console.debug('Connecting to SurrealDB at', surrealConfig.url);
+      await this.db.connect(surrealConfig.url, {
+        namespace: surrealConfig.namespace,
+        database: surrealConfig.database,
+      });
+      console.debug('Connected to SurrealDB');
+
+      // Try to restore session from stored token
+      const storedToken = localStorage.getItem(TOKEN_KEY);
+      if (storedToken) {
+        try {
+          await this.db.authenticate(storedToken);
+          console.debug('Restored session from stored token');
+
+          // Login API call (best-effort)
+          try {
+            await this.api.login();
+          } catch (err) {
+            console.warn('API login failed:', err);
+          }
+
+          await this._setupUserListener();
+          return;
+        } catch (err) {
+          console.warn('Stored token invalid, clearing:', err);
+          localStorage.removeItem(TOKEN_KEY);
+        }
+      }
+
+      // No valid stored token - user needs to sign up
+      this._authStateInitialized = true;
+    } catch (err) {
+      console.error('Failed to connect to SurrealDB:', err);
+      this._authStateInitialized = true;
+    }
   }
 }

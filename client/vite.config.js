@@ -13,12 +13,7 @@ export default defineConfig({
     vuetify({ autoImport: true }),
   ],
   server: {
-    proxy: {
-      '/api': {
-        target: 'https://avalon.onl',
-        changeOrigin: true,
-      }
-    }
+    // No proxy needed - client connects directly to SurrealDB via WebSocket
   },
   build: {
     outDir: '../server/dist',
@@ -32,6 +27,6 @@ export default defineConfig({
     dedupe: ['vue', 'vuetify'],
   },
   optimizeDeps: {
-    include: ['@avalon/common', '@avalon/common/avalonlib', 'vue', 'vuetify'],
+    include: ['@avalon/common', '@avalon/common/avalonlib', 'vue', 'vuetify', 'surrealdb'],
   },
 })

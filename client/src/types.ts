@@ -1,4 +1,5 @@
 import type { Role } from '@avalon/common/avalonlib';
+import type { RecordId } from 'surrealdb';
 
 export type { Role };
 
@@ -45,27 +46,38 @@ export interface GameData {
 
 export interface LobbyUser {
   name: string;
-  uid?: string;
+  uid?: string | RecordId;
 }
 
 export interface LobbyData {
-  name: string;
-  admin: { uid: string; name: string };
+  id?: RecordId;
+  admin: { uid: string | RecordId; name: string };
   users: Record<string, LobbyUser>;
   game: GameData;
 }
 
 export interface UserData {
+  id?: RecordId;
   uid: string;
   name: string;
-  email?: string | null;
-  lobby?: string | null;
+  lobby?: RecordId | null;
   stats?: Record<string, unknown>;
 }
 
 export interface RoleDoc {
   role: Role;
   sees?: string[];
+}
+
+export interface PlayerRoleData {
+  id?: RecordId;
+  lobby: RecordId;
+  user: RecordId;
+  name: string;
+  role: string;
+  assassin: boolean;
+  team: string;
+  sees: string[];
 }
 
 export interface ProposerStats {
