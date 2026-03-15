@@ -22,8 +22,6 @@
     "test:game": "node tests/e2e-full-game.mjs"
   },
   "devDependencies": {
-    "@babel/core": "^7.29.0",
-    "@babel/eslint-parser": "^7.28.6",
     "@eslint/js": "^10.0.1",
     "@typescript-eslint/eslint-plugin": "^8.57.0",
     "@typescript-eslint/parser": "^8.57.0",

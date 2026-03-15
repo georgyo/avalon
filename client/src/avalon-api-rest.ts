@@ -1,5 +1,4 @@
-import firebase from 'firebase/compat/app';
-import 'firebase/compat/auth';
+import { getAuth } from 'firebase/auth';
 
 import axios, { AxiosResponse } from 'axios';
 
@@ -9,7 +8,7 @@ export class AvalonApi {
   }
 
   post(endPoint: string, data: Record<string, unknown>): Promise<AxiosResponse> {
-    return firebase.auth().currentUser!.getIdToken(false).then(function(idToken: string) {
+    return getAuth().currentUser!.getIdToken(false).then(function(idToken: string) {
       console.debug("Calling", endPoint, 'with', data);
       return axios.post(endPoint, data, {
         headers: {'X-Avalon-Auth': idToken}

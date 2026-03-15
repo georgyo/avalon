@@ -2,24 +2,28 @@ import { createApp } from 'vue'
 import { createVuetify } from 'vuetify'
 // @ts-expect-error: Vuetify styles have no type declarations for side-effect import
 import 'vuetify/styles'
-import { fa } from 'vuetify/iconsets/fa'
+import { fa } from 'vuetify/iconsets/fa-svg'
 import { aliases, mdi } from 'vuetify/iconsets/mdi'
 import App from './App.vue'
 import Toast from 'vue-toastification'
 import 'vue-toastification/dist/index.css'
 import '@mdi/font/css/materialdesignicons.css'
-import '@fortawesome/fontawesome-free/css/all.min.css'
 import { library } from '@fortawesome/fontawesome-svg-core'
 import { FontAwesomeIcon, FontAwesomeLayers, FontAwesomeLayersText } from '@fortawesome/vue-fontawesome'
 
-// importing icons which we need for layering and manipulations
-import { faCrown, faCircle as faSolidCircle, faEllipsisH, faVoteYea } from '@fortawesome/free-solid-svg-icons'
+// importing icons used by <font-awesome-icon> and <v-icon icon="fa:...">
+import {
+  faCrown, faCircle as faSolidCircle, faEllipsisH, faVoteYea,
+  faCheckCircle as faSolidCheckCircle, faTimesCircle as faSolidTimesCircle,
+  faEnvelopeSquare, faBars, faHammer, faTrophy,
+} from '@fortawesome/free-solid-svg-icons'
 import { faCircle, faTimesCircle, faCheckCircle, faThumbsUp, faThumbsDown } from '@fortawesome/free-regular-svg-icons'
 import { faOldRepublic, faEmpire } from '@fortawesome/free-brands-svg-icons'
 
 library.add(faCrown, faSolidCircle, faCircle,
   faTimesCircle, faCheckCircle, faThumbsDown, faThumbsUp,
-  faEllipsisH, faVoteYea, faOldRepublic, faEmpire);
+  faEllipsisH, faVoteYea, faOldRepublic, faEmpire,
+  faSolidCheckCircle, faSolidTimesCircle, faEnvelopeSquare, faBars, faHammer, faTrophy);
 
 const vuetify = createVuetify({
   icons: {
