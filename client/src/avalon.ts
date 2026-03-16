@@ -463,7 +463,7 @@ export default class AvalonGame {
 
   async leaveLobby(): Promise<void> {
     await this.api.leaveLobby(this.lobby!.name);
-    this.unsubscribeFromLobby();
+    await this.unsubscribeFromLobby();
     // Clear local user lobby state immediately
     if (this.user) {
       (this.user as Record<string, unknown>).lobby = null;
@@ -612,7 +612,7 @@ export default class AvalonGame {
       try { await this._userLiveQuery.kill(); } catch { /* ignore */ }
       this._userLiveQuery = null;
     }
-    this.unsubscribeFromLobby();
+    await this.unsubscribeFromLobby();
     await this.db.invalidate();
     localStorage.removeItem(TOKEN_KEY);
     this.user = null;

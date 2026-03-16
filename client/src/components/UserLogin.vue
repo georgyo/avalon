@@ -15,7 +15,6 @@
         <v-btn
           @click='signInAnonymously()'
           :loading="isLoggingIn"
-          :error-messages='errorMessage'
           data-testid="anonymous-login"
           size="large"
           color="primary"

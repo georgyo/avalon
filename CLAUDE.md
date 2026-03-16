@@ -85,9 +85,11 @@ This is a **multiplayer Avalon card game** with three main components:
 
 ## Workspace Structure
 
-This is a Yarn 4 workspace with two packages:
+This is a Yarn 4 workspace with four packages:
 - `@avalon/common` - Shared game logic library (TypeScript, compiled to CJS)
 - `@avalon/client` - Frontend application (Vue 3 + Vite)
+- `@avalon/server` - Legacy Express server (to be removed)
+- `functions` - Legacy Firebase Cloud Functions (to be removed)
 
 Always use workspace commands from the root directory for consistent dependency management.
 
@@ -99,4 +101,4 @@ Always use workspace commands from the root directory for consistent dependency 
 - **Auth:** SurrealDB anonymous record access
 - **Testing:** Playwright (E2E)
 - **Build:** Yarn 4 workspaces, Nix (reproducible builds)
-- **Linting:** ESLint 9 with TypeScript and Vue plugins
+- **Linting:** ESLint 10 with TypeScript and Vue plugins
