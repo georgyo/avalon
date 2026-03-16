@@ -449,17 +449,17 @@ export default class GameAnalysis {
       }
     },
     loyalToAFault() {
-      const nonHammerProposals: { proposal: typeof this.missions[0]['proposals'][0]; missionIdx: number }[] = [];
-      for (const [missionIdx, mission] of this.missions.entries()) {
+      const nonHammerProposals: typeof this.missions[0]['proposals'] = [];
+      for (const mission of this.missions) {
         for (const [proposalIdx, proposal] of mission.proposals.entries()) {
           if (proposalIdx < 4 && proposal.state != 'PENDING') {
-            nonHammerProposals.push({ proposal, missionIdx });
+            nonHammerProposals.push(proposal);
           }
         }
       }
       if (nonHammerProposals.length < 3) return false;
       for (const player of this.game.players) {
-        if (nonHammerProposals.every(p => p.proposal.votes.includes(player))) {
+        if (nonHammerProposals.every(p => p.votes.includes(player))) {
           return {
             title: 'Yes-man',
             body: `${player} approved every single proposal`
@@ -560,8 +560,8 @@ export default class GameAnalysis {
       if (completedMissions.length < 3) return false;
 
       const maxTeamSize = Math.max(...completedMissions.map(m => m.teamSize));
-      const bigMission = this.missions.find(m => m.teamSize == maxTeamSize);
-      if (bigMission && bigMission.state == 'FAIL') {
+      const bigMission = this.missions.find(m => m.teamSize == maxTeamSize && m.state == 'FAIL');
+      if (bigMission) {
         const missionIdx = this.missions.indexOf(bigMission);
         return {
           title: 'Et tu, Brute?',
@@ -643,8 +643,8 @@ export default class GameAnalysis {
           const current = mission.proposals[i];
           for (let j = 0; j < i; j++) {
             const previous = mission.proposals[j];
-            if (isEqual(sortBy(current.team), sortBy(previous.team))) {
-              // Same team proposed again - find someone who flipped
+            if (previous.state == 'REJECTED' && current.state == 'APPROVED' && isEqual(sortBy(current.team), sortBy(previous.team))) {
+              // Same team rejected then approved - find someone who flipped
               const flippers = current.votes.filter(v => !previous.votes.includes(v));
               if (flippers.length > 0) {
                 return {
