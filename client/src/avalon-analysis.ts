@@ -393,6 +393,278 @@ export default class GameAnalysis {
         })
       );
     },
+    unanimousRejection() {
+      for (const [missionIdx, mission] of this.missions.entries()) {
+        for (const proposal of mission.proposals) {
+          if (proposal.state == 'REJECTED' && proposal.votes.length == 0) {
+            return {
+              title: 'Hard pass',
+              body: `${proposal.proposer}'s proposal on mission ${missionIdx + 1} was rejected by everyone`
+            };
+          }
+        }
+      }
+    },
+    loneWolf() {
+      for (const [missionIdx, mission] of this.missions.entries()) {
+        if (mission.evilOnTeam.length == 1 && mission.numFails == 1 && mission.state == 'FAIL') {
+          return {
+            title: 'Lone wolf',
+            body: `${mission.evilOnTeam[0]} single-handedly failed mission ${missionIdx + 1}`
+          };
+        }
+      }
+    },
+    downToTheWire() {
+      if (this.missions.every(m => m.state != 'PENDING')) {
+        return {
+          title: 'Down to the wire',
+          body: 'All five missions were played'
+        };
+      }
+    },
+    hammerTime() {
+      for (const [missionIdx, mission] of this.missions.entries()) {
+        if (mission.proposals.length == 5 && mission.proposals[4].state == 'APPROVED') {
+          return {
+            title: 'Hammer time',
+            body: `Mission ${missionIdx + 1} went to the 5th proposal (hammer)`
+          };
+        }
+      }
+    },
+    oberonGambit() {
+      if (!this.namesByRole['OBERON']) return false;
+      const oberon = this.namesByRole['OBERON'];
+
+      for (const [missionIdx, mission] of this.missions.entries()) {
+        if (mission.evilOnTeam.includes(oberon) &&
+            mission.evilOnTeam.some(p => p != oberon)) {
+          return {
+            title: "Oberon's gambit",
+            body: `Oberon went on mission ${missionIdx + 1} with evil allies who couldn't see them`
+          };
+        }
+      }
+    },
+    evilEverywhere() {
+      const completedMissions = this.missions.filter(m => m.state != 'PENDING');
+      if (completedMissions.length >= 3 && completedMissions.every(m => m.evilOnTeam.length > 0)) {
+        return {
+          title: 'Omnipresent evil',
+          body: 'Every mission had at least one evil player'
+        };
+      }
+    },
+    loyalToAFault() {
+      const nonHammerProposals: { proposal: typeof this.missions[0]['proposals'][0]; missionIdx: number }[] = [];
+      for (const [missionIdx, mission] of this.missions.entries()) {
+        for (const [proposalIdx, proposal] of mission.proposals.entries()) {
+          if (proposalIdx < 4 && proposal.state != 'PENDING') {
+            nonHammerProposals.push({ proposal, missionIdx });
+          }
+        }
+      }
+      if (nonHammerProposals.length < 3) return false;
+      for (const player of this.game.players) {
+        if (nonHammerProposals.every(p => p.proposal.votes.includes(player))) {
+          return {
+            title: 'Yes-man',
+            body: `${player} approved every single proposal`
+          };
+        }
+      }
+    },
+    contrarian() {
+      const approvedNonHammer: typeof this.missions[0]['proposals'] = [];
+      for (const mission of this.missions) {
+        for (const [proposalIdx, proposal] of mission.proposals.entries()) {
+          if (proposalIdx < 4 && proposal.state == 'APPROVED') {
+            approvedNonHammer.push(proposal);
+          }
+        }
+      }
+      if (approvedNonHammer.length < 2) return false;
+      for (const player of this.game.players) {
+        if (approvedNonHammer.every(p => !p.votes.includes(player))) {
+          return {
+            title: 'Contrarian',
+            body: `${player} rejected every proposal that got approved`
+          };
+        }
+      }
+    },
+    oneManArmy() {
+      const failedMissions = this.missions.filter(m => m.state == 'FAIL');
+      if (failedMissions.length < 2) return false;
+
+      const evilOnAllFailed = failedMissions[0].evilOnTeam.filter(p =>
+        failedMissions.every(m => m.evilOnTeam.includes(p))
+      );
+      if (evilOnAllFailed.length == 1 &&
+          failedMissions.every(m => m.evilOnTeam.length == 1)) {
+        return {
+          title: 'One-man army',
+          body: `${evilOnAllFailed[0]} was the only evil player on every failed mission`
+        };
+      }
+    },
+    evilGhost() {
+      const completedMissions = this.missions.filter(m => m.state != 'PENDING');
+      if (completedMissions.length < 3) return false;
+
+      for (const player of this.evilPlayers) {
+        if (completedMissions.every(m => !m.team.includes(player))) {
+          return {
+            title: 'Ghost',
+            body: `${player} was evil but never went on a single mission`
+          };
+        }
+      }
+    },
+    trojanHorse() {
+      for (const [missionIdx, mission] of this.missions.entries()) {
+        if (mission.evilOnTeam.length > 0 &&
+            mission.evilOnTeam.length > mission.team.length / 2) {
+          return {
+            title: 'Trojan horse',
+            body: `Mission ${missionIdx + 1} had a majority evil team (${mission.evilOnTeam.length} of ${mission.team.length})`
+          };
+        }
+      }
+    },
+    closeCall() {
+      for (const [missionIdx, mission] of this.missions.entries()) {
+        if (mission.state == 'SUCCESS' && mission.evilOnTeam.length > 0 && mission.numFails == 0) {
+          return {
+            title: 'Dodged a bullet',
+            body: `Mission ${missionIdx + 1} succeeded despite ${mission.evilOnTeam.joinWithAnd()} being on the team`
+          };
+        }
+      }
+    },
+    rejectionStreak() {
+      let maxStreak = 0;
+      let streak = 0;
+      for (const mission of this.missions) {
+        for (const proposal of mission.proposals) {
+          if (proposal.state == 'REJECTED') {
+            streak++;
+            maxStreak = Math.max(maxStreak, streak);
+          } else if (proposal.state == 'APPROVED') {
+            streak = 0;
+          }
+        }
+      }
+      if (maxStreak >= 4) {
+        return {
+          title: 'Nobody likes anyone',
+          body: `${maxStreak} proposals were rejected in a row`
+        };
+      }
+    },
+    bigTeamBetrayal() {
+      const completedMissions = this.missions.filter(m => m.state != 'PENDING');
+      if (completedMissions.length < 3) return false;
+
+      const maxTeamSize = Math.max(...completedMissions.map(m => m.teamSize));
+      const bigMission = this.missions.find(m => m.teamSize == maxTeamSize);
+      if (bigMission && bigMission.state == 'FAIL') {
+        const missionIdx = this.missions.indexOf(bigMission);
+        return {
+          title: 'Et tu, Brute?',
+          body: `The largest mission (${bigMission.teamSize} players) on mission ${missionIdx + 1} was failed`
+        };
+      }
+    },
+    proposerCurse() {
+      const rejectionCounts: Record<string, number> = {};
+      for (const mission of this.missions) {
+        for (const proposal of mission.proposals) {
+          if (proposal.state == 'REJECTED') {
+            rejectionCounts[proposal.proposer] = (rejectionCounts[proposal.proposer] || 0) + 1;
+          }
+        }
+      }
+      const [cursedPlayer, count] = Object.entries(rejectionCounts)
+        .sort(([, a], [, b]) => b - a)[0] || ['', 0];
+      if (count >= 3) {
+        return {
+          title: 'Cursed proposer',
+          body: `${cursedPlayer} had ${count} proposals rejected`
+        };
+      }
+    },
+    lastStand() {
+      const states = this.missions.map(m => m.state);
+      if (states[4] == 'PENDING') return false;
+
+      const successesBefore = states.slice(0, 4).filter(s => s == 'SUCCESS').length;
+      const failsBefore = states.slice(0, 4).filter(s => s == 'FAIL').length;
+      if (successesBefore == 2 && failsBefore == 2) {
+        return {
+          title: 'Last stand',
+          body: `The score was 2-2 going into the final mission`
+        };
+      }
+    },
+    perfectAssassin() {
+      if (this.game.outcome.state == 'EVIL_WIN' &&
+          this.game.outcome.assassinated &&
+          this.rolesByName[this.game.outcome.assassinated]?.role == 'MERLIN') {
+        return {
+          title: 'Bullseye',
+          body: 'The assassin correctly identified and killed Merlin'
+        };
+      }
+    },
+    oberonSaboteur() {
+      if (!this.namesByRole['OBERON']) return false;
+      const oberon = this.namesByRole['OBERON'];
+
+      for (const [missionIdx, mission] of this.missions.entries()) {
+        if (mission.state == 'FAIL' &&
+            mission.evilOnTeam.includes(oberon) &&
+            mission.evilOnTeam.length > 1) {
+          return {
+            title: 'Who did that?',
+            body: `Oberon failed mission ${missionIdx + 1} alongside evil allies who didn't know they were there`
+          };
+        }
+      }
+    },
+    allAboard() {
+      const completedMissions = this.missions.filter(m => m.state != 'PENDING');
+      if (completedMissions.length < 3) return false;
+
+      const playersOnMissions = new Set(completedMissions.flatMap(m => m.team));
+      if (playersOnMissions.size == this.game.players.length) {
+        return {
+          title: 'All aboard',
+          body: 'Every player went on at least one mission'
+        };
+      }
+    },
+    flipFlopper() {
+      for (const mission of this.missions) {
+        for (let i = 1; i < mission.proposals.length; i++) {
+          const current = mission.proposals[i];
+          for (let j = 0; j < i; j++) {
+            const previous = mission.proposals[j];
+            if (isEqual(sortBy(current.team), sortBy(previous.team))) {
+              // Same team proposed again - find someone who flipped
+              const flippers = current.votes.filter(v => !previous.votes.includes(v));
+              if (flippers.length > 0) {
+                return {
+                  title: 'Flip-flopper',
+                  body: `${flippers[0]} rejected then approved the same team on mission ${this.missions.indexOf(mission) + 1}`
+                };
+              }
+            }
+          }
+        }
+      }
+    },
   }
 
   getBadges(): Badge[] {
