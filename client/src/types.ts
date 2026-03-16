@@ -67,6 +67,7 @@ export interface UserData {
 export interface RoleDoc {
   role: Role;
   sees?: string[];
+  assassin?: boolean;
 }
 
 export interface PlayerRoleData {

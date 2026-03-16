@@ -44,9 +44,11 @@ DEFINE FIELD OVERWRITE stats       ON user TYPE option<object> FLEXIBLE;
 -- ============================================================
 -- SECTION 3: TABLE - lobby
 -- ============================================================
--- All authenticated users can SELECT lobbies.
--- Mutations only via API endpoints (system-level).
+-- All authenticated users can SELECT lobbies (needed for joining and live queries).
 -- Lobby record ID IS the 3-char code: lobby:ABC
+-- Note: CUD permissions are open to authenticated users because DEFINE API
+-- THEN blocks run as the record user, not as system. Game logic validation
+-- is enforced by the API endpoints, not by table permissions.
 
 DEFINE TABLE OVERWRITE lobby SCHEMALESS
     CHANGEFEED 1h
@@ -58,7 +60,8 @@ DEFINE TABLE OVERWRITE lobby SCHEMALESS
 -- ============================================================
 -- SECTION 4: TABLE - player_role
 -- ============================================================
--- Per-player secret role info. Users can only see their own.
+-- Per-player secret role info. SELECT restricted to own record only.
+-- CUD open to authenticated users (API endpoints run as record user).
 
 DEFINE TABLE OVERWRITE player_role SCHEMAFULL
     CHANGEFEED 1h
@@ -82,16 +85,20 @@ DEFINE FIELD OVERWRITE sees     ON player_role TYPE array DEFAULT [];
 -- ============================================================
 -- SECTION 5: TABLE - secret_state
 -- ============================================================
--- Server-only. Contains full role map and vote tallies.
--- Record users have zero access.
+-- Contains full role map and vote tallies. Should ideally be
+-- inaccessible to clients, but DEFINE API THEN blocks run as
+-- the record user so they need read/write access.
+-- SELECT is restricted to users who are participants in the
+-- lobby's active game. This prevents cross-lobby snooping but
+-- cannot fully prevent a player from reading their own game's
+-- secret state via crafted queries. A future SurrealDB
+-- security-definer feature would solve this completely.
 
--- Secret state: accessible to authenticated users. API endpoints need full access
--- since they run as the record user. The client never queries this table directly.
--- Note: A determined player could craft queries to read secret_state. Future improvement
--- would use SurrealDB's security-definer functions when available.
 DEFINE TABLE OVERWRITE secret_state SCHEMALESS
     PERMISSIONS
-        FOR select, create, update, delete WHERE $auth != NONE
+        FOR select WHERE $auth != NONE
+            AND lobby = (SELECT VALUE lobby FROM ONLY $auth.id)
+        FOR create, update, delete WHERE $auth != NONE
 ;
 
 DEFINE INDEX OVERWRITE idx_secret_state_lobby
@@ -101,7 +108,8 @@ DEFINE INDEX OVERWRITE idx_secret_state_lobby
 -- ============================================================
 -- SECTION 6: TABLE - game_log
 -- ============================================================
--- Immutable record written at game end (non-canceled).
+-- Written at game end (non-canceled). Readable by all authenticated users.
+-- CUD open because API endpoints run as record user.
 
 DEFINE TABLE OVERWRITE game_log SCHEMALESS
     PERMISSIONS
@@ -112,6 +120,7 @@ DEFINE TABLE OVERWRITE game_log SCHEMALESS
 -- ============================================================
 -- SECTION 7: TABLE - global_stats
 -- ============================================================
+-- Singleton record. CUD open because API endpoints run as record user.
 
 DEFINE TABLE OVERWRITE global_stats SCHEMAFULL
     PERMISSIONS

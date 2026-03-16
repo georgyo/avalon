@@ -270,6 +270,7 @@ class LobbySubscription {
       this._roleDoc = {
         role: this._config.roleMap[data.role],
         sees: data.sees,
+        assassin: data.assassin,
       };
     } else {
       this._roleDoc = null;
