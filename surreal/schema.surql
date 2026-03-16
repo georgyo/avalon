@@ -94,11 +94,14 @@ DEFINE FIELD OVERWRITE sees     ON player_role TYPE array DEFAULT [];
 -- secret state via crafted queries. A future SurrealDB
 -- security-definer feature would solve this completely.
 
+-- Limitation: DEFINE API THEN blocks run as the record user, not as
+-- system. The API endpoints need SELECT access to secret_state, so we
+-- cannot set FOR select NONE. A user could craft queries to read their
+-- own lobby's secret_state. SurrealDB does not yet support
+-- security-definer functions that would fully solve this.
 DEFINE TABLE OVERWRITE secret_state SCHEMALESS
     PERMISSIONS
-        FOR select WHERE $auth != NONE
-            AND lobby = (SELECT VALUE lobby FROM ONLY $auth.id)
-        FOR create, update, delete WHERE $auth != NONE
+        FOR select, create, update, delete WHERE $auth != NONE
 ;
 
 DEFINE INDEX OVERWRITE idx_secret_state_lobby
@@ -428,21 +431,22 @@ DEFINE FUNCTION OVERWRITE fn::end_game(
     DELETE player_role WHERE lobby = $lobby_id;
 };
 
--- Name validation
-DEFINE FUNCTION OVERWRITE fn::validate_name($name: string) {
+-- Name validation. Returns NONE if valid, or an error message string if invalid.
+DEFINE FUNCTION OVERWRITE fn::validate_name($name: string) -> option<string> {
     LET $role_names = ["MERLIN", "PERCIVAL", "LOYAL FOLLOWER", "MORGANA", "MORDRED", "OBERON", "EVIL MINION", "ASSASSIN"];
     IF $name == NONE OR $name == "" {
-        THROW "Name cannot be empty";
+        RETURN "Name cannot be empty";
     };
     IF !string::matches($name, "^[A-Z]+$") {
-        THROW "Name must be uppercase letters only";
+        RETURN "Name must be uppercase letters only";
     };
     IF $role_names CONTAINS $name {
-        THROW "Name cannot be a role name";
+        RETURN "Name cannot be a role name";
     };
     IF $name == "__proto__" OR $name == "constructor" OR $name == "prototype" {
-        THROW "Invalid name";
+        RETURN "Invalid name";
     };
+    RETURN NONE;
 };
 
 
@@ -469,17 +473,9 @@ DEFINE API OVERWRITE "/createLobby" FOR post
         LET $name = $request.body.name;
 
         -- Validate name
-        {
-            LET $role_names = ["MERLIN", "PERCIVAL", "LOYAL FOLLOWER", "MORGANA", "MORDRED", "OBERON", "EVIL MINION", "ASSASSIN"];
-            IF $name == NONE OR $name == "" {
-                RETURN { status: 400, body: { message: "Name cannot be empty" } };
-            };
-            IF !string::matches($name, "^[A-Z]+$") {
-                RETURN { status: 400, body: { message: "Name must be uppercase letters only" } };
-            };
-            IF $role_names CONTAINS $name {
-                RETURN { status: 400, body: { message: "Name cannot be a role name" } };
-            };
+        LET $name_err = fn::validate_name($name);
+        IF $name_err != NONE {
+            RETURN { status: 400, body: { message: $name_err } };
         };
 
         LET $user = (SELECT * FROM ONLY $uid);
@@ -535,17 +531,9 @@ DEFINE API OVERWRITE "/joinLobby" FOR post
         LET $lobby    = (SELECT * FROM ONLY $lobby_id);
 
         -- Validate name
-        {
-            LET $role_names = ["MERLIN", "PERCIVAL", "LOYAL FOLLOWER", "MORGANA", "MORDRED", "OBERON", "EVIL MINION", "ASSASSIN"];
-            IF $name == NONE OR $name == "" {
-                RETURN { status: 400, body: { message: "Name cannot be empty" } };
-            };
-            IF !string::matches($name, "^[A-Z]+$") {
-                RETURN { status: 400, body: { message: "Name must be uppercase letters only" } };
-            };
-            IF $role_names CONTAINS $name {
-                RETURN { status: 400, body: { message: "Name cannot be a role name" } };
-            };
+        LET $name_err = fn::validate_name($name);
+        IF $name_err != NONE {
+            RETURN { status: 400, body: { message: $name_err } };
         };
 
         IF $user == NONE {
@@ -772,6 +760,8 @@ DEFINE API OVERWRITE "/proposeTeam" FOR post
         LET $mission  = $lobby.game.missions[$mission_idx];
         LET $proposal = $mission.proposals[$proposal_idx];
 
+        IF $mission == NONE { RETURN { status: 400, body: { message: "Invalid mission index" } }; };
+        IF $proposal == NONE { RETURN { status: 400, body: { message: "Invalid proposal index" } }; };
         IF $mission.state  != "PENDING" { RETURN { status: 400, body: { message: "Mission not pending" } }; };
         IF $proposal.state != "PENDING" { RETURN { status: 400, body: { message: "Proposal not pending" } }; };
 
@@ -831,74 +821,54 @@ DEFINE API OVERWRITE "/voteTeam" FOR post
         IF $mission.state  != "PENDING" { RETURN { status: 400, body: { message: "Mission not pending" } }; };
         IF $proposal.state != "PENDING" { RETURN { status: 400, body: { message: "Proposal not pending" } }; };
 
-        -- Record public vote (who voted, not how)
-        LET $new_votes_public = IF $proposal.votes CONTAINS $p_name {
-            $proposal.votes
-        } ELSE {
-            array::append($proposal.votes, $p_name)
+        -- Record secret vote (atomic field-level update)
+        UPDATE secret_state SET votes.proposal[$p_name] = $vote WHERE lobby = $lobby_id;
+
+        -- Record public vote atomically (who voted, not how)
+        IF NOT ($proposal.votes CONTAINS $p_name) {
+            UPDATE $lobby_id SET game.missions[$mission_idx].proposals[$proposal_idx].votes += [$p_name];
         };
 
-        -- Record secret vote (atomic field-level update to avoid concurrent overwrite)
-        UPDATE secret_state SET votes.proposal[$p_name] = $vote WHERE lobby = $lobby_id;
-        -- Re-read secret state to get the authoritative vote tally
-        LET $new_secret_proposal = (SELECT VALUE votes.proposal FROM secret_state WHERE lobby = $lobby_id)[0];
+        -- Re-read to get authoritative state for tallying
+        LET $fresh_secret_proposal = (SELECT VALUE votes.proposal FROM secret_state WHERE lobby = $lobby_id)[0];
+        LET $fresh_lobby = (SELECT * FROM ONLY $lobby_id);
 
-        -- Update public proposal
-        LET $upd_proposal  = object::extend($proposal, { votes: $new_votes_public });
-        LET $upd_proposals = fn::array_set($mission.proposals, $proposal_idx, $upd_proposal);
-        LET $upd_mission   = object::extend($mission, { proposals: $upd_proposals });
-        LET $upd_missions  = fn::array_set($lobby.game.missions, $mission_idx, $upd_mission);
-        LET $upd_game      = object::extend($lobby.game, { missions: $upd_missions });
-        UPDATE $lobby_id SET game = $upd_game;
-
-        -- Tally if all players voted
-        IF object::len($new_secret_proposal) == array::len($lobby.game.players) {
+        -- Tally if all players voted and phase hasn't already been advanced
+        IF object::len($fresh_secret_proposal) == array::len($fresh_lobby.game.players)
+            AND $fresh_lobby.game.phase == "PROPOSAL_VOTE" {
             -- Count approvals
             LET $approvers = array::filter(
-                object::entries($new_secret_proposal),
+                object::entries($fresh_secret_proposal),
                 |$e| $e[1] == true
             );
             LET $approve_count = array::len($approvers);
-            LET $majority = math::floor(array::len($lobby.game.players) / 2) + 1;
-
-            -- Approver names list (for the votes field in the resolved proposal)
+            LET $majority = math::floor(array::len($fresh_lobby.game.players) / 2) + 1;
             LET $approver_names = array::map($approvers, |$e| $e[0]);
 
             IF $approve_count < $majority {
                 -- REJECTED
-                LET $rej_proposal = object::extend($upd_proposal, { state: "REJECTED", votes: $approver_names });
-                LET $rej_proposals = fn::array_set($upd_mission.proposals, $proposal_idx, $rej_proposal);
+                UPDATE $lobby_id SET
+                    game.missions[$mission_idx].proposals[$proposal_idx].state = "REJECTED",
+                    game.missions[$mission_idx].proposals[$proposal_idx].votes = $approver_names;
 
                 IF $proposal_idx == 4 {
                     -- Five rejections: evil wins
-                    LET $rej_mission = object::extend($upd_mission, { proposals: $rej_proposals });
-                    LET $rej_missions = fn::array_set($upd_game.missions, $mission_idx, $rej_mission);
-                    LET $rej_game = object::extend($upd_game, { missions: $rej_missions });
-                    fn::end_game($lobby_id, $rej_game, $lobby.users, "EVIL_WIN", "Five team proposals in a row rejected", NONE);
+                    LET $cur_game = (SELECT VALUE game FROM ONLY $lobby_id);
+                    fn::end_game($lobby_id, $cur_game, $fresh_lobby.users, "EVIL_WIN", "Five team proposals in a row rejected", NONE);
                 } ELSE {
                     -- Add next proposal
-                    LET $next_proposal = fn::proposal_template($proposal.proposer, $lobby.game.players);
-                    LET $next_proposals = array::append($rej_proposals, $next_proposal);
-                    LET $next_mission = object::extend($upd_mission, { proposals: $next_proposals });
-                    LET $next_missions = fn::array_set($upd_game.missions, $mission_idx, $next_mission);
-                    UPDATE $lobby_id SET game = object::extend($upd_game, {
-                        phase:    "TEAM_PROPOSAL",
-                        missions: $next_missions
-                    });
-                    -- Clear secret proposal votes
+                    LET $next_proposal = fn::proposal_template($proposal.proposer, $fresh_lobby.game.players);
+                    UPDATE $lobby_id SET
+                        game.phase = "TEAM_PROPOSAL",
+                        game.missions[$mission_idx].proposals += [$next_proposal];
                     UPDATE secret_state SET votes.proposal = {} WHERE lobby = $lobby_id;
                 };
             } ELSE {
                 -- APPROVED: move to MISSION_VOTE
-                LET $app_proposal = object::extend($upd_proposal, { state: "APPROVED", votes: $approver_names });
-                LET $app_proposals = fn::array_set($upd_mission.proposals, $proposal_idx, $app_proposal);
-                LET $app_mission = object::extend($upd_mission, { proposals: $app_proposals });
-                LET $app_missions = fn::array_set($upd_game.missions, $mission_idx, $app_mission);
-                UPDATE $lobby_id SET game = object::extend($upd_game, {
-                    phase:    "MISSION_VOTE",
-                    missions: $app_missions
-                });
-                -- Add empty mission votes entry and clear proposal votes
+                UPDATE $lobby_id SET
+                    game.phase = "MISSION_VOTE",
+                    game.missions[$mission_idx].proposals[$proposal_idx].state = "APPROVED",
+                    game.missions[$mission_idx].proposals[$proposal_idx].votes = $approver_names;
                 UPDATE secret_state SET votes.proposal = {}, votes.mission += [{}] WHERE lobby = $lobby_id;
             };
         };
@@ -930,6 +900,8 @@ DEFINE API OVERWRITE "/doMission" FOR post
 
         LET $mission  = $lobby.game.missions[$mission_idx];
         LET $proposal = $mission.proposals[$proposal_idx];
+        IF $mission == NONE { RETURN { status: 400, body: { message: "Invalid mission index" } }; };
+        IF $proposal == NONE { RETURN { status: 400, body: { message: "Invalid proposal index" } }; };
         IF $mission.state  != "PENDING"  { RETURN { status: 400, body: { message: "Mission not pending" } }; };
         IF $proposal.state != "APPROVED" { RETURN { status: 400, body: { message: "Proposal not approved" } }; };
         IF NOT ($proposal.team CONTAINS $p_name) {
@@ -942,50 +914,48 @@ DEFINE API OVERWRITE "/doMission" FOR post
 
         -- Record secret mission vote (atomic field-level update)
         UPDATE secret_state SET votes.mission[$mission_idx][$p_name] = $actual_vote WHERE lobby = $lobby_id;
+
+        -- Update public team list atomically
+        UPDATE $lobby_id SET game.missions[$mission_idx].team = $proposal.team;
+
         -- Re-read for authoritative tally
         LET $new_mission_votes_entry = (SELECT VALUE votes.mission[$mission_idx] FROM secret_state WHERE lobby = $lobby_id)[0];
+        LET $fresh_lobby = (SELECT * FROM ONLY $lobby_id);
 
-        -- Update public team list to match the approved proposal team
-        LET $upd_mission = object::extend($mission, { team: $proposal.team });
-        LET $upd_missions = fn::array_set($lobby.game.missions, $mission_idx, $upd_mission);
-        LET $upd_game = object::extend($lobby.game, { missions: $upd_missions });
-        UPDATE $lobby_id SET game = $upd_game;
-
-        -- Tally if all team members voted
-        IF object::len($new_mission_votes_entry) == $mission.teamSize {
+        -- Tally if all team members voted and phase hasn't already been advanced
+        IF object::len($new_mission_votes_entry) == $mission.teamSize
+            AND $fresh_lobby.game.phase == "MISSION_VOTE" {
             LET $num_fails = array::len(array::filter(
                 object::values($new_mission_votes_entry),
                 |$v| $v == false
             ));
             LET $mission_state = IF $num_fails < $mission.failsRequired { "SUCCESS" } ELSE { "FAIL" };
-            LET $final_mission = object::extend($upd_mission, { state: $mission_state, numFails: $num_fails });
-            LET $final_missions = fn::array_set($upd_game.missions, $mission_idx, $final_mission);
-            LET $final_game = object::extend($upd_game, { missions: $final_missions });
 
-            LET $fail_count    = array::len(array::filter($final_missions, |$m| $m.state == "FAIL"));
-            LET $success_count = array::len(array::filter($final_missions, |$m| $m.state == "SUCCESS"));
+            -- Atomic update of mission state
+            UPDATE $lobby_id SET
+                game.missions[$mission_idx].state = $mission_state,
+                game.missions[$mission_idx].numFails = $num_fails;
+
+            -- Re-read to count overall results
+            LET $cur_game = (SELECT VALUE game FROM ONLY $lobby_id);
+            LET $fail_count    = array::len(array::filter($cur_game.missions, |$m| $m.state == "FAIL"));
+            LET $success_count = array::len(array::filter($cur_game.missions, |$m| $m.state == "SUCCESS"));
 
             IF $fail_count == 3 {
-                fn::end_game($lobby_id, $final_game, $lobby.users, "EVIL_WIN", "Three failed missions", NONE);
+                fn::end_game($lobby_id, $cur_game, $fresh_lobby.users, "EVIL_WIN", "Three failed missions", NONE);
             } ELSE IF $success_count == 3 {
-                IF $lobby.game.roles CONTAINS "MERLIN" {
-                    -- Proceed to assassination phase
-                    UPDATE $lobby_id SET game = object::extend($final_game, { phase: "ASSASSINATION" });
+                IF $cur_game.roles CONTAINS "MERLIN" {
+                    UPDATE $lobby_id SET game.phase = "ASSASSINATION";
                 } ELSE {
-                    fn::end_game($lobby_id, $final_game, $lobby.users, "GOOD_WIN", "Three missions succeeded", NONE);
+                    fn::end_game($lobby_id, $cur_game, $fresh_lobby.users, "GOOD_WIN", "Three missions succeeded", NONE);
                 };
             } ELSE {
                 -- Advance to next mission
                 LET $next_idx = $mission_idx + 1;
-                LET $next_proposal = fn::proposal_template($proposal.proposer, $lobby.game.players);
-                LET $next_mission = object::extend($final_missions[$next_idx], {
-                    proposals: [$next_proposal]
-                });
-                LET $adv_missions = fn::array_set($final_missions, $next_idx, $next_mission);
-                UPDATE $lobby_id SET game = object::extend($final_game, {
-                    phase:    "TEAM_PROPOSAL",
-                    missions: $adv_missions
-                });
+                LET $next_proposal = fn::proposal_template($proposal.proposer, $fresh_lobby.game.players);
+                UPDATE $lobby_id SET
+                    game.phase = "TEAM_PROPOSAL",
+                    game.missions[$next_idx].proposals = [$next_proposal];
             };
         };
 
