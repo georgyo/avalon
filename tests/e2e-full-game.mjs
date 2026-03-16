@@ -29,22 +29,12 @@ const EVIL_ROLES = ['MORGANA', 'ASSASSIN', 'EVIL MINION', 'MORDRED', 'OBERON'];
 
 function isErrorIgnorable(msg) {
   return (
-    msg.includes('Firebase') ||
-    msg.includes('firestore') ||
-    msg.includes('Firestore') ||
     msg.includes('net::ERR') ||
     msg.includes('Failed to fetch') ||
-    msg.includes('PERMISSION_DENIED') ||
-    msg.includes('Missing or insufficient permissions') ||
-    msg.includes('api.mailcheck') ||
-    msg.includes('client is offline') ||
-    msg.includes('AxiosError') ||
     msg.includes('NetworkError') ||
     msg.includes('Network Error') ||
     msg.includes('favicon') ||
-    msg.includes('SurrealDb') ||
-    msg.includes('WebSocket') ||
-    msg.includes('surreal')
+    msg.includes('downloadable font')
   );
 }
 

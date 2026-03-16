@@ -278,6 +278,8 @@ class LobbySubscription {
   }
 
   private _lobbyDocUpdated(newData: LobbyData): void {
+    if (!newData || !newData.game) return;
+
     const oldDoc = this._doc;
 
     this._doc = newData;
@@ -440,7 +442,7 @@ export default class AvalonGame {
     await this.subscribeToLobby(lobbyCode);
   }
 
-  async createLobby(name: string): Promise<void> {
+  async createLobby(name: string, _retries = 0): Promise<void> {
     try {
       const resp = await this.api.createLobby(name);
       // Update local user state immediately (don't wait for live query)
@@ -451,9 +453,9 @@ export default class AvalonGame {
       }
       await this.subscribeToLobby(lobbyCode);
     } catch (err) {
-      // Retry on lobby code collision
-      if (err instanceof Error && err.message === 'LOBBY_CODE_COLLISION') {
-        return this.createLobby(name);
+      // Retry on lobby code collision (max 5 attempts)
+      if (err instanceof Error && err.message === 'LOBBY_CODE_COLLISION' && _retries < 5) {
+        return this.createLobby(name, _retries + 1);
       }
       throw err;
     }
@@ -544,7 +546,6 @@ export default class AvalonGame {
   private async userDocUpdated(userData: UserData): Promise<void> {
     this._authStateInitialized = true;
 
-    const oldLobby = this.user?.lobby;
     this.user = userData;
     // Store the record ID string as uid for compatibility
     if (userData.id) {
@@ -562,9 +563,9 @@ export default class AvalonGame {
     }
   }
 
-  unsubscribeFromLobby(): void {
+  async unsubscribeFromLobby(): Promise<void> {
     if (this.lobby != null) {
-      this.lobby.stop();
+      await this.lobby.stop();
       this.lobby = null;
     }
   }

@@ -494,7 +494,7 @@ DEFINE API OVERWRITE "/createLobby" FOR post
 
         -- Generate random 3-char lobby code
         LET $chars = ["A","B","C","D","E","F","G","H","J","K","L","M","N","P","Q","R","S","T","V","W","X","Y","Z"];
-        LET $code = string::concat($chars[rand::int(0, 22)], $chars[rand::int(0, 22)], $chars[rand::int(0, 22)]);
+        LET $code = string::concat($chars[rand::int(0, 23)], $chars[rand::int(0, 23)], $chars[rand::int(0, 23)]);
         LET $lobby_id = type::record("lobby", $code);
 
         -- Check for collision
