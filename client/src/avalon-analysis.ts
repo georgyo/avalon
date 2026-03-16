@@ -415,14 +415,6 @@ export default class GameAnalysis {
         }
       }
     },
-    downToTheWire() {
-      if (this.missions.every(m => m.state != 'PENDING')) {
-        return {
-          title: 'Down to the wire',
-          body: 'All five missions were played'
-        };
-      }
-    },
     hammerTime() {
       for (const [missionIdx, mission] of this.missions.entries()) {
         if (mission.proposals.length == 5 && mission.proposals[4].state == 'APPROVED') {
