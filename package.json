@@ -35,5 +35,17 @@
     "typescript": "^6.0.2",
     "typescript-eslint": "^8.58.1",
     "vue-eslint-parser": "^10.4.0"
+  },
+  "resolutions": {
+    "basic-ftp": "^5.2.2",
+    "brace-expansion@^1.1.7": "^1.1.13",
+    "fast-xml-parser": "^5.5.11",
+    "flatted": "^3.4.2",
+    "hono": "^4.12.12",
+    "@hono/node-server": "^1.19.13",
+    "node-forge": "^1.4.0",
+    "picomatch@^2.0.4": "^2.3.2",
+    "picomatch@^2.2.1": "^2.3.2",
+    "yaml": "^2.8.3"
   }
 }
