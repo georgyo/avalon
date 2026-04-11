@@ -9,7 +9,7 @@
     "@avalon/common": "workspace:^",
     "express": "^5.2.1",
     "firebase-admin": "^13.7.0",
-    "lodash": "^4.17.23"
+    "lodash": "^4.18.1"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
