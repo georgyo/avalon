@@ -1,4 +1,4 @@
-import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { getFirestore, FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
 import './firebaseKey'; // must be imported first to initialize Firebase
 
@@ -97,31 +97,17 @@ async function _cleanupStaleLobbies(): Promise<void> {
   const cutoff = Date.now() - THREE_MONTHS_MS;
   const MAX_OPS_PER_BATCH = 500;
 
-  const lobbiesSnapshot = await db.collection('lobbies').get();
-  const staleLobbies: FirebaseFirestore.QueryDocumentSnapshot[] = [];
+  // Server-side filter: only fetch lobbies older than the cutoff
+  const staleLobbiesSnapshot = await db.collection('lobbies')
+    .where('timeCreated', '<', Timestamp.fromMillis(cutoff))
+    .get();
 
-  for (const doc of lobbiesSnapshot.docs) {
-    const timeCreated = doc.get('timeCreated');
-    if (!timeCreated) {
-      console.log(doc.id, '- no timeCreated, skipping');
-      continue;
-    }
-    const createdMs = timeCreated.toMillis();
-    const ageInDays = (Date.now() - createdMs) / (1000 * 60 * 60 * 24);
-    if (createdMs < cutoff) {
-      staleLobbies.push(doc);
-      console.log(doc.id, 'is', Math.round(ageInDays), 'days old - STALE');
-    } else {
-      console.log(doc.id, 'is', Math.round(ageInDays), 'days old - keeping');
-    }
-  }
-
-  if (staleLobbies.length === 0) {
+  if (staleLobbiesSnapshot.empty) {
     console.log('No stale lobbies found');
     return;
   }
 
-  console.log(`\nFound ${staleLobbies.length} stale lobbies. Deleting in batches...\n`);
+  console.log(`\nFound ${staleLobbiesSnapshot.size} stale lobbies. Deleting in batches...\n`);
 
   let batch = db.batch();
   let opsInBatch = 0;
@@ -129,38 +115,62 @@ async function _cleanupStaleLobbies(): Promise<void> {
   let totalDeleted = 0;
   let totalUsersUpdated = 0;
   let totalRolesDeleted = 0;
+  const userUidsInBatch = new Set<string>();
 
-  for (const lobbyDoc of staleLobbies) {
+  async function flushBatch(): Promise<void> {
+    console.log(`Committing batch ${batchNumber} (${opsInBatch} operations)...`);
+    await batch.commit();
+    batch = db.batch();
+    opsInBatch = 0;
+    batchNumber++;
+    userUidsInBatch.clear();
+  }
+
+  for (const lobbyDoc of staleLobbiesSnapshot.docs) {
     const lobbyId = lobbyDoc.id;
+    const createdMs = lobbyDoc.get('timeCreated').toMillis();
+    const ageInDays = (Date.now() - createdMs) / (1000 * 60 * 60 * 24);
+    console.log(lobbyId, 'is', Math.round(ageInDays), 'days old - STALE');
+
     const users = lobbyDoc.get('users') as Record<string, { uid: string; name: string }> | undefined;
-    const userUids = users ? Object.values(users).map(u => u.uid) : [];
+    const userUids = users ? [...new Set(Object.values(users).map(u => u.uid))] : [];
 
     const rolesDocs = await lobbyDoc.ref.collection('roles').listDocuments();
 
-    const opsNeeded = 1 + userUids.length + rolesDocs.length;
-
-    if (opsInBatch + opsNeeded > MAX_OPS_PER_BATCH) {
-      console.log(`Committing batch ${batchNumber} (${opsInBatch} operations)...`);
-      await batch.commit();
-      batch = db.batch();
-      opsInBatch = 0;
-      batchNumber++;
-    }
-
+    // Delete role subcollection docs, flushing as needed
     for (const roleDocRef of rolesDocs) {
+      if (opsInBatch >= MAX_OPS_PER_BATCH) {
+        await flushBatch();
+      }
       batch.delete(roleDocRef);
       opsInBatch++;
       totalRolesDeleted++;
     }
 
+    // Update user docs: only clear lobby if it still points to this stale lobby
     for (const uid of userUids) {
-      batch.update(db.collection('users').doc(uid), {
-        lobby: FieldValue.delete(),
-      });
-      opsInBatch++;
-      totalUsersUpdated++;
+      // Flush if this UID was already written in the current batch
+      if (userUidsInBatch.has(uid)) {
+        await flushBatch();
+      }
+      if (opsInBatch >= MAX_OPS_PER_BATCH) {
+        await flushBatch();
+      }
+
+      const userRef = db.collection('users').doc(uid);
+      const userDoc = await userRef.get();
+      if (userDoc.exists && userDoc.get('lobby') === lobbyId) {
+        batch.set(userRef, { lobby: FieldValue.delete() }, { merge: true });
+        opsInBatch++;
+        totalUsersUpdated++;
+        userUidsInBatch.add(uid);
+      }
     }
 
+    // Delete the lobby document itself
+    if (opsInBatch >= MAX_OPS_PER_BATCH) {
+      await flushBatch();
+    }
     batch.delete(lobbyDoc.ref);
     opsInBatch++;
     totalDeleted++;
