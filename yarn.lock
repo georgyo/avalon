@@ -4917,8 +4917,8 @@ __metadata:
   linkType: hard
 
 "firebase-functions@npm:^7.2.2":
-  version: 7.2.2
-  resolution: "firebase-functions@npm:7.2.2"
+  version: 7.2.5
+  resolution: "firebase-functions@npm:7.2.5"
   dependencies:
     "@types/cors": "npm:^2.8.5"
     "@types/express": "npm:^4.17.21"
@@ -4939,7 +4939,7 @@ __metadata:
       optional: true
   bin:
     firebase-functions: lib/bin/firebase-functions.js
-  checksum: 10/c1276dcba7bfa9267cb5de215ec887f8c5c2118e17bd61f4f8bf730388fd793009916bc14b1ac3fc92af49a766a4057be5c9f32cf9701409cfc990c67e5dd1ed
+  checksum: 10/53645a27f5bdaac76134ddb7eac8465958f937991ab9ba742b159f2f911fc26ebf04a8278a1c45675c8282e4c7785e0b693697eda401c9eb78c3e80ca88cc903
   languageName: node
   linkType: hard
 
