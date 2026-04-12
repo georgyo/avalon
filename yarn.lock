@@ -4892,8 +4892,8 @@ __metadata:
   linkType: hard
 
 "firebase-admin@npm:^13.7.0":
-  version: 13.7.0
-  resolution: "firebase-admin@npm:13.7.0"
+  version: 13.8.0
+  resolution: "firebase-admin@npm:13.8.0"
   dependencies:
     "@fastify/busboy": "npm:^3.0.0"
     "@firebase/database-compat": "npm:^2.0.0"
@@ -4905,14 +4905,14 @@ __metadata:
     google-auth-library: "npm:^10.6.1"
     jsonwebtoken: "npm:^9.0.0"
     jwks-rsa: "npm:^3.1.0"
-    node-forge: "npm:^1.3.1"
+    node-forge: "npm:^1.4.0"
     uuid: "npm:^11.0.2"
   dependenciesMeta:
     "@google-cloud/firestore":
       optional: true
     "@google-cloud/storage":
       optional: true
-  checksum: 10/7d3ccda2e59d4b0c9825410eef9189fe667e5f925583d2753d7310411a3539ce300a4864eaa7bb3149e0af4c9f2836bf09e1166af5ef565b1f2c35c5cab87ffc
+  checksum: 10/b9064c7be1f505f06b4506c2a8c744cc78b06285f83910df178d740dbed99e2cb0df907eb0cf8ac2da66eec265b0787ffb465038672b0083457ce1cdb29fae0e
   languageName: node
   linkType: hard
 
