@@ -1,4 +1,4 @@
-import { getFirestore } from 'firebase-admin/firestore';
+import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
 import './firebaseKey'; // must be imported first to initialize Firebase
 
@@ -92,6 +92,89 @@ function _cleanupLobbies(): Promise<void> {
     });
 }
 
+async function _cleanupStaleLobbies(): Promise<void> {
+  const THREE_MONTHS_MS = 90 * 24 * 60 * 60 * 1000;
+  const cutoff = Date.now() - THREE_MONTHS_MS;
+  const MAX_OPS_PER_BATCH = 500;
+
+  const lobbiesSnapshot = await db.collection('lobbies').get();
+  const staleLobbies: FirebaseFirestore.QueryDocumentSnapshot[] = [];
+
+  for (const doc of lobbiesSnapshot.docs) {
+    const timeCreated = doc.get('timeCreated');
+    if (!timeCreated) {
+      console.log(doc.id, '- no timeCreated, skipping');
+      continue;
+    }
+    const createdMs = timeCreated.toMillis();
+    const ageInDays = (Date.now() - createdMs) / (1000 * 60 * 60 * 24);
+    if (createdMs < cutoff) {
+      staleLobbies.push(doc);
+      console.log(doc.id, 'is', Math.round(ageInDays), 'days old - STALE');
+    } else {
+      console.log(doc.id, 'is', Math.round(ageInDays), 'days old - keeping');
+    }
+  }
+
+  if (staleLobbies.length === 0) {
+    console.log('No stale lobbies found');
+    return;
+  }
+
+  console.log(`\nFound ${staleLobbies.length} stale lobbies. Deleting in batches...\n`);
+
+  let batch = db.batch();
+  let opsInBatch = 0;
+  let batchNumber = 1;
+  let totalDeleted = 0;
+  let totalUsersUpdated = 0;
+  let totalRolesDeleted = 0;
+
+  for (const lobbyDoc of staleLobbies) {
+    const lobbyId = lobbyDoc.id;
+    const users = lobbyDoc.get('users') as Record<string, { uid: string; name: string }> | undefined;
+    const userUids = users ? Object.values(users).map(u => u.uid) : [];
+
+    const rolesDocs = await lobbyDoc.ref.collection('roles').listDocuments();
+
+    const opsNeeded = 1 + userUids.length + rolesDocs.length;
+
+    if (opsInBatch + opsNeeded > MAX_OPS_PER_BATCH) {
+      console.log(`Committing batch ${batchNumber} (${opsInBatch} operations)...`);
+      await batch.commit();
+      batch = db.batch();
+      opsInBatch = 0;
+      batchNumber++;
+    }
+
+    for (const roleDocRef of rolesDocs) {
+      batch.delete(roleDocRef);
+      opsInBatch++;
+      totalRolesDeleted++;
+    }
+
+    for (const uid of userUids) {
+      batch.update(db.collection('users').doc(uid), {
+        lobby: FieldValue.delete(),
+      });
+      opsInBatch++;
+      totalUsersUpdated++;
+    }
+
+    batch.delete(lobbyDoc.ref);
+    opsInBatch++;
+    totalDeleted++;
+    console.log(`Queued deletion: lobby ${lobbyId} (${userUids.length} users, ${rolesDocs.length} role docs)`);
+  }
+
+  if (opsInBatch > 0) {
+    console.log(`Committing batch ${batchNumber} (${opsInBatch} operations)...`);
+    await batch.commit();
+  }
+
+  console.log(`\nDone. Deleted ${totalDeleted} lobbies, updated ${totalUsersUpdated} users, deleted ${totalRolesDeleted} role docs.`);
+}
+
 // XXX welp, this is an exact copy of the function above. Should probably extract it?
 function _cleanupLogs(): Promise<void> {
   const batch = db.batch();
@@ -132,5 +215,6 @@ void _exportLogs;
 void _exportLog;
 void _lookupUsers;
 void _cleanupLobbies;
+void _cleanupStaleLobbies;
 void _cleanupLogs;
 void statsLib;
