@@ -1287,12 +1287,12 @@ __metadata:
   linkType: hard
 
 "@fortawesome/vue-fontawesome@npm:^3.1.3":
-  version: 3.1.3
-  resolution: "@fortawesome/vue-fontawesome@npm:3.1.3"
+  version: 3.2.0
+  resolution: "@fortawesome/vue-fontawesome@npm:3.2.0"
   peerDependencies:
     "@fortawesome/fontawesome-svg-core": ~1 || ~6 || ~7
     vue: ">= 3.0.0 < 4"
-  checksum: 10/30b7f896621839dda38cd3464a7f59a64d5afc926c0c7ad0b7d6665e85807c631c87eaca4af76e2aeba299030e50ac39b7fb865eb4455a0acbdfc2b968229f19
+  checksum: 10/a8503c9c1385008045ab1ecfb6d445f1fadbeb96c7ebdc90051a61562b3a824a3e7a70ec00cd9730dc5fdc7108273a4992107dbaf1cbfa67693b99725466a8e1
   languageName: node
   linkType: hard
 
