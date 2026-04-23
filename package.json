@@ -39,7 +39,7 @@
   "resolutions": {
     "basic-ftp": "^5.2.2",
     "brace-expansion@^1.1.7": "^1.1.13",
-    "fast-xml-parser": "^5.5.11",
+    "fast-xml-parser": "^5.7.1",
     "flatted": "^3.4.2",
     "hono": "^4.12.12",
     "@hono/node-server": "^1.19.13",
