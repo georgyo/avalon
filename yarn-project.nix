@@ -6,7 +6,7 @@
 
 let
 
-  yarnBin = ./.yarn/releases/yarn-4.13.0.cjs;
+  yarnBin = ./.yarn/releases/yarn-4.15.0.cjs;
 
   cacheFolder = ".yarn/cache";
   lockfile = ./yarn.lock;
@@ -52,7 +52,7 @@ let
       rm $out/.gitignore
     '';
     outputHashMode = "recursive";
-    outputHash = "sha512-0tklFyQeXwmPN/+UNtnO9g9dl0JdWMBsPAiHU6dgI08056RvBwH/Gn7plBOTLH4IIGRpeHFU9SaJaJ9RR/k1XA==";
+    outputHash = "sha512-IFvAYWO8yxH261g1q/6p9A4R9G/K8axPKoRHa9uQIyNGwg9ADdrDcYUR0yL9yhSCzEGuCmByASzILHjNxWHsuQ==";
   };
 
   # Main project derivation.
