@@ -2,7 +2,8 @@ service cloud.firestore {
   
   match /databases/{database}/documents {
   	match /logs/{log} {
-    	allow read;
+    	// get only: listing would expose every game log (incl. player uids)
+    	allow get;
     }
     
     match /users/{uid} {
@@ -14,7 +15,8 @@ service cloud.firestore {
     }
     
     match /lobbies/{lobby} {
-    	allow read;
+    	// get only: listing would let anyone enumerate live lobby join codes
+    	allow get;
     }
     
     match /stats/{stat} {

@@ -10,7 +10,7 @@ exports.computeStats = function(game) {
      stats.global.good_wins = game.outcome.state === 'GOOD_WIN' ? 1 : 0;
      stats.global.playtimeSeconds = (game.timeFinished.toMillis() - game.timeCreated.toMillis()) / 1000;
 
-     for(player of game.players) {
+     for(const player of game.players) {
          const userStats = {
              games: 1,
              good: 0,
@@ -81,7 +81,7 @@ async function combineGlobalStats(db, stats, overwrite) {
 
 async function combineUserStats(db, stats, overwrite) {
     return db.runTransaction(txn => txn.getAll(...Object.keys(stats).map(user => db.collection('users').doc(user))).then(arr => {
-                for(doc of arr) {
+                for(const doc of arr) {
                     if (!doc.exists) {
                         console.log("Skipping non-existent user", doc.id);
                         continue;
@@ -130,7 +130,7 @@ exports.recomputeAllStats = async function(db) {
             accum.users[user] = combineStatEntries(accum.users[user], curStats.users[user]);
         }
         return accum;
-    });
+    }, { users: { }, global: { } });
 
     console.log('Recombining...');
     await exports.combineStats(db, stats, true);

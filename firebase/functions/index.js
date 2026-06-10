@@ -11,12 +11,27 @@ exports.onLogCreate = onDocumentCreated('/logs/{logId}', async (event) => {
     const logId = event.params.logId;
     console.log("New game", logId);
 
-    const docSnapshot = await db.collection('logs').doc(logId).get();
-    const data = docSnapshot.data();
+    if (!event.data) {
+        return;
+    }
 
-    console.log(data);
+    // Cloud Functions events can be delivered more than once; claim the log
+    // doc first so duplicate deliveries don't double-count stats.
+    const logRef = event.data.ref;
+    const alreadyProcessed = await db.runTransaction(async (txn) => {
+        const snapshot = await txn.get(logRef);
+        if (!snapshot.exists || snapshot.get('statsProcessed')) {
+            return true;
+        }
+        txn.update(logRef, { statsProcessed: true });
+        return false;
+    });
+    if (alreadyProcessed) {
+        console.log("Stats already processed for", logId);
+        return;
+    }
 
-    const stats = statsLib.computeStats(data);
+    const stats = statsLib.computeStats(event.data.data());
 
-    return statsLib.combineStats(db, stats, false);
+    await statsLib.combineStats(db, stats, false);
 });
