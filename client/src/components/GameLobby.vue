@@ -1,17 +1,5 @@
 <template>
   <v-container fluid>
-
-      <v-card class="bg-cyan-lighten-4" v-if='false && (avalon.user.stats.games >= 3)'>
-        <v-card-title class="bg-cyan-lighten-2">
-          <h3>Server Shutdown</h3>
-        </v-card-title>
-        <v-card-text>
-          Due to mounting costs, we're asking for your donations to keep the server running.
-          Please pitch in if you enjoy playing here. Every little bit helps.
-        </v-card-text>
-        <v-divider></v-divider>
-      </v-card>
-
   <v-row align="start" justify="center" class="flex-wrap">
   <v-col cols="12" sm="6">
     <p class="text-cyan-lighten-4">Players</p>
@@ -82,7 +70,6 @@ export default defineComponent({
       options: {
         inGameLog: false
       },
-      showOptionGameLog: false,
       startingGame: false
     }
   },
@@ -113,7 +100,9 @@ export default defineComponent({
   methods: {
     startGame: function() {
       this.startingGame = true;
-      this.avalon.startGame(this.options);
+      this.avalon.startGame(this.options).catch(() => {}).finally(() => {
+        this.startingGame = false;
+      });
     }
   }
  })

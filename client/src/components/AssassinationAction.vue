@@ -33,7 +33,9 @@ export default defineComponent({
   methods: {
       assassinate() {
         this.isAssassinating = true;
-        this.avalon.assassinate(this.playerList[0]);
+        this.avalon.assassinate(this.playerList[0]).catch(() => {
+          this.isAssassinating = false;
+        });
       }
   },
   computed: {

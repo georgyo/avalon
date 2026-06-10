@@ -8,7 +8,11 @@ export class AvalonApi {
   }
 
   post(endPoint: string, data: Record<string, unknown>): Promise<AxiosResponse> {
-    return getAuth().currentUser!.getIdToken(false).then(function(idToken: string) {
+    const user = getAuth().currentUser;
+    if (!user) {
+      return Promise.reject(new Error('Not signed in'));
+    }
+    return user.getIdToken(false).then(function(idToken: string) {
       console.debug("Calling", endPoint, 'with', data);
       return axios.post(endPoint, data, {
         headers: {'X-Avalon-Auth': idToken}
