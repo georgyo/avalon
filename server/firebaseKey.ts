@@ -18,5 +18,3 @@ if (process.env.FIREBASE_KEY) {
 initializeApp({
   credential: cert(serviceAccount as Parameters<typeof cert>[0])
 });
-
-export default serviceAccount;

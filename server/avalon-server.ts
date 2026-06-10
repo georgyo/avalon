@@ -1,3 +1,4 @@
+import { randomInt } from 'node:crypto';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import type { firestore } from 'firebase-admin';
 import _ from 'lodash';
@@ -40,14 +41,22 @@ function validateSafeName(name: string): void {
   }
 }
 
+const MAX_NAME_LENGTH = 20;
+
 function validateName(userName: string): void {
+  if (typeof userName != 'string' || userName.length == 0 || userName.length > MAX_NAME_LENGTH) {
+    throw new AvalonError(400, 'Invalid username');
+  }
   validateSafeName(userName);
-  if ((typeof userName != 'string') ||
-      (!userName.match(/^[A-Z]+$/)) ||
-      (userName.trim() != userName) ||
-      (userName.length == 0) ||
-      (ROLES.map(r => r.name).includes(userName))) {
+  if (!userName.match(/^[A-Z]+$/) ||
+      ROLES.map(r => r.name).includes(userName)) {
     throw new AvalonError(400, 'Invalid username "' + userName + '"');
+  }
+}
+
+function validateLobbyId(lobby: unknown): void {
+  if (typeof lobby != 'string' || !/^[A-Z]{3}$/.test(lobby)) {
+    throw new AvalonError(400, 'Invalid lobby id');
   }
 }
 
@@ -100,6 +109,7 @@ export function loginUser(data: LoginData, uid: string): Promise<void> {
 
 export function joinLobby(data: JoinLobbyData, uid: string): Promise<{ lobby: string; name: string }> {
   validateName(data.name);
+  validateLobbyId(data.lobby);
 
   const userDocRef = db.collection('users').doc(uid);
   const lobbyDocRef = db.collection('lobbies').doc(data.lobby);
@@ -156,6 +166,7 @@ export function joinLobby(data: JoinLobbyData, uid: string): Promise<{ lobby: st
 }
 
 export function leaveLobby(data: LobbyActionData, uid: string): Promise<boolean> {
+  validateLobbyId(data.lobby);
   const userDocRef = db.collection('users').doc(uid);
   const lobbyDocRef = db.collection('lobbies').doc(data.lobby);
   const secretDocRef = lobbyDocRef.collection('roles').doc(SECRET_STATE_DOC_NAME);
@@ -166,7 +177,7 @@ export function leaveLobby(data: LobbyActionData, uid: string): Promise<boolean>
       txn.get(lobbyDocRef),
       txn.get(secretDocRef),
     ]).then(function([userDoc, lobbyDoc, secretDoc]) {
-      if (!userDoc.exists || !lobbyDoc.exists) {
+      if (!userDoc.exists || !lobbyDoc.exists || userDoc.get('lobby') !== data.lobby) {
         throw new AvalonError(404, 'You are not in that lobby');
       }
 
@@ -207,10 +218,11 @@ export function leaveLobby(data: LobbyActionData, uid: string): Promise<boolean>
 }
 
 export function kickPlayer(data: LobbyActionData, uid: string): Promise<boolean> {
+  validateLobbyId(data.lobby);
   const lobbyDocRef = db.collection('lobbies').doc(data.lobby);
 
   return db.runTransaction(function(txn) {
-    return lobbyDocRef.get().then(function(lobbyDoc) {
+    return txn.get(lobbyDocRef).then(function(lobbyDoc) {
 
       if (lobbyDoc.get('admin.uid') != uid) {
         throw new AvalonError(403, 'Not lobby admin');
@@ -331,6 +343,7 @@ export function createLobby(data: { name: string }, uid: string): Promise<{ lobb
 }
 
 export function cancelGame(data: LobbyActionData, uid: string): Promise<void> {
+  validateLobbyId(data.lobby);
   const lobbyDocRef = db.collection('lobbies').doc(data.lobby);
   const secretDocRef = lobbyDocRef.collection('roles').doc(SECRET_STATE_DOC_NAME);
 
@@ -341,7 +354,8 @@ export function cancelGame(data: LobbyActionData, uid: string): Promise<void> {
     ]).then(function([lobbyDoc, secretDoc]) {
       validateField(lobbyDoc, 'game.state', 'ACTIVE');
       const users = lobbyDoc.get('users') as Record<string, { uid: string }>;
-      if (users[data.name].uid != uid) {
+      validateSafeName(data.name);
+      if (!users[data.name] || users[data.name].uid != uid) {
         throw new AvalonError(404, 'You are not who you say you are');
       }
       endGameTxn(txn, lobbyDoc, secretDoc, 'CANCELED', 'Canceled by ' + data.name);
@@ -385,7 +399,16 @@ interface RoleAssignment {
   sees?: string[];
 }
 
-function assignRoles(playerList: string[], roles: string[] = [], _oldRoles?: unknown): Record<string, PlayerRole> {
+function secureShuffle<T>(arr: readonly T[]): T[] {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = randomInt(i + 1);
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function assignRoles(playerList: string[], roles: string[] = []): Record<string, PlayerRole> {
 
   const makeTeam = function(teamList: string[], team: 'good' | 'evil'): RoleAssignment[] {
     const teamRoles = ROLES.filter(r => r.team == team);
@@ -398,7 +421,7 @@ function assignRoles(playerList: string[], roles: string[] = [], _oldRoles?: unk
   };
 
   const assignRolesImpl = function(playerList: string[], roles: string[]): Record<string, PlayerRole> {
-    playerList = _.shuffle(playerList);
+    playerList = secureShuffle(playerList);
 
     const numEvil = getNumEvilForGameSize(playerList.length)!;
     const evilPlayers = playerList.slice(0, numEvil);
@@ -413,7 +436,7 @@ function assignRoles(playerList: string[], roles: string[] = [], _oldRoles?: unk
 
     assignments.forEach(r => {
       r.sees =
-          _.shuffle(
+          secureShuffle(
             _.flatten(
               r.role.sees.map(
                 seenRole => assignments.filter(
@@ -502,10 +525,11 @@ export function startGame(data: StartGameData, uid: string): Promise<boolean> {
     throw new AvalonError(400, 'Bad roles ' + data.roles);
   }
 
+  validateLobbyId(data.lobby);
   const lobbyDocRef = db.collection('lobbies').doc(data.lobby);
 
   return db.runTransaction(function(txn) {
-    return lobbyDocRef.get().then(function(lobbyDoc) {
+    return txn.get(lobbyDocRef).then(function(lobbyDoc) {
 
       if (!lobbyDoc.exists) {
         throw new AvalonError(404, 'No such lobby: ' + data.lobby);
@@ -529,7 +553,7 @@ export function startGame(data: StartGameData, uid: string): Promise<boolean> {
           '. In lobby: ' + Object.keys(lobbyUsers).sort());
       }
 
-      const roles = assignRoles(data.playerList, data.roles, lobbyDoc.get('game.outcome.roles'));
+      const roles = assignRoles(data.playerList, data.roles);
 
       txn.update(lobbyDocRef, {
         game : {
@@ -539,7 +563,7 @@ export function startGame(data: StartGameData, uid: string): Promise<boolean> {
           missions: makeMissions(data.playerList),
           players: data.playerList,
           roles: Object.values(roles).map(r => r.role),
-          options: data.options
+          options: { inGameLog: Boolean((data.options as Record<string, unknown> | undefined)?.inGameLog) }
         }});
       txn.set(lobbyDocRef.collection('roles').doc(SECRET_STATE_DOC_NAME), {
         roles,
@@ -577,10 +601,11 @@ export function proposeTeam(data: TeamProposalData, uid: string): Promise<void> 
     throw new AvalonError(400, `Invalid proposal index: ${data.proposal}`);
   }
 
+  validateLobbyId(data.lobby);
   const lobbyDocRef = db.collection('lobbies').doc(data.lobby);
 
   return db.runTransaction(function(txn) {
-    return lobbyDocRef.get().then(function(lobbyDoc) {
+    return txn.get(lobbyDocRef).then(function(lobbyDoc) {
       validateField(lobbyDoc, 'game.state', 'ACTIVE');
       validateField(lobbyDoc, 'game.phase', 'TEAM_PROPOSAL');
 
@@ -657,7 +682,11 @@ function recordVote(
       validateValue(mission.state, 'PENDING', "Mission state");
       validateValue(proposal.state, proposalState, 'Proposal state');
 
+      validateSafeName(name);
       const users = lobbyDoc.get('users') as Record<string, { uid: string }>;
+      if (!users[name] || !game.players.includes(name)) {
+        throw new AvalonError(403, 'You are not in this game');
+      }
       const uid = users[name].uid;
 
       if (requestUid != uid) {
@@ -666,6 +695,15 @@ function recordVote(
       }
 
       const publicVotes = publicVotesListGetter(game, mission, proposal);
+
+      if (gamePhase == 'MISSION_VOTE') {
+        if (!proposal.team.includes(name)) {
+          throw new AvalonError(403, 'You are not on the mission team');
+        }
+        if (publicVotes.includes(name)) {
+          throw new AvalonError(400, 'You have already voted');
+        }
+      }
 
       if (!publicVotes.includes(name)) {
         publicVotes.push(name);
@@ -677,7 +715,6 @@ function recordVote(
       }
 
       const votes = secretDoc.get('votes') as SecretVotes;
-      validateSafeName(name);
       secretVotesListGetter(votes)[name] = vote;
 
       txn.update(lobbyDocRef, "game", game);
@@ -687,6 +724,7 @@ function recordVote(
 }
 
 export function voteTeam(data: VoteData, uid: string): Promise<void> {
+  validateLobbyId(data.lobby);
   const missionIndex = Number(data.mission);
   const proposalIndex = Number(data.proposal);
   if (!Number.isInteger(missionIndex) || missionIndex < 0) {
@@ -707,6 +745,9 @@ export function voteTeam(data: VoteData, uid: string): Promise<void> {
       return Promise.all([
         txn.get(lobbyDocRef),
         txn.get(secretDocRef)]).then(function([lobbyDoc, secretDoc]) {
+        if (lobbyDoc.get('game.state') != 'ACTIVE') {
+          return;
+        }
         const game = lobbyDoc.get('game') as Game;
         if (!game || !Array.isArray(game.missions) || missionIndex >= game.missions.length) {
           throw new AvalonError(400, 'Mission not found');
@@ -753,6 +794,7 @@ export function voteTeam(data: VoteData, uid: string): Promise<void> {
 }
 
 export function doMission(data: VoteData, uid: string): Promise<void> {
+  validateLobbyId(data.lobby);
   const lobbyDocRef = db.collection('lobbies').doc(data.lobby);
   const secretDocRef = lobbyDocRef.collection('roles').doc(SECRET_STATE_DOC_NAME);
 
@@ -776,6 +818,9 @@ export function doMission(data: VoteData, uid: string): Promise<void> {
         txn.get(lobbyDocRef),
         txn.get(secretDocRef)]).then(
           function([lobbyDoc, secretDoc]) {
+      if (lobbyDoc.get('game.state') != 'ACTIVE') {
+        return;
+      }
       const game = lobbyDoc.get('game') as Game;
       if (!game || !Array.isArray(game.missions) || missionIndex >= game.missions.length) {
         throw new AvalonError(400, 'Mission not found');
@@ -832,6 +877,7 @@ export function doMission(data: VoteData, uid: string): Promise<void> {
 }
 
 export function assassinate(data: AssassinateData, uid: string): Promise<boolean> {
+  validateLobbyId(data.lobby);
   const lobbyDocRef = db.collection('lobbies').doc(data.lobby);
   const secretDocRef = lobbyDocRef.collection('roles').doc(SECRET_STATE_DOC_NAME);
 
@@ -843,16 +889,22 @@ export function assassinate(data: AssassinateData, uid: string): Promise<boolean
       validateField(lobbyDoc, 'game.state', 'ACTIVE');
       validateField(lobbyDoc, 'game.phase', 'ASSASSINATION');
 
+      validateSafeName(data.name);
       const users = lobbyDoc.get('users') as Record<string, { uid: string }>;
-      if (uid != users[data.name].uid) {
-        console.warn('%s is %s but request came from %s', data.name, users[data.name].uid, uid);
+      if (!users[data.name] || uid != users[data.name].uid) {
+        console.warn('%s is %s but request came from %s', data.name, users[data.name]?.uid, uid);
         throw new AvalonError(403, 'You are not who you say you are');
       }
 
       const roles = secretDoc.get('roles') as Record<string, PlayerRole>;
-      if (!roles[data.name].assassin) {
+      if (!roles[data.name]?.assassin) {
         console.warn('%s is %o', data.name, secretDoc.get('roles')[data.name]);
         throw new AvalonError(403, 'You are not the assassin');
+      }
+
+      if (typeof data.target !== 'string' ||
+          !Object.prototype.hasOwnProperty.call(roles, data.target)) {
+        throw new AvalonError(400, 'Invalid assassination target');
       }
 
       if (roles[data.target].role == 'MERLIN') {
