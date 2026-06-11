@@ -41,8 +41,9 @@ router.use(async function(req: AuthenticatedRequest, res: Response, next: NextFu
 });
 
 router.post('/login', (req: AuthenticatedRequest, res: Response) => {
-  // Use the verified email from the auth token, not the client-supplied body
-  return avalon.loginUser({ email: req.email ?? req.body.email }, req.uid!).then(_r => res.end());
+  // Use the verified email from the auth token, never the client-supplied body
+  // (anonymous users have no token email and are stored with email: null)
+  return avalon.loginUser({ email: req.email ?? null }, req.uid!).then(_r => res.end());
 });
 
 router.post('/createLobby', (req: AuthenticatedRequest, res: Response) => {

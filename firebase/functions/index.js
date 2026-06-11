@@ -1,6 +1,6 @@
 const { onDocumentCreated } = require('firebase-functions/v2/firestore');
 const { initializeApp } = require('firebase-admin/app');
-const { getFirestore } = require('firebase-admin/firestore');
+const { getFirestore, FieldValue } = require('firebase-admin/firestore');
 const statsLib = require('./common/stats')
 
 initializeApp();
@@ -31,7 +31,14 @@ exports.onLogCreate = onDocumentCreated('/logs/{logId}', async (event) => {
         return;
     }
 
-    const stats = statsLib.computeStats(event.data.data());
-
-    await statsLib.combineStats(db, stats, false);
+    try {
+        const stats = statsLib.computeStats(event.data.data());
+        await statsLib.combineStats(db, stats, false);
+    } catch (err) {
+        // Release the claim so a retry/redelivery can reprocess this log,
+        // otherwise a transient failure would permanently drop these stats.
+        await logRef.update({ statsProcessed: FieldValue.delete() })
+            .catch((cleanupErr) => console.error("Failed to release stats claim for", logId, cleanupErr));
+        throw err;
+    }
 });

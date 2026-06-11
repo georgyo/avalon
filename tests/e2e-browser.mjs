@@ -40,11 +40,11 @@ async function testBrowser() {
     console.log('App div exists:', !!appExists);
 
     // Check for any visible content
-    const bodyText = await page.textContent('body');
+    const bodyText = (await page.textContent('body')) ?? '';
     console.log('Body has content:', bodyText.length > 0);
     console.log('Body snippet:', bodyText.substring(0, 200));
 
-    if (!appExists || !bodyText || !bodyText.includes('The Resistance Online')) {
+    if (!appExists || !bodyText.includes('The Resistance Online')) {
       console.error('FAIL: app did not render (app div: ' + !!appExists + ')');
       process.exitCode = 1;
     }
