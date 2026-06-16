@@ -64,6 +64,7 @@ export default defineComponent({
       return [
         (v: string) => !!v || 'Name is required',
         (v: string) => /^[A-Z]+$/.test(v) || 'Name must contain only letters (A-Z)',
+        (v: string) => v.length <= 20 || 'Name must be 20 characters or fewer',
         (v: string) => !roleNames.includes(v) || 'Name cannot be a role name',
       ];
     }
@@ -103,6 +104,12 @@ export default defineComponent({
   mounted: function() {
     this.setInputWidth('nameTextField');
     document.title = 'Avalon - ' + (this.name ? this.name : this.avalon.user.email);
+  },
+  beforeUnmount: function() {
+    if (this.alertTimeoutTimer != null) {
+      clearTimeout(this.alertTimeoutTimer);
+      this.alertTimeoutTimer = null;
+    }
   },
   watch: {
     showLobbyInput: function() {

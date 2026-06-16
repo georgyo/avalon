@@ -105,7 +105,7 @@ Always use workspace commands from the root directory for consistent dependency 
 ## Tech Stack
 
 - **Frontend:** Vue 3.5, Vuetify 3, Vite 8, TypeScript
-- **Backend:** Node.js 20, Express 4, Firebase Admin SDK
+- **Backend:** Node.js 20, Express 5, Firebase Admin SDK
 - **Database:** Firebase Firestore (real-time)
 - **Testing:** Playwright (E2E)
 - **Build:** Yarn 4 workspaces, esbuild (server bundling), Nix (reproducible builds)

@@ -39,7 +39,9 @@ export default defineComponent({
   methods: {
       proposeTeam() {
         this.isProposing = true;
-        this.avalon.proposeTeam(this.playerList);
+        this.avalon.proposeTeam(this.playerList).catch(() => {
+          this.isProposing = false;
+        });
       }
   }
 })

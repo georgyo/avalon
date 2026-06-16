@@ -5,6 +5,7 @@
      </v-card-title>
      <v-card-text>
       <div v-if='needsToVote'>
+        <div v-if='errorMessage' class="text-red text-center mb-2">{{ errorMessage }}</div>
         <div class="d-flex align-center justify-space-between fill-height">
         <v-btn @click='missionVote(true)'>
             <v-icon start color="green" icon="fa:fas fa-check-circle" />
@@ -32,14 +33,22 @@ export default defineComponent({
   props: [ 'avalon' ],
   data() {
       return {
-          needsToVote: this.avalon.game.currentProposal.team.includes(this.avalon.user.name)
+          // currentMission.team lists players whose votes are already in, so a
+          // reload doesn't offer a second vote
+          needsToVote: this.avalon.game.currentProposal.team.includes(this.avalon.user.name) &&
+                       !this.avalon.game.currentMission.team.includes(this.avalon.user.name),
+          errorMessage: ''
       };
   },
   methods: {
       missionVote(vote: boolean) {
         // no loading state, we want to hide the results as fast as possible
         this.needsToVote = false;
-        this.avalon.doMission(vote);
+        this.errorMessage = '';
+        this.avalon.doMission(vote).catch(() => {
+          this.needsToVote = true;
+          this.errorMessage = 'Vote failed, please try again';
+        });
       }
   },
   computed: {

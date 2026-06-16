@@ -552,8 +552,10 @@ export default class AvalonGame {
         return true;
       }
 
-      const response = await axios.get('https://api.mailcheck.ai/domain/' + domain);
-      if (response.status != 200) {
+      let response;
+      try {
+        response = await axios.get('https://api.mailcheck.ai/domain/' + domain);
+      } catch {
         throw new Error('Cannot verify email. Try again later');
       }
 
@@ -563,7 +565,9 @@ export default class AvalonGame {
 
   async submitEmailAddr(emailAddr: string): Promise<void> {
     const isValidAddr = await this.validateEmailAddr(emailAddr);
-    if (!isValidAddr) return;
+    if (!isValidAddr) {
+      throw new Error('This email address appears to be invalid or disposable');
+    }
     return sendSignInLinkToEmail(auth, emailAddr, {
       url: encodeURI(this.hostname + '?confirmEmail=' + emailAddr),
       handleCodeInApp: true

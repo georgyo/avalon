@@ -91,12 +91,13 @@ export default class GameAnalysis {
 
       for (const mission of this.missions) {
         for (const proposal of mission.proposals) {
+          const evilOnProposal = proposal.team.filter((p: string) => this.evilPlayers.includes(p) && this.rolesByName[p].role != 'MORDRED');
           if ((proposal.proposer == this.namesByRole['MERLIN']) &&
                proposal.votes.includes(this.namesByRole['MERLIN']) &&
-               proposal.team.filter((p: string) => this.evilPlayers.includes(p) && this.rolesByName[p].role != 'MORDRED').length > mission.failsRequired) {
+               evilOnProposal.length >= mission.failsRequired) {
             return {
               title: 'Advanced Merlin',
-              body: `Merlin proposed and approved a team with ${mission.evilOnTeam.joinWithAnd()}`
+              body: `Merlin proposed and approved a team with ${evilOnProposal.joinWithAnd()}`
             }
           }
         }

@@ -3,7 +3,8 @@
   "scripts": {
     "start": "tsx server.ts",
     "serve": "tsx watch server.ts",
-    "lint": "eslint *.ts"
+    "lint": "eslint *.ts && tsc --noEmit",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@avalon/common": "workspace:^",

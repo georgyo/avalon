@@ -2,7 +2,9 @@ service cloud.firestore {
   
   match /databases/{database}/documents {
   	match /logs/{log} {
-    	allow read;
+    	// get only: listing would expose every game log (incl. player uids);
+    	// auth required since log ids (timestamp + lobby code) are guessable
+    	allow get: if request.auth != null;
     }
     
     match /users/{uid} {
@@ -14,7 +16,9 @@ service cloud.firestore {
     }
     
     match /lobbies/{lobby} {
-    	allow read;
+    	// get only: listing would let anyone enumerate live lobby join codes;
+    	// auth required since 3-letter codes are small enough to brute force
+    	allow get: if request.auth != null;
     }
     
     match /stats/{stat} {

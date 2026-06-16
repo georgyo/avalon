@@ -80,7 +80,7 @@ export interface UserData {
 // Request payload types
 
 export interface LoginData {
-  email?: string;
+  email?: string | null; // null for anonymous users (no email in auth token)
 }
 
 export interface LobbyActionData {

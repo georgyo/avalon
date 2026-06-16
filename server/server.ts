@@ -11,6 +11,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 interface AuthenticatedRequest extends Request {
   uid?: string;
+  email?: string;
 }
 
 const app = express();
@@ -29,7 +30,10 @@ router.use(async function(req: AuthenticatedRequest, res: Response, next: NextFu
   try {
     const decodedToken = await getAuth().verifyIdToken(idToken);
     req.uid = decodedToken.uid;
-    console.log('Request', req.method, req.path, req.uid, JSON.stringify(req.body));
+    req.email = decodedToken.email;
+    // Redact secret mission/proposal votes so game outcomes can't be inferred from logs
+    console.log('Request', req.method, req.path, req.uid,
+      JSON.stringify(req.body, (key, value) => key === 'vote' ? '<redacted>' : value));
     next();
   } catch {
     res.status(401).json({ message: 'Invalid or expired auth token' });
@@ -37,7 +41,9 @@ router.use(async function(req: AuthenticatedRequest, res: Response, next: NextFu
 });
 
 router.post('/login', (req: AuthenticatedRequest, res: Response) => {
-  return avalon.loginUser(req.body, req.uid!).then(_r => res.end());
+  // Use the verified email from the auth token, never the client-supplied body
+  // (anonymous users have no token email and are stored with email: null)
+  return avalon.loginUser({ email: req.email ?? null }, req.uid!).then(_r => res.end());
 });
 
 router.post('/createLobby', (req: AuthenticatedRequest, res: Response) => {
@@ -80,9 +86,13 @@ router.post('/assassinate', (req: AuthenticatedRequest, res: Response) => {
   return avalon.assassinate(req.body, req.uid!).then(() => res.end());
 });
 
-router.use((err: AvalonError, _req: Request, res: Response, _next: NextFunction) => {
-  res.status(err.statusCode ? err.statusCode : 500);
-  res.json({ message: err.message });
+router.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
+  if (err instanceof AvalonError) {
+    res.status(err.statusCode).json({ message: err.message });
+  } else {
+    console.error('Unhandled error:', err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
 });
 
 app.use('/api', router);

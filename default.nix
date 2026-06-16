@@ -49,6 +49,7 @@ project.overrideAttrs (oldAttrs: {
   nativeBuildInputs = (oldAttrs.nativeBuildInputs or [ ]) ++ [ pkgs.python3 ];
 
   buildPhase = ''
+    yarn workspace @avalon/server typecheck
     yarn build
     yarn bundle:server
   '';
