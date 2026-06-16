@@ -42,7 +42,7 @@
     "fast-xml-parser": "^5.5.11",
     "flatted": "^3.4.2",
     "hono": "^4.12.12",
-    "@hono/node-server": "^1.19.13",
+    "@hono/node-server": "^2.0.0",
     "node-forge": "^1.4.0",
     "picomatch@^2.0.4": "^2.3.2",
     "picomatch@^2.2.1": "^2.3.2",
