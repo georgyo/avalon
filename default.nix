@@ -38,16 +38,17 @@ stdenv.mkDerivation (finalAttrs: {
 
   # Hashes for packages whose yarn.lock entries carry no checksum (the
   # platform-specific optional native binaries: esbuild, @parcel/watcher,
-  # @rolldown, lightningcss, ...). Regenerate with:
-  #   nix run nixpkgs#yarn-berry_4-fetcher.yarn-berry-fetcher -- \
-  #     missing-hashes yarn.lock > missing-hashes.json
+  # @rolldown, lightningcss, ...). Yarn Berry intentionally omits checksums for
+  # packages with `conditions:`, so they cannot be recorded in yarn.lock.
   # The config hook diffs this against the copy inside the offlineCache, so it
   # must be set both here and on fetchYarnBerryDeps below.
+  #
+  # After changing dependencies, regenerate this file and the offlineCache hash
+  # below in one step:  nix run .#update-deps
   missingHashes = ./missing-hashes.json;
 
   # Offline Yarn Berry (v4) dependency cache, fetched by the nixpkgs
   # `yarn-berry-fetcher` directly from yarn.lock (replaces yarn-plugin-nixify).
-  # Regenerate the hash: set it to lib.fakeHash, build, copy the "got:" value.
   offlineCache = yarn-berry_4.fetchYarnBerryDeps {
     inherit (finalAttrs) src;
     missingHashes = ./missing-hashes.json;
