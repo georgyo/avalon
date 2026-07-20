@@ -4773,8 +4773,8 @@ __metadata:
   linkType: hard
 
 "firebase-functions@npm:^7.2.5":
-  version: 7.2.5
-  resolution: "firebase-functions@npm:7.2.5"
+  version: 7.3.0
+  resolution: "firebase-functions@npm:7.3.0"
   dependencies:
     "@types/cors": "npm:^2.8.5"
     "@types/express": "npm:^4.17.21"
@@ -4784,7 +4784,7 @@ __metadata:
   peerDependencies:
     "@apollo/server": ^5.2.0
     "@as-integrations/express4": ^1.1.2
-    firebase-admin: ^11.10.0 || ^12.0.0 || ^13.0.0
+    firebase-admin: ^11.10.0 || ^12.0.0 || ^13.0.0 || ^14.0.0
     graphql: ^16.12.0
   peerDependenciesMeta:
     "@apollo/server":
@@ -4795,7 +4795,7 @@ __metadata:
       optional: true
   bin:
     firebase-functions: lib/bin/firebase-functions.js
-  checksum: 10/53645a27f5bdaac76134ddb7eac8465958f937991ab9ba742b159f2f911fc26ebf04a8278a1c45675c8282e4c7785e0b693697eda401c9eb78c3e80ca88cc903
+  checksum: 10/160e2c1d92387739fa4fceb4a99b2559a227ab5e52647987d61e57881fffb300890d37cb34a6f847163cb102545c40cc1278e1176d57c6a088d9a291c01c969a
   languageName: node
   linkType: hard
 
