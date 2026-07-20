@@ -2447,14 +2447,14 @@ __metadata:
   linkType: hard
 
 "@vitejs/plugin-vue@npm:^6.0.7":
-  version: 6.0.7
-  resolution: "@vitejs/plugin-vue@npm:6.0.7"
+  version: 6.0.8
+  resolution: "@vitejs/plugin-vue@npm:6.0.8"
   dependencies:
     "@rolldown/pluginutils": "npm:^1.0.1"
   peerDependencies:
     vite: ^5.0.0 || ^6.0.0 || ^7.0.0 || ^8.0.0
     vue: ^3.2.25
-  checksum: 10/7084d5acda787dd8597ded0c7b313efa0804b4d6e9434d0406e35f31f331ccb5ab79088096cc6280e9fe6c119d97e66ebdf40491b559252fd2926a4ea3bccb26
+  checksum: 10/f061707d746c993767e94afb6e51402a25ace9534cd7178ee34ff8e78ee62bfee9d23ea3cd1937c0cfc4a07b21bca851059f63978ca97202b6dc264f637fd88e
   languageName: node
   linkType: hard
 
