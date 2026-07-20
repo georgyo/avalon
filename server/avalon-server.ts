@@ -1,6 +1,6 @@
 import { randomInt } from 'node:crypto';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
-import type { firestore } from 'firebase-admin';
+import type { DocumentSnapshot, Transaction } from 'firebase-admin/firestore';
 import _ from 'lodash';
 import { ROLES, getNumEvilForGameSize } from '@avalon/common';
 import type { Role } from '@avalon/common';
@@ -66,7 +66,7 @@ function validateValue(value: unknown, desired: unknown, errMsg: string): void {
   }
 }
 
-function validateField(doc: firestore.DocumentSnapshot, field: string, value: unknown): void {
+function validateField(doc: DocumentSnapshot, field: string, value: unknown): void {
   validateValue(doc.get(field), value, field);
 }
 
@@ -462,9 +462,9 @@ interface EndGameOptions {
 }
 
 function endGameTxn(
-  txn: firestore.Transaction,
-  lobbyDoc: firestore.DocumentSnapshot,
-  secretDoc: firestore.DocumentSnapshot,
+  txn: Transaction,
+  lobbyDoc: DocumentSnapshot,
+  secretDoc: DocumentSnapshot,
   state: string,
   message: string,
   {
@@ -656,7 +656,7 @@ function recordVote(
   proposalState: string,
   publicVotesListGetter: (game: Game, mission: Mission, proposal: Proposal) => string[],
   secretVotesListGetter: (secretVotes: SecretVotes) => Record<string, boolean>,
-  voteValidator?: (name: string, vote: boolean, secretDoc: firestore.DocumentSnapshot) => boolean
+  voteValidator?: (name: string, vote: boolean, secretDoc: DocumentSnapshot) => boolean
 ): Promise<void> {
 
   const lobbyDocRef = db.collection('lobbies').doc(lobby);
