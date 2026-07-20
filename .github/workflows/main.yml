@@ -28,9 +28,10 @@ jobs:
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v7
-      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: NixOS/nix-installer-action@main
+      - uses: Mic92/niks3-action@v1
         with:
-          determinate: true
-      - uses: DeterminateSystems/magic-nix-cache-action@main
+          server-url: https://niks3.fu.io
+
       - run: nix flake check
       - run: nix build .#
