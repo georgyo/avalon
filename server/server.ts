@@ -16,12 +16,13 @@ interface AuthenticatedRequest extends Request {
 }
 
 const app = express();
+app.set('trust proxy', 1); // Trust first proxy (e.g. Google App Engine load balancer)
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'dist')));
 
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  limit: 200,
+  limit: 100,
   standardHeaders: true,
   legacyHeaders: false,
 });
