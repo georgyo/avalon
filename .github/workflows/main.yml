@@ -35,3 +35,53 @@ jobs:
 
       - run: nix flake check
       - run: nix build .#
+
+  # End-to-end tests. These run entirely against a throwaway local stack
+  # (Firebase auth + firestore emulators, the API server, and the vite dev
+  # server) -- see tests/e2e-stack.mjs. Nothing here touches the live
+  # avalon.onl API or the production Firebase project.
+  e2e:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: "read"
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      # The Firestore emulator is a Java process.
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - run: corepack enable
+
+      - name: Install dependencies
+        run: yarn install --immutable
+
+      # The emulator jars are downloaded on first use; keep them between runs.
+      - name: Cache Firebase emulators
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/firebase/emulators
+          key: firebase-emulators-${{ runner.os }}
+
+      - name: Install Playwright Firefox
+        run: yarn exec playwright install --with-deps firefox
+
+      - name: Run e2e suite
+        run: yarn test:e2e
+
+      - name: Upload screenshots on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-screenshots
+          path: tests/screenshots/
+          if-no-files-found: ignore
+          retention-days: 7

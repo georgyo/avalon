@@ -19,7 +19,8 @@
     "admin": "yarn workspace @avalon/server tsx admin.ts",
     "test": "node tests/e2e-flow.mjs",
     "test:browser": "node tests/e2e-browser.mjs",
-    "test:game": "node tests/e2e-full-game.mjs"
+    "test:game": "node tests/e2e-full-game.mjs",
+    "test:e2e": "node tests/e2e-stack.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
