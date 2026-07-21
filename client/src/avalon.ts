@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app'
-import { getAuth, signOut, signInAnonymously as firebaseSignInAnonymously, sendSignInLinkToEmail, signInWithEmailLink, onAuthStateChanged, type User, type UserCredential } from 'firebase/auth'
-import { getFirestore, doc, onSnapshot, getDoc, type DocumentSnapshot } from 'firebase/firestore'
+import { getAuth, connectAuthEmulator, signOut, signInAnonymously as firebaseSignInAnonymously, sendSignInLinkToEmail, signInWithEmailLink, onAuthStateChanged, type User, type UserCredential } from 'firebase/auth'
+import { getFirestore, connectFirestoreEmulator, doc, onSnapshot, getDoc, type DocumentSnapshot } from 'firebase/firestore'
 import { bindAll, difference, keys, keyBy, values } from 'lodash-es'
 import * as avalonLib from '@avalon/common/avalonlib';
 import {AvalonApi} from './avalon-api-rest';
@@ -21,6 +21,21 @@ const HOSTNAME = window.location.origin + '/';
 const firebaseApp = initializeApp(firebaseConfig);
 const auth = getAuth(firebaseApp);
 const db = getFirestore(firebaseApp);
+
+// Point the SDK at the local Firebase emulators when VITE_USE_EMULATORS is set.
+// This is what lets the e2e suite run against a throwaway local stack instead
+// of the live project. Vite statically replaces import.meta.env at build time,
+// so production bundles drop this branch entirely.
+if (import.meta.env.VITE_USE_EMULATORS === 'true') {
+  const authHost = import.meta.env.VITE_AUTH_EMULATOR_URL || 'http://127.0.0.1:9099';
+  const [firestoreHost, firestorePort] = (
+    import.meta.env.VITE_FIRESTORE_EMULATOR_HOST || '127.0.0.1:9080'
+  ).split(':');
+
+  connectAuthEmulator(auth, authHost, { disableWarnings: true });
+  connectFirestoreEmulator(db, firestoreHost, Number(firestorePort));
+  console.log('Firebase emulators connected:', authHost, firestoreHost + ':' + firestorePort);
+}
 
 function onFirebaseError(err: Error): void {
   console.error(err);

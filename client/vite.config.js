@@ -15,7 +15,10 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'https://avalon.onl',
+        // Defaults to production so `yarn dev` keeps working against the live
+        // API. The e2e suite sets VITE_API_TARGET to a locally running server
+        // so tests never touch production.
+        target: process.env.VITE_API_TARGET || 'https://avalon.onl',
         changeOrigin: true,
       }
     }
