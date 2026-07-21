@@ -2,6 +2,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import express from 'express';
 import type { Request, Response, NextFunction } from 'express';
+import { rateLimit } from 'express-rate-limit';
 import { getAuth } from 'firebase-admin/auth';
 import './firebaseKey'; // must be imported before avalon-server to initialize Firebase
 import * as avalon from './avalon-server';
@@ -18,7 +19,15 @@ const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'dist')));
 
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  limit: 200,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 const router = express.Router();
+router.use(apiLimiter);
 
 router.use(async function(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   const idToken = req.get('X-Avalon-Auth');
