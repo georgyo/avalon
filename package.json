@@ -19,7 +19,8 @@
     "admin": "yarn workspace @avalon/server tsx admin.ts",
     "test": "node tests/e2e-flow.mjs",
     "test:browser": "node tests/e2e-browser.mjs",
-    "test:game": "node tests/e2e-full-game.mjs"
+    "test:game": "node tests/e2e-full-game.mjs",
+    "test:e2e": "node tests/e2e-stack.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -30,7 +31,7 @@
     "eslint": "^10.7.0",
     "eslint-plugin-vue": "^10.10.0",
     "globals": "^17.7.0",
-    "playwright": "^1.61.1",
+    "playwright": "1.60.0",
     "postcss": "^8.5.21",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.65.0",
