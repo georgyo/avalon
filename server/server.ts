@@ -2,6 +2,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import express from 'express';
 import type { Request, Response, NextFunction } from 'express';
+import { rateLimit } from 'express-rate-limit';
 import { getAuth } from 'firebase-admin/auth';
 import './firebaseKey'; // must be imported before avalon-server to initialize Firebase
 import * as avalon from './avalon-server';
@@ -15,10 +16,23 @@ interface AuthenticatedRequest extends Request {
 }
 
 const app = express();
+// On App Engine, X-Forwarded-For arrives as "client-ip, load-balancer-ip", so two
+// hops must be trusted for req.ip to resolve to the client rather than the balancer.
+app.set('trust proxy', 2);
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'dist')));
 
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  // Generous per-IP budget: in-person groups share one NAT IP, and a single
+  // 10-player game can make ~200 action requests in a window.
+  limit: 1000,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 const router = express.Router();
+router.use(apiLimiter);
 
 router.use(async function(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   const idToken = req.get('X-Avalon-Auth');
