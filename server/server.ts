@@ -16,13 +16,17 @@ interface AuthenticatedRequest extends Request {
 }
 
 const app = express();
-app.set('trust proxy', 1); // Trust first proxy (e.g. Google App Engine load balancer)
+// On App Engine, X-Forwarded-For arrives as "client-ip, load-balancer-ip", so two
+// hops must be trusted for req.ip to resolve to the client rather than the balancer.
+app.set('trust proxy', 2);
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'dist')));
 
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  limit: 100,
+  // Generous per-IP budget: in-person groups share one NAT IP, and a single
+  // 10-player game can make ~200 action requests in a window.
+  limit: 1000,
   standardHeaders: true,
   legacyHeaders: false,
 });
