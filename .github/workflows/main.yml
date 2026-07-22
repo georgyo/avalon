@@ -48,34 +48,23 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
-
-      - uses: actions/setup-node@v6
+      - uses: NixOS/nix-installer-action@main
+      - uses: Mic92/niks3-action@v1
         with:
-          node-version: 24
+          server-url: https://niks3.fu.io
 
-      # The Firestore emulator is a Java process.
-      - uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: 21
-
-      - run: corepack enable
-
-      - name: Install dependencies
-        run: yarn install --immutable
-
-      # The emulator jars are downloaded on first use; keep them between runs.
+      # `nix run .#e2e` pins the whole toolchain (Node, the JDK the Firestore
+      # emulator needs, and the Playwright browsers) so there's no setup-node /
+      # setup-java / playwright-install dance. The Firestore emulator jar is
+      # still downloaded on first use; keep it between runs.
       - name: Cache Firebase emulators
         uses: actions/cache@v4
         with:
           path: ~/.cache/firebase/emulators
           key: firebase-emulators-${{ runner.os }}
 
-      - name: Install Playwright Firefox
-        run: yarn exec playwright install --with-deps firefox
-
       - name: Run e2e suite
-        run: yarn test:e2e
+        run: nix run .#e2e
 
       - name: Upload screenshots on failure
         if: failure()
