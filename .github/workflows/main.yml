@@ -58,7 +58,7 @@ jobs:
       # setup-java / playwright-install dance. The Firestore emulator jar is
       # still downloaded on first use; keep it between runs.
       - name: Cache Firebase emulators
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/firebase/emulators
           key: firebase-emulators-${{ runner.os }}
