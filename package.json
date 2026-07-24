@@ -39,7 +39,7 @@
   },
   "resolutions": {
     "basic-ftp": "^6.0.1",
-    "brace-expansion@^1.1.7": "^1.1.13",
+    "brace-expansion@^1.1.7": "^5.0.0",
     "fast-xml-parser": "^5.10.1",
     "flatted": "^3.4.2",
     "hono": "^4.12.31",
