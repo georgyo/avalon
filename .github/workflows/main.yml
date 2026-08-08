@@ -29,10 +29,6 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v7
       - uses: NixOS/nix-installer-action@main
-      - uses: nixbuild/nixbuild-action@v26
-        with:
-          nixbuild_token: ${{ secrets.NIXBUILD_TOKEN }}
-          oidc: true
       - uses: Mic92/niks3-action@v1
         with:
           server-url: https://niks3.fu.io
@@ -54,10 +50,6 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: NixOS/nix-installer-action@main
-      - uses: nixbuild/nixbuild-action@v26
-        with:
-          nixbuild_token: ${{ secrets.NIXBUILD_TOKEN }}
-          oidc: true
       - uses: Mic92/niks3-action@v1
         with:
           server-url: https://niks3.fu.io
