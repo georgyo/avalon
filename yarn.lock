@@ -1048,7 +1048,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@google-cloud/firestore@npm:^8.6.0":
+"@google-cloud/firestore@npm:^8.7.1":
   version: 8.7.1
   resolution: "@google-cloud/firestore@npm:8.7.1"
   dependencies:
@@ -1140,7 +1140,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@google-cloud/storage@npm:^7.19.0":
+"@google-cloud/storage@npm:^7.22.0":
   version: 7.22.0
   resolution: "@google-cloud/storage@npm:7.22.0"
   dependencies:
@@ -4584,14 +4584,14 @@ __metadata:
   linkType: hard
 
 "firebase-admin@npm:^14.2.0":
-  version: 14.2.0
-  resolution: "firebase-admin@npm:14.2.0"
+  version: 14.3.0
+  resolution: "firebase-admin@npm:14.3.0"
   dependencies:
     "@fastify/busboy": "npm:^3.0.0"
     "@firebase/database-compat": "npm:^2.1.4"
     "@firebase/database-types": "npm:^1.0.20"
-    "@google-cloud/firestore": "npm:^8.6.0"
-    "@google-cloud/storage": "npm:^7.19.0"
+    "@google-cloud/firestore": "npm:^8.7.1"
+    "@google-cloud/storage": "npm:^7.22.0"
     fast-deep-equal: "npm:^3.1.1"
     google-auth-library: "npm:^10.6.2"
     jsonwebtoken: "npm:^9.0.0"
@@ -4601,7 +4601,7 @@ __metadata:
       optional: true
     "@google-cloud/storage":
       optional: true
-  checksum: 10/2fb4a500305f09a48e11e78ed968cf396287e362dd7afb5fad2e384370dc0fbd83b8ba3154778fb71d73bb82aace31ae96c7cb846825970c6996a2fba481cb2e
+  checksum: 10/e56ff795a352eb974675b802c8d2e20c719620e7faf6126338669b185a0edb842d5544be2d0c81a09ca3450afb22ffcf3d3266be7611017d4ea035baa6065b78
   languageName: node
   linkType: hard
 
