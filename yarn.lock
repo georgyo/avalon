@@ -2460,6 +2460,43 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@vuetify/v0@npm:^1.2.1":
+  version: 1.2.1
+  resolution: "@vuetify/v0@npm:1.2.1"
+  peerDependencies:
+    "@adobe/leonardo-contrast-colors": ">=1.0.0"
+    "@ant-design/colors": ">=7.0.0"
+    "@flagsmith/flagsmith": ">=11.0.0"
+    "@floating-ui/dom": ">=1.8.0"
+    "@js-temporal/polyfill": ">=0.5.0"
+    "@material/material-color-utilities": ">=0.3.0"
+    launchdarkly-js-client-sdk: ^3.0.0
+    posthog-js: ^1.0.0
+    vue: ">=3.5.0 || >=3.6.0-0"
+    vue-i18n: ">=10.0.0"
+  peerDependenciesMeta:
+    "@adobe/leonardo-contrast-colors":
+      optional: true
+    "@ant-design/colors":
+      optional: true
+    "@flagsmith/flagsmith":
+      optional: true
+    "@floating-ui/dom":
+      optional: true
+    "@js-temporal/polyfill":
+      optional: true
+    "@material/material-color-utilities":
+      optional: true
+    launchdarkly-js-client-sdk:
+      optional: true
+    posthog-js:
+      optional: true
+    vue-i18n:
+      optional: true
+  checksum: 10/24e9baae7c762bcc22d30caef33cc2330245db13e6b966d5b7b13a2c0801f4901c07dcd15ecc37f3df20bc8a1ecc6784a672a01a1050f17795f49d43b6b68f6b
+  languageName: node
+  linkType: hard
+
 "abbrev@npm:^5.0.0":
   version: 5.0.0
   resolution: "abbrev@npm:5.0.0"
@@ -8723,8 +8760,10 @@ __metadata:
   linkType: hard
 
 "vuetify@npm:^4.1.9":
-  version: 4.1.9
-  resolution: "vuetify@npm:4.1.9"
+  version: 4.2.0
+  resolution: "vuetify@npm:4.2.0"
+  dependencies:
+    "@vuetify/v0": "npm:^1.2.1"
   peerDependencies:
     typescript: ">=4.7"
     vite-plugin-vuetify: ">=2.1.0"
@@ -8737,7 +8776,7 @@ __metadata:
       optional: true
     webpack-plugin-vuetify:
       optional: true
-  checksum: 10/298f3d196f54692399d1b1f16ee6f8b948d6e14c67d3774d420230a873aa653c5285f6ab80ad171fb61a5193fd728baac556f000ea5ce7ee7fe78bdcf54bc127
+  checksum: 10/708f10ae016711458f537cab84a4224e18a249206ec7a65f987409a5776a61d06d1ad5868b72a9f99a5fb350f9c9e1a60d40c50aabe56bc5492f91ff3d2f270f
   languageName: node
   linkType: hard
 
