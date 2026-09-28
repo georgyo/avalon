@@ -3625,10 +3625,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"csv-parse@npm:^5.0.4":
-  version: 5.6.0
-  resolution: "csv-parse@npm:5.6.0"
-  checksum: 10/4c82e11f50ae0ccbac2aed716ef2502d0468bf96552083561db789fc0258ee4bb0a30106fcfb2684f153cb4042f0413e0eac3645d5466874803b7ccdeba67ac8
+"csv-parse@npm:^7.0.2":
+  version: 7.0.3
+  resolution: "csv-parse@npm:7.0.3"
+  checksum: 10/98d80273b47603cbf754f4b75e7ea769ea63eb83fa18e4c92061e64b3575694eb98151100ddbb907670e7210ef7eac594ef850ecd3f23119062eeb8d9a2e2684
   languageName: node
   linkType: hard
 
@@ -4633,8 +4633,8 @@ __metadata:
   linkType: hard
 
 "firebase-tools@npm:^15.27.0":
-  version: 15.27.0
-  resolution: "firebase-tools@npm:15.27.0"
+  version: 15.32.0
+  resolution: "firebase-tools@npm:15.32.0"
   dependencies:
     "@apphosting/common": "npm:^0.0.8"
     "@electric-sql/pglite": "npm:^0.3.3"
@@ -4658,7 +4658,7 @@ __metadata:
     cors: "npm:^2.8.5"
     cross-env: "npm:^7.0.3"
     cross-spawn: "npm:^7.0.5"
-    csv-parse: "npm:^5.0.4"
+    csv-parse: "npm:^7.0.2"
     exegesis: "npm:^4.2.0"
     exegesis-express: "npm:^4.0.0"
     express: "npm:^4.16.4"
@@ -4691,8 +4691,8 @@ __metadata:
     retry: "npm:^0.13.1"
     semver: "npm:^7.5.2"
     sql-formatter: "npm:^15.3.0"
-    stream-chain: "npm:^2.2.4"
-    stream-json: "npm:^1.7.3"
+    stream-chain: "npm:^4.2.5"
+    stream-json: "npm:^3.6.0"
     superstatic: "npm:^10.0.0"
     tar: "npm:^7.5.11"
     tcp-port-used: "npm:^1.0.2"
@@ -4708,7 +4708,7 @@ __metadata:
     zod: "npm:^4.0.0"
   bin:
     firebase: lib/bin/firebase.js
-  checksum: 10/4b5c555a758f55a780ad7b6fe443fb079bab261e7a2c3b1b2a468390581e1869a74c67bda0bec8723e27d6631feba810a2b7dc364b8a5305c78cf4b4483b0db3
+  checksum: 10/f8dc1508078008ec757bf3dd6769a3b8d1981006746c20317a6b95d142ab2523d8bf5b745771b0251dc60a1162f1d4573dfc4207a5de7e94949d8fb251f893ab
   languageName: node
   linkType: hard
 
@@ -7969,10 +7969,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"stream-chain@npm:^2.2.4, stream-chain@npm:^2.2.5":
-  version: 2.2.5
-  resolution: "stream-chain@npm:2.2.5"
-  checksum: 10/f9c65fe21251106083ca753d8b36f5a35dc426f5cb12851d9a872b6eb69e30ea2c94d87887bfda8c820503e842183812922532fb2adab18d5878d31a4516b956
+"stream-chain@npm:^4.2.5":
+  version: 4.2.6
+  resolution: "stream-chain@npm:4.2.6"
+  checksum: 10/966402f5736f25e267b7e2cda3af8e9d63c8ea9af9468a01cc6a0326f2ebf058a876053b3d438b28a286eb220beaf6998d558989d47255fe3b1d7908f2b43990
   languageName: node
   linkType: hard
 
@@ -7985,12 +7985,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"stream-json@npm:^1.7.3":
-  version: 1.9.1
-  resolution: "stream-json@npm:1.9.1"
+"stream-json@npm:^3.6.0":
+  version: 3.7.0
+  resolution: "stream-json@npm:3.7.0"
   dependencies:
-    stream-chain: "npm:^2.2.5"
-  checksum: 10/8c97d3078127aaf70197b0e4b5ca668307f1768a4eb1ac4c2030056e1f862d7a11b83094b87d2b04c3c14f76a8a8657eb87b1760d57781c172e3a513c7e2b5fd
+    stream-chain: "npm:^4.2.5"
+  checksum: 10/58882ad6451262d571662da88b4d3feebab630dfaa980c4469c3a572ceca17c3400690e264cbaad681432341061998068b569b15548f2b11b8dff584d569aee6
   languageName: node
   linkType: hard
 
