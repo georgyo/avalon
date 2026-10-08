@@ -2872,7 +2872,7 @@ __metadata:
     esbuild: "npm:^0.28.2"
     eslint: "npm:^10.11.0"
     eslint-plugin-vue: "npm:^10.11.1"
-    globals: "npm:^17.12.0"
+    globals: "npm:^17.13.0"
     playwright: "npm:1.63.0"
     postcss: "npm:^8.5.28"
     typescript: "npm:^6.0.3"
@@ -4991,7 +4991,7 @@ __metadata:
     firebase-admin: "npm:^14.5.0"
     firebase-functions: "npm:^7.4.0"
     firebase-tools: "npm:^15.32.0"
-    globals: "npm:^17.12.0"
+    globals: "npm:^17.13.0"
   languageName: unknown
   linkType: soft
 
@@ -5210,10 +5210,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"globals@npm:^17.12.0":
-  version: 17.12.0
-  resolution: "globals@npm:17.12.0"
-  checksum: 10/833291560517dbb510c6d12359ba87eb8b8f282e9775b0474c6e19e0bea043b61f6b52732d4b1bb275888d1813564e40653e0d5faccef3083dc603cfbf0a3271
+"globals@npm:^17.13.0":
+  version: 17.13.0
+  resolution: "globals@npm:17.13.0"
+  checksum: 10/f723714cfb07bcf3163d44661d63b2a6076d93fd2f3724622b22084c62bcbbdb3ea3c601ec39635f1430d5cdf60bbf6fd7e458f12b5381ed422ed355c699537b
   languageName: node
   linkType: hard
 
