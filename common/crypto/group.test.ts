@@ -4,7 +4,7 @@ import { ristretto255_hasher } from '@noble/curves/ed25519.js';
 import { CodecError, b64uEncode, hexDecode, hexEncode, sha512, utf8 } from './bytes.ts';
 import {
   CryptoError, G, GEN, H2C, H2S, L, O, decPoint, decScalar, encPoint, encScalar, mod, msm, mul, mulPub, ptBytes,
-  randomWeight128, smallLog, type Point, type Scalar,
+  randomWeight128, randomWeight128From, smallLog, type Point, type Scalar,
 } from './group.ts';
 import { seededRandom } from './testkit.ts';
 
@@ -237,12 +237,14 @@ test('smallLog', () => {
   assert.equal(smallLog(O, 0), 0);
 });
 
-test('randomWeight128: nonzero, 128-bit, injectable', () => {
+test('randomWeight128: nonzero, 128-bit; only the internal variant takes a byte source', () => {
   for (let i = 0; i < 50; i++) {
     const z = randomWeight128();
     assert.ok(z > 0n && z < 2n ** 128n);
   }
-  assert.equal(randomWeight128(seededRandom(5)), randomWeight128(seededRandom(5)));
+  // the production function takes no source (review finding: no deterministic weights in production)
+  assert.equal(randomWeight128.length, 0);
+  assert.equal(randomWeight128From(seededRandom(5)), randomWeight128From(seededRandom(5)));
   let calls = 0;
   const zeroThenOne = (n: number): Uint8Array => {
     calls++;
@@ -250,6 +252,6 @@ test('randomWeight128: nonzero, 128-bit, injectable', () => {
     if (calls > 1) b[n - 1] = 1;
     return b;
   };
-  assert.equal(randomWeight128(zeroThenOne), 1n);
+  assert.equal(randomWeight128From(zeroThenOne), 1n);
   assert.equal(calls, 2);
 });

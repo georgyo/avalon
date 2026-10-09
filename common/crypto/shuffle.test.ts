@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { hexEncode, sha256 } from './bytes.ts';
 import { G, GEN, O, decPoint, encPoint, mod, mul, type Point, type Scalar } from './group.ts';
 import { deriveStream } from './derive.ts';
-import { BatchVerifier, proveSigma, transcriptBase, verifySigma } from './sigma.ts';
+import { BatchVerifier, transcriptBase, verifySigma } from './sigma.ts';
+import { proveSigmaUnchecked } from './sigmaCore.ts';
 import { decCt, encCt, reenc, type Ct } from './elgamal.ts';
 import { cardPoint, findLabel } from './cards.ts';
 import { deckBytes, initialDeck, proveShuffle, shuffleAux, shuffleChallenges, shuffleStatement, type ShuffleOutput } from './shuffle.ts';
@@ -107,7 +108,7 @@ function cheatShuffle(ctx: ProofContext, Y: Point, input: Ct[], makeOut: (i: num
   for (let j = 0; j < N; j++) { rBar += r[j]; rTilde += r[j] * u[j]; rhoBar -= rho[j] * u[j]; }
   for (let i = N - 1; i >= 0; i--) { rHatAgg += rHat[i] * v; v = mod(v * u[i]); }
   const stmt = shuffleStatement(ctx, Y, input, out, c, chat);
-  const proof = proveSigma(stmt, 0, [mod(rBar), mod(rHatAgg), mod(rTilde), mod(rhoBar), ...rHat, ...u], seedFor(seedNo));
+  const proof = proveSigmaUnchecked(stmt, 0, [mod(rBar), mod(rHatAgg), mod(rTilde), mod(rhoBar), ...rHat, ...u], seedFor(seedNo));
   return { deck: out, c, chat, proof };
 }
 

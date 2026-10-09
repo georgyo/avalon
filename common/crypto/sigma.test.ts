@@ -4,8 +4,9 @@ import { b64uEncode, hexDecode, hexEncode, sha256, utf8 } from './bytes.ts';
 import { G, GEN, L, decPoint, decScalar, encPoint, encScalar, mod, mul, mulPub, H2C, type Point, type Scalar } from './group.ts';
 import { deriveStream } from './derive.ts';
 import { BatchVerifier, proveSigma, transcriptBase, verifySigma, type Statement } from './sigma.ts';
+import { BatchCore } from './sigmaCore.ts';
 import type { SigmaProofE } from './types.ts';
-import { CONFIG_ID, ctxFor, seededRandom, seedFor } from './testkit.ts';
+import { CONFIG_ID, ctxFor, forge, seededRandom, seedFor } from './testkit.ts';
 
 const seed = seedFor(0);
 const sc = (label: string): Scalar => deriveStream(seed, 'test-witness', label).scalar();
@@ -44,7 +45,7 @@ function orStatement(real: number): { st: Statement; witness: Scalar[] } {
 }
 
 function batchOk(st: Statement, proof: SigmaProofE): boolean {
-  const bv = new BatchVerifier(seededRandom(11));
+  const bv = new BatchCore(seededRandom(11));
   return bv.add(st, proof) && bv.verify();
 }
 
@@ -143,13 +144,13 @@ test('soundness: a false statement cannot be proven', () => {
   const a = sc('a');
   const b = sc('b');
   const st = andStatement(a, b);
-  assert.ok(!verifySigma(st, proveSigma(st, 0, [a, mod(b + 1n)], seed)));
-  assert.ok(!batchOk(st, proveSigma(st, 0, [mod(a + 1n), b], seed)));
+  assert.ok(!verifySigma(st, forge(st, 0, [a, mod(b + 1n)], seed)));
+  assert.ok(!batchOk(st, forge(st, 0, [mod(a + 1n), b], seed)));
   // OR: claiming a branch that does not hold
   const { st: orSt, witness } = orStatement(1);
-  assert.ok(!verifySigma(orSt, proveSigma(orSt, 0, [witness[0]], seed)));
-  assert.ok(!verifySigma(orSt, proveSigma(orSt, 2, [witness[0], witness[1], 5n], seed)));
-  assert.ok(!batchOk(orSt, proveSigma(orSt, 2, [witness[0], witness[1], 5n], seed)));
+  assert.ok(!verifySigma(orSt, forge(orSt, 0, [witness[0]], seed)));
+  assert.ok(!verifySigma(orSt, forge(orSt, 2, [witness[0], witness[1], 5n], seed)));
+  assert.ok(!batchOk(orSt, forge(orSt, 2, [witness[0], witness[1], 5n], seed)));
 });
 
 test('soundness: every proof field mutation is rejected (single and batch)', () => {
@@ -251,7 +252,7 @@ test('batch: many proofs, one injected bad equation among 1000 is detected', () 
   tampered[517] = tampered[517].add(G);
   const bad = mk(tampered);
   const goodProof = proveSigma(good, 0, [x], seed);
-  const badProof = proveSigma(bad, 0, [x], seed); // Fiat-Shamir consistent, one equation false
+  const badProof = forge(bad, 0, [x], seed); // Fiat-Shamir consistent, one equation false
 
   const bv1 = new BatchVerifier();
   assert.ok(bv1.add(good, goodProof));
@@ -278,7 +279,7 @@ test('batch: empty batch verifies; deterministic with injected rng', () => {
   const b = sc('b');
   const st = andStatement(a, b);
   const p = proveSigma(st, 0, [a, b], seed);
-  const bv = new BatchVerifier(seededRandom(1));
+  const bv = new BatchCore(seededRandom(1));
   assert.ok(bv.add(st, p));
   assert.ok(bv.add(st, p));
   assert.ok(bv.verify());

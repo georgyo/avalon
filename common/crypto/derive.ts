@@ -8,11 +8,20 @@
  * (discarding the unread rest of a block partially consumed by `bytes`);
  * `bytes(k)` reads the next k bytes of the concatenated blocks. For every use
  * in the spec (bytes alone, or only block reads) both readings coincide.
+ *
+ * Context items: a `number` is ALWAYS encoded as u32. Where §2.5 specifies a
+ * u8 (the ballot stream's u8(v)), pass a 1-byte Uint8Array, or use
+ * ballotRandomness() below.
+ *
+ * The context binds gameId, not configId (§2.5). Fork safety therefore rests
+ * on the seed store: gs_j MUST be keyed by (gameId, configId) and a seat MUST
+ * NOT sign under a second configId for a gameId it already holds a seed for;
+ * otherwise x_j, β_Q, f_r and seed_j would repeat across the two configs.
  */
 import { extract } from '@noble/hashes/hkdf.js';
 import { hmac } from '@noble/hashes/hmac.js';
 import { sha256 as nobleSha256, sha512 as nobleSha512 } from '@noble/hashes/sha2.js';
-import { concat, lp, u32, utf8 } from './bytes.ts';
+import { concat, lp, u32, u8, utf8 } from './bytes.ts';
 import { CryptoError, L, bigFromBE, ptBytesShared, type Point, type Scalar } from './group.ts';
 import { ristretto255 } from '@noble/curves/ed25519.js';
 
@@ -109,4 +118,14 @@ export function deriveStream(seed: SeedRef, purpose: string, ...ctx: CtxItem[]):
     },
   };
   return stream;
+}
+
+/**
+ * Ballot randomness r of §2.5: stream("ballot", utf8(stepId), prev, u8(v)).scalar().
+ * prev is the 32-byte step digest; v the ballot value (encoded as u8, not u32).
+ */
+export function ballotRandomness(seed: SeedRef, stepId: string, prev: Uint8Array, v: 0 | 1): Scalar {
+  if (!(prev instanceof Uint8Array) || prev.length !== 32) throw new CryptoError('ballotRandomness: prev must be 32 bytes');
+  if (v !== 0 && v !== 1) throw new CryptoError('ballotRandomness: v must be 0 or 1');
+  return deriveStream(seed, 'ballot', stepId, prev, u8(v)).scalar();
 }

@@ -29,10 +29,18 @@ export function labelEq(a: CardLabel, b: CardLabel): boolean {
   return a.role === b.role && a.assassin === b.assassin;
 }
 
-/** The first label whose card point equals P, or null. */
+/**
+ * The first label whose card point equals P, or null. Compares against every
+ * label without exiting early, so the time does not depend on the position of
+ * a seat's own (secret) label in the list.
+ */
 export function findLabel(P: Point, labels: readonly CardLabel[]): CardLabel | null {
-  for (const l of labels) if (cardPoint(l).equals(P)) return l;
-  return null;
+  let found: CardLabel | null = null;
+  for (const l of labels) {
+    const match = cardPoint(l).equals(P);
+    found = match && found === null ? l : found;
+  }
+  return found;
 }
 
 /** All labels that can occur: every role with assassin=false, every evil role with assassin=true. */

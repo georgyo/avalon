@@ -57,6 +57,10 @@ function checkSizes(N: number, ...lens: number[]): void {
 export function shuffleStatement(ctx: ProofContext, Y: Point, input: Ct[], out: Ct[], c: Point[], chat: Point[]): Statement {
   const N = input.length;
   checkSizes(N, out.length, c.length, chat.length);
+  // §2.3: the joint key and every A of the output deck are never the identity
+  // (Y is computed, never decoded, so it is checked here).
+  if (Y.is0()) throw new CryptoError('shuffleStatement: Y is the identity');
+  for (let i = 0; i < N; i++) if (out[i].a.is0()) throw new CryptoError(`shuffleStatement: output A[${i}] is the identity`);
   const u = shuffleChallenges(ctx, Y, input, out, c);
   const H = GEN.H.slice(0, N);
 

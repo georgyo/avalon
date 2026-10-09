@@ -42,7 +42,12 @@ function isPoint(P: unknown): P is Point {
   return P instanceof PointCls;
 }
 
-/** 32-byte RFC 9496 encoding (identity = 32 zero bytes). Internal: do not mutate the result. */
+/**
+ * 32-byte RFC 9496 encoding (identity = 32 zero bytes), the shared cached array.
+ * Internal to common/crypto (not re-exported by index.ts): callers must never mutate
+ * the result, since it is the encoding used for every transcript of that point.
+ * Everything outside this directory uses ptBytes (a fresh copy).
+ */
 export function ptBytesShared(P: Point): Uint8Array {
   let b = encCache.get(P);
   if (b === undefined) {
@@ -193,8 +198,19 @@ export function smallLog(P: Point, max: number): number | null {
   return null;
 }
 
-/** A fresh nonzero 128-bit batch weight from getRandomValues (or an injected source). */
-export function randomWeight128(rng: RandomSource = randomBytes): Scalar {
+/**
+ * A fresh nonzero 128-bit batch weight from getRandomValues (§2.5: never derived,
+ * never injectable in production, so a prover cannot predict it).
+ */
+export function randomWeight128(): Scalar {
+  return randomWeight128From(randomBytes);
+}
+
+/**
+ * Internal (not re-exported by index.ts): the same with an explicit byte source,
+ * for deterministic tests only. Production code must use randomWeight128().
+ */
+export function randomWeight128From(rng: RandomSource): Scalar {
   for (;;) {
     const b = rng(16);
     if (b.length !== 16) throw new CryptoError('random source returned the wrong length');

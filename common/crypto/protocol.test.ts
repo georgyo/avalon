@@ -16,7 +16,7 @@ import {
   ballotStatement, dealStatement, openStatement, otEqStatement, otProfileStatement, otRecvStatement, pokStatement, tallyStatement,
 } from './statements.ts';
 import { otChoice, otDecode, otPk, otSenderMessages } from './ot.ts';
-import { ctxFor, distinctLabels, otRecv, otSend, roleNamesInPlay, seedFor, seen, seenRows, setupTable, teamOf, type Table } from './testkit.ts';
+import { ctxFor, distinctLabels, forge, otRecv, otSend, roleNamesInPlay, seedFor, seen, seenRows, setupTable, teamOf, type Table } from './testkit.ts';
 import type { CardLabel, SigmaProofE } from './types.ts';
 
 function ok(st: Statement, proof: SigmaProofE): boolean {
@@ -75,7 +75,7 @@ test('key: proofs of knowledge verify; replay to another config, step or prover 
   assert.ok(!ok(pokStatement(ctxFor('key', 0), keys.y[1]), keys.pok[0]), 'wrong key');
   // rogue key y' = y_attacker − y_victim: the attacker cannot prove knowledge of its log
   const rogue = keys.y[1].subtract(keys.y[0]);
-  assert.ok(!ok(pokStatement(ctxFor('key', 1), rogue), proveSigma(pokStatement(ctxFor('key', 1), rogue), 0, [keys.x[1]], seedFor(1))));
+  assert.ok(!ok(pokStatement(ctxFor('key', 1), rogue), forge(pokStatement(ctxFor('key', 1), rogue), 0, [keys.x[1]], seedFor(1))));
 });
 
 test('deal: every share proof verifies; each seat decrypts its own card; wrong shares fail', () => {
@@ -89,7 +89,7 @@ test('deal: every share proof verifies; each seat decrypts its own card; wrong s
   for (let i = 1; i < t.n; i++) {
     const bad = t.d[0].map((x, k) => (k === i && x !== null ? x.add(G) : x));
     assert.ok(!ok(dealStatement(ctxFor('deal', 0), t.keys.y[0], A, bad), t.dealProofs[0]), `share ${i}`);
-    const badProof = proveSigma(dealStatement(ctxFor('deal', 0), t.keys.y[0], A, bad), 0, [t.keys.x[0]], t.keys.seeds[0]);
+    const badProof = forge(dealStatement(ctxFor('deal', 0), t.keys.y[0], A, bad), 0, [t.keys.x[0]], t.keys.seeds[0]);
     assert.ok(!ok(dealStatement(ctxFor('deal', 0), t.keys.y[0], A, bad), badProof), `reproved share ${i}`);
   }
   // shares for another deck fail
@@ -163,7 +163,7 @@ test('OT negative: a receiver cannot choose another role index (Loyal Follower p
   // every branch the cheater could claim fails: the own card does not match Merlin's index,
   // and Merlin's branch needs the card to decrypt to Merlin
   for (let real = 0; real < t.Lambda.length; real++) {
-    const proof = proveSigma(st, real, [t.keys.x[Q], beta], t.keys.seeds[Q]);
+    const proof = forge(st, real, [t.keys.x[Q], beta], t.keys.seeds[Q]);
     assert.ok(!ok(st, proof), `branch ${real}`);
   }
   // the honest proof does not transfer to a different U
@@ -195,7 +195,7 @@ test('OT negative: lying, tagging one receiver, corrupting one index', () => {
   const lie = otSenderMessages(seed, lieBits, Uo, P);
   const profSt = otProfileStatement(ctx, t.keys.y[P], t.final[P].a, t.C[P], lie.F, labelPts, seenRows(t));
   for (let real = 0; real < t.Lambda.length; real++) {
-    assert.ok(!ok(profSt, proveSigma(profSt, real, [t.keys.x[P], ...lie.f], seed)), `profile branch ${real}`);
+    assert.ok(!ok(profSt, forge(profSt, real, [t.keys.x[P], ...lie.f], seed)), `profile branch ${real}`);
   }
   const kFlat = (k: (Scalar[] | null)[]): Scalar[] => k.flatMap((row) => row ?? []);
   // its eq proof alone is consistent (same lie everywhere) but the profile cannot be proven
@@ -211,12 +211,12 @@ test('OT negative: lying, tagging one receiver, corrupting one index', () => {
     return { a: mul(G, k[r]), b: (trueBits[r] === 1 ? O : G).add(mul(PK, k[r])) };
   })));
   const eqTag = otEqStatement(ctx, honest.F, tagged, Uo);
-  assert.ok(!ok(eqTag, proveSigma(eqTag, 0, [...honest.f, ...kFlat(honest.k)], seed)));
+  assert.ok(!ok(eqTag, forge(eqTag, 0, [...honest.f, ...kFlat(honest.k)], seed)));
 
   // (c) corrupting one index for one receiver with a random ciphertext
   const corrupt = honest.E.map((row, i) => (i !== Q || row === null ? row : row.map((ct, r) => (r === 2 ? { a: ct.a, b: ct.b.add(GEN.J) } : ct))));
   const eqCor = otEqStatement(ctx, honest.F, corrupt, Uo);
-  assert.ok(!ok(eqCor, proveSigma(eqCor, 0, [...honest.f, ...kFlat(honest.k)], seed)));
+  assert.ok(!ok(eqCor, forge(eqCor, 0, [...honest.f, ...kFlat(honest.k)], seed)));
 
   // (d) the honest messages verify, and transplanting F into another seat's profile fails
   const honestProf = otProfileStatement(ctx, t.keys.y[P], t.final[P].a, t.C[P], honest.F, labelPts, seenRows(t));
@@ -242,7 +242,7 @@ function castBallot(t: Table, Y: Point, Q: number, v: 0 | 1, opts: { forceBranch
   const own = evil.findIndex((l) => labelEq(l, t.seatLabel[Q]));
   const real = opts.forceBranch ?? (v === 0 ? 0 : 1 + own);
   const witness = real === 0 ? [r] : [r, t.keys.x[Q]];
-  return { ct, r, v, st, proof: proveSigma(st, real, witness, t.keys.seeds[Q]) };
+  return { ct, r, v, st, proof: (opts.forceBranch === undefined ? proveSigma : forge)(st, real, witness, t.keys.seeds[Q]) };
 }
 
 test('ballot: every branch is complete; good players cannot fail; copies and re-randomizations fail', () => {
@@ -275,7 +275,7 @@ test('ballot: every branch is complete; good players cannot fail; copies and re-
     const evil = t.Lambda.filter((l) => teamOf(l.role) === 'evil');
     const st = ballotStatement(ctxFor('mv/0', Q), Y, ct, t.keys.y[Q], t.final[Q].a, t.C[Q], evil.map(cardPoint));
     for (let br = 0; br <= evil.length; br++) {
-      assert.ok(!ok(st, proveSigma(st, br, br === 0 ? [r] : [r, t.keys.x[Q]], t.keys.seeds[Q])), `v = 2 branch ${br}`);
+      assert.ok(!ok(st, forge(st, br, br === 0 ? [r] : [r, t.keys.x[Q]], t.keys.seeds[Q])), `v = 2 branch ${br}`);
     }
   }
   // copied ballot: seat B republishes seat A's ballot and proof
@@ -290,13 +290,13 @@ test('ballot: every branch is complete; good players cannot fail; copies and re-
   const rr: Ct = { a: orig.ct.a.add(mul(G, delta)), b: orig.ct.b.add(mul(Y, delta)) };
   const rrSt = ballotStatement(ctxFor('mv/0', B), Y, rr, t.keys.y[B], t.final[B].a, t.C[B], evil);
   for (let br = 0; br <= evil.length; br++) {
-    assert.ok(!ok(rrSt, proveSigma(rrSt, br, br === 0 ? [delta] : [delta, t.keys.x[B]], t.keys.seeds[B])), `re-randomized via ${br}`);
+    assert.ok(!ok(rrSt, forge(rrSt, br, br === 0 ? [delta] : [delta, t.keys.x[B]], t.keys.seeds[B])), `re-randomized via ${br}`);
   }
   // ballot = another seat's card ciphertext (decryption-oracle attempt)
   const cardCt: Ct = { a: t.final[A].a, b: t.C[A] };
   const ocSt = ballotStatement(ctxFor('mv/0', B), Y, cardCt, t.keys.y[B], t.final[B].a, t.C[B], evil);
   for (let br = 0; br <= evil.length; br++) {
-    assert.ok(!ok(ocSt, proveSigma(ocSt, br, br === 0 ? [1n] : [1n, t.keys.x[B]], t.keys.seeds[B])), `card ciphertext via ${br}`);
+    assert.ok(!ok(ocSt, forge(ocSt, br, br === 0 ? [1n] : [1n, t.keys.x[B]], t.keys.seeds[B])), `card ciphertext via ${br}`);
   }
   // mutate ballot ciphertext after proving
   const b = castBallot(t, Y, A, 0);
@@ -327,7 +327,7 @@ test('tally: shares verify, Σb − ΣD = k·G and smallLog recovers the number 
   // wrong share, or a share for another T, fails
   const T = mul(G, 5n);
   const st = tallyStatement(ctxFor('mt/0', 0), t.keys.y[0], T, mul(T, t.keys.x[0]).add(G));
-  assert.ok(!ok(st, proveSigma(st, 0, [t.keys.x[0]], t.keys.seeds[0])));
+  assert.ok(!ok(st, forge(st, 0, [t.keys.x[0]], t.keys.seeds[0])));
   const good = tallyStatement(ctxFor('mt/0', 0), t.keys.y[0], T, mul(T, t.keys.x[0]));
   const proof = proveSigma(good, 0, [t.keys.x[0]], t.keys.seeds[0]);
   assert.ok(ok(good, proof));
@@ -356,7 +356,7 @@ test('open: the assassin opens its card; other openings are detected', () => {
   // a forged opening (claiming the assassin card) cannot be proven
   const forged = t.C[b].subtract(cardPoint(star));
   const stf = openStatement(ctxFor('as', b), t.keys.y[b], t.final[b].a, forged);
-  assert.ok(!ok(stf, proveSigma(stf, 0, [t.keys.x[b]], t.keys.seeds[b])));
+  assert.ok(!ok(stf, forge(stf, 0, [t.keys.x[b]], t.keys.seeds[b])));
   assert.ok(!ok(openStatement(ctxFor('as', a), t.keys.y[a], t.final[a].a, Oa.add(G)), proof));
 });
 

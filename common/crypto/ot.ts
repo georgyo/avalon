@@ -30,7 +30,8 @@ export function otPk(U: Point, r: number): Point {
  * Sender messages of seat `self` (§5.5):
  *   F_r     = (f_r·G, s_r·G + f_r·J),            f_r     = stream("ot-f", r)
  *   E_{Q,r} = (k·G,   s_r·G + k·PK_{Q,r}),       k_{Q,r} = stream("ot-k", Q, r, U_Q)
- * U[Q] must be present for every Q ≠ self. Returns the secrets f and k for the proofs.
+ * U[Q] must be present for every Q ≠ self, and no PK_{Q,r} may be the identity
+ * (throws). Returns the secrets f and k for the proofs.
  */
 export function otSenderMessages(seed: SeedRef, bits: (0 | 1)[], U: (Point | null)[], self: number):
   { F: Ct[]; E: (Ct[] | null)[]; f: Scalar[]; k: (Scalar[] | null)[] } {
@@ -61,6 +62,9 @@ export function otSenderMessages(seed: SeedRef, bits: (0 | 1)[], U: (Point | nul
     let PK = UQ;
     for (let r = 0; r < R; r++) {
       if (r > 0) PK = PK.subtract(GEN.S);
+      // Defense in depth (otRecvStatement already rejects U_Q = r·S): with PK = O,
+      // E_{Q,r} = (k·G, s_r·G) would carry the sight bit in clear.
+      if (PK.is0()) throw new CryptoError('otSenderMessages: degenerate receiver key PK = O');
       const kqr = deriveStream(seed, 'ot-k', Q, r, UQ).scalar();
       krow.push(kqr);
       row.push({ a: mul(G, kqr), b: BIT_POINTS[bits[r]].add(mul(PK, kqr)) });
