@@ -1,6 +1,12 @@
+export type Team = 'good' | 'evil';
+
+/**
+ * A role card. `selected` is UI state (the client toggles it in place); the protocol
+ * rules (common/protocol/rules.ts) never read it and snapshot every other field.
+ */
 export interface Role {
   name: string;
-  team: 'good' | 'evil';
+  team: Team;
   sees: string[];
   description: string;
   selected: boolean;
@@ -75,6 +81,14 @@ export const ROLES: Role[] = [
     }
 ];
 
+const NUM_EVIL: Readonly<Record<number, number>> = Object.freeze({ 5: 2, 6: 2, 7: 3, 8: 3, 9: 3, 10: 4 });
+
+/** Number of evil cards for a game of `numPlayers` (5..10), undefined otherwise. */
 export function getNumEvilForGameSize(numPlayers: number): number | undefined {
-    return ({ 5: 2, 6: 2, 7: 3, 8: 3, 9: 3, 10: 4 } as Record<number, number>)[numPlayers];
+    return Object.prototype.hasOwnProperty.call(NUM_EVIL, numPlayers) ? NUM_EVIL[numPlayers] : undefined;
+}
+
+/** Look up a role by name (undefined for unknown names such as 'UNKNOWN'). */
+export function roleByName(name: string): Role | undefined {
+    return ROLES.find(r => r.name === name);
 }
