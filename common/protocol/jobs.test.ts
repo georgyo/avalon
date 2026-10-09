@@ -66,7 +66,9 @@ test('reveal jobs: key and ballot openings', () => {
 
 test('runProve runs build tasks and rejects unknown tasks', () => {
   const { config, configMsg, lobbyId, signers } = simConfig(5, ['MERLIN'], 7);
-  const ev = reduceGame({ config, configId: configMsg.msgId, msgs: new Map(), verdicts: new Map(), conflictingConfigs: [] });
+  const ev = reduceGame({
+    config, configId: configMsg.msgId, lobbyId, msgs: new Map(), verdicts: new Map(), conflictingConfigs: [], configAuthor: signers[0].pub,
+  });
   const env = runProve({
     kind: 'build', fn: 'key',
     ctx: { config, configId: configMsg.msgId, lobbyId, seat: 2, me: signers[2].pub, ev, secrets: { gameSeed: new Uint8Array(32).fill(1) }, priv: null, now: 5 },

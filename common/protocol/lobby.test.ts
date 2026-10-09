@@ -324,6 +324,15 @@ test('current config and checkConfig (§4.6)', () => {
   assert.ok(!r.ok && /two configurations/.test(r.reason));
   assert.deepEqual(conflictingConfigs(cfg.msgId, [...msgs, cfg, twin]).map((m) => m.msgId), [twin.msgId]);
   assert.deepEqual(conflictingConfigs(cfg.msgId, [...msgs, cfg]), []);
+  // A copy of the gameId by another seat or an outsider is not equivocation: it neither blocks the
+  // start nor counts as conflicting (only the config's author can equivocate on it).
+  for (const by of [B, F]) {
+    const copy = config(by, lobbyId, head, members, { gameId });
+    s = reduceLobby(lobbyId, [...msgs, cfg, copy]);
+    assert.equal(s.currentConfig?.configId, cfg.msgId);
+    assert.deepEqual(checkConfig(s, B.pub, local), { ok: true, seat: 1 });
+    assert.deepEqual(conflictingConfigs(cfg.msgId, [...msgs, cfg, copy]), []);
+  }
   // The latest config on the head chain is current; a config off the head chain is not.
   const r3 = roster(A, lobbyId, head, { seq: 3, members });
   const cfg2 = config(A, lobbyId, r3.msgId, members);

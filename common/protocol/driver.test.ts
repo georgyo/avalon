@@ -67,7 +67,7 @@ test('admin config equivocation: seats refuse to key, the game is INVALID(admin)
   const conf = conflictingConfigs(current, msgs);
   assert.deepEqual(conf.map((m) => m.msgId), [other.msgId]);
   const cfg = (current === c1.msgId ? c1 : c2).env.body as GameConfig;
-  const ev = evalFull(cfg, current, new Map(), { conflictingConfigs: conf, configAuthor: S[0].pub });
+  const ev = evalFull(cfg, current, new Map(), { conflictingConfigs: conf, configAuthor: S[0].pub, lobbyId: L.lobbyId });
   assert.equal(ev.terminal?.kind, 'invalid');
   assert.deepEqual(ev.terminal?.faults.map((f) => [f.seat, f.reason]), [[0, 'config equivocation']]);
   // A seat that had accepted the non-current config (key incomplete) marks it superseded; the current one is not.

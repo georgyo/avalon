@@ -298,8 +298,15 @@ export class LobbyDriver {
       if ('error' in d) throw new Error('corrupt journal entry ' + slot + ': ' + d.error);
       ({ value, key, msgId } = d);
     } else {
-      ({ value, key, msgId } = encodeEnvelope(env, this.signer));
-      await this.journal.put(scope, slot, value);
+      const enc = encodeEnvelope(env, this.signer);
+      // Atomic: a concurrent publish of the slot (another driver of this device) keeps the first value.
+      const stored = await this.journal.putIfAbsent(scope, slot, enc.value);
+      if (stored === enc.value) ({ value, key, msgId } = enc);
+      else {
+        const d = decodeEnvelope(stored);
+        if ('error' in d) throw new Error('corrupt journal entry ' + slot + ': ' + d.error);
+        ({ value, key, msgId } = d);
+      }
     }
     this.ingest(this.soul, key, value);
     this.send(key, value);

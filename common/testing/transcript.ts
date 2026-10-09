@@ -16,12 +16,28 @@ import { simulate, type SimOptions, type SimResult } from './simulate.ts';
 
 const verdictMemo = new Map<Hex32, Verdict>();
 
+export interface EvalOptions {
+  conflictingConfigs?: StoredMsg[];
+  /** Default: seat 0 (the admin of every simulated table, simConfig). */
+  configAuthor?: string;
+  /** Default: the `lobby` field of the game's messages (simulated tables have one lobby). */
+  lobbyId?: Hex32;
+  verdicts?: Map<Hex32, Verdict>;
+}
+
+/** The lobbyId the game messages carry ('' when there are none). */
+function lobbyOf(config: GameConfig, msgs: ReadonlyMap<Hex32, StoredMsg>): Hex32 {
+  for (const m of msgs.values()) if (m.env.game === config.gameId && m.env.lobby !== '') return m.env.lobby;
+  return '';
+}
+
 /** reduceGame with every needed verdict computed (iterated to a fixed point). */
-export function evalFull(config: GameConfig, configId: Hex32, msgs: ReadonlyMap<Hex32, StoredMsg>,
-                         o?: { conflictingConfigs?: StoredMsg[]; configAuthor?: string; verdicts?: Map<Hex32, Verdict> }): GameEval {
+export function evalFull(config: GameConfig, configId: Hex32, msgs: ReadonlyMap<Hex32, StoredMsg>, o?: EvalOptions): GameEval {
   const verdicts = o?.verdicts ?? new Map<Hex32, Verdict>();
+  const configAuthor = o?.configAuthor ?? config.seats[0].pub;
+  const lobbyId = o?.lobbyId ?? lobbyOf(config, msgs);
   for (let i = 0; i < 100; i++) {
-    const ev = reduceGame({ config, configId, msgs, verdicts, conflictingConfigs: o?.conflictingConfigs ?? [], configAuthor: o?.configAuthor });
+    const ev = reduceGame({ config, configId, lobbyId, msgs, verdicts, conflictingConfigs: o?.conflictingConfigs ?? [], configAuthor });
     const todo = ev.jobs.filter((j) => !verdicts.has(j.id));
     if (todo.length === 0) return ev;
     const fresh = todo.filter((j) => !verdictMemo.has(j.id));

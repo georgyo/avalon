@@ -105,6 +105,13 @@ export interface Transport {
   publish(soul: string, key: Hex32, value: string): Promise<void>;
   /** Delivers every (key, value) of the soul, including ones that existed before the call. */
   subscribe(soul: string, onValue: (key: string, value: string) => void): () => void;
+  /**
+   * Optional addition to §11.2: resolves once every value the relay held for
+   * the (subscribed) soul when called has been delivered to this subscriber.
+   * The SeatDriver awaits it before a cancel without secrets (§3.10), so that
+   * its own earlier messages are known before it picks the step to cancel.
+   */
+  synced?(soul: string): Promise<void>;
 }
 
 /** The once-only journal of this device's own signed envelopes (§3.9). */
@@ -112,5 +119,13 @@ export interface Journal {
   get(scope: string, slot: string): Promise<string | null>;
   /** Durable before it resolves. */
   put(scope: string, slot: string, value: string): Promise<void>;
+  /**
+   * Addition to §11.2: atomically stores `value` unless the slot already holds
+   * one (one IndexedDB readwrite transaction), durable before it resolves.
+   * Returns the value the slot holds afterwards, which is the only one that
+   * may be sent: two drivers of one seat (a Web Lock steal, §3.9) can never
+   * journal two different envelopes for one slot.
+   */
+  putIfAbsent(scope: string, slot: string, value: string): Promise<string>;
   all(scope: string): Promise<string[]>;
 }

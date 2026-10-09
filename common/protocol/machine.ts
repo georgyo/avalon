@@ -14,7 +14,7 @@
  *    the walk is a function of its msgId);
  *  - the state after each step by its digest D_k.
  */
-import { b64uDecode as decodeB64, b64uEncode, hexDecode, hexEncode, lp, sha256, sha512, u8, utf8 } from '../crypto/bytes.ts';
+import { CodecError, b64uDecode as decodeB64, b64uEncode, hexDecode, hexEncode, lp, sha256, sha512, u8, utf8 } from '../crypto/bytes.ts';
 import { cardPoint, findLabel } from '../crypto/cards.ts';
 import { decCt, encCt, type Ct } from '../crypto/elgamal.ts';
 import { bigFromBE, CryptoError, decPoint, decScalar, encPoint, G, mulPub, O, type Point, type Scalar } from '../crypto/group.ts';
@@ -280,6 +280,12 @@ export interface PendingStep {
   unverified: Hex32[];
   /** True when every verdict of earlier steps is known and valid: a seat may publish its own message. */
   gateOpen: boolean;
+  /**
+   * Set when the walk cannot proceed for a reason that sound proofs exclude
+   * (an engine invariant or a §5.12 audit failed): nobody is blamed, nobody
+   * can act, and players cancel. Diagnostic text.
+   */
+  stuck?: string;
 }
 
 export interface CancelInfo { msgId: Hex32; reason: CancelReason; stalled: number[]; withholding: boolean }
@@ -309,6 +315,11 @@ export interface GameEval {
   jobs: VerifyJob[];
   /** Reveals by seats whose key does not match y_j (listed in cheaters, treated as missing). */
   invalidReveals: Hex32[];
+  /**
+   * Every shuffle of the final deck has a true verdict (the deal gate, §3.6):
+   * only then are the cards well defined, so the outcome may decrypt them.
+   */
+  shufflesVerified: boolean;
 }
 
 // ---------------------------------------------------------------- digests
@@ -341,8 +352,15 @@ export function beaconProposer(configId: Hex32, seeds: readonly Uint8Array[]): n
 
 // ---------------------------------------------------------------- per-message checks
 
+/**
+ * The check of one message: valid (with its proof job), attributable failure
+ * (`ok: false`, INVALID(author)), or `internal`: the engine itself failed (an
+ * invariant broke), which is never attributed to the author (the walk stops,
+ * stuck, and players cancel).
+ */
 type Checked =
   | { ok: false; reason: string }
+  | { ok: 'internal'; reason: string }
   | { ok: true; job: VerifyJob | null; failReason: string; claimOk?: boolean };
 
 const checkCache = new Lru<Hex32, Checked>(1 << 13);
@@ -386,7 +404,10 @@ function checkMessage(info: ConfigInfo, s: PublicState, step: StepDef, seat: num
     res = checkMessageUncached(info, s, step, seat, m);
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    res = { ok: false, reason: `invalid ${proofName(m.env.type)}: ${msg}` };
+    // Only validation failures (malformed encodings, wrong sizes) are the author's fault.
+    res = e instanceof CryptoError || e instanceof CodecError
+      ? { ok: false, reason: `invalid ${proofName(m.env.type)}: ${msg}` }
+      : { ok: 'internal', reason: msg.startsWith('internal:') ? msg : `internal: ${msg}` };
   }
   checkCache.set(m.msgId, res);
   return res;
@@ -509,7 +530,12 @@ function checkMessageUncached(info: ConfigInfo, s: PublicState, step: StepDef, s
 
 // ---------------------------------------------------------------- apply
 
-type Applied = { state: PublicState } | { faults: Fault[] };
+/**
+ * The result of applying a completed step: the next state, attributed faults,
+ * or `stuck`: an audit failure that sound proofs exclude (it indicates a bug,
+ * §5.12) and that names no culprit; the walk stops there, unattributed.
+ */
+type Applied = { state: PublicState } | { faults: Fault[] } | { stuck: string };
 
 const applyCache = new Lru<Hex32, Applied>(1 << 13);
 
@@ -562,7 +588,8 @@ function apply(info: ConfigInfo, s: PublicState, step: StepDef, seats: number[],
       }
       if (faults.length > 0) return { faults };
       const Y = sumPoints(ys.map(dpt));
-      if (Y.is0()) return { faults: seats.map((j) => fault(j, 'joint key is the identity', [msgs[j].msgId])) };
+      // Every y_j has a proof of knowledge, so no seat can force Y = O: a bug, not a fault.
+      if (Y.is0()) return { stuck: 'audit: joint key is the identity' };
       return {
         state: {
           ...s, y: ys, seedCommit: msgs.map((m) => (m.env.body as Bodies['key']).seedCommit), Y: ept(Y),
@@ -689,10 +716,8 @@ function apply(info: ConfigInfo, s: PublicState, step: StepDef, seats: number[],
       const ballots = need(ms.ballots, 'ballots');
       const W = sumPoints(ballots.map((b) => dpt(b.b))).subtract(sumPoints(msgs.map((m) => dpt((m.env.body as Bodies['tally']).share))));
       const k = smallLogPub(W, ms.teamSize);
-      if (k === null) {
-        const team = need(ms.team, 'team');
-        return { faults: [fault(team[0], 'audit: tally does not decrypt', ms.ballotIds ?? [])] };
-      }
+      // Ballot and tally proofs make the tally decrypt: a failure is a bug, never a seat's fault (§5.12).
+      if (k === null) return { stuck: 'audit: tally does not decrypt' };
       const failed = k >= ms.failsRequired;
       const succeeded = s.succeeded + (failed ? 0 : 1);
       const failedN = s.failed + (failed ? 1 : 0);
@@ -761,12 +786,18 @@ export function revealScalar(m: StoredMsg): Scalar {
 export interface ReduceInput {
   config: GameConfig;
   configId: Hex32;
+  /** The lobby of the config (§4.6): only configs of this lobby can conflict. Addition to §11.2. */
+  lobbyId: Hex32;
   msgs: ReadonlyMap<Hex32, StoredMsg>;
   verdicts: ReadonlyMap<Hex32, Verdict>;
   /** Other lobby.config envelopes with this gameId (§4.6). */
   conflictingConfigs: readonly StoredMsg[];
-  /** Author of this config (the admin), for config-equivocation attribution. Optional addition to §11.2. */
-  configAuthor?: Pub;
+  /**
+   * Author of this config (the admin). Config equivocation is two configs of
+   * one gameId signed by this author; configs by anybody else are ignored.
+   * Addition to §11.2.
+   */
+  configAuthor: Pub;
 }
 
 interface WalkStop {
@@ -813,6 +844,9 @@ export function reduceGame(input: ReduceInput): GameEval {
   const steps: StepDef[] = [];
   const jobs = new Map<Hex32, VerifyJob>();
   let stop: WalkStop;
+  const stuckAt = (step: StepDef, reason: string): WalkStop => ({
+    kind: 'pending', step, faults: [], pending: { step, missing: [], unverified: [], gateOpen: false, stuck: reason },
+  });
 
   for (;;) {
     const step = stepOf(state.cursor, state);
@@ -832,6 +866,7 @@ export function reduceGame(input: ReduceInput): GameEval {
     const faults: Fault[] = [];
     const present = new Map<number, { m: GameMsg; c: Checked & { ok: true } }>();
     const unverified: Hex32[] = [];
+    let stuck: string | null = null;
     for (const seat of reqSeats) {
       const ms = bySeat.get(seat) ?? [];
       if (ms.length >= 2) {
@@ -842,6 +877,10 @@ export function reduceGame(input: ReduceInput): GameEval {
       const m = ms[0];
       if (m.env.prev !== D) continue;
       const c = checkMessage(info, state, step, seat, m);
+      if (c.ok === 'internal') {
+        stuck ??= c.reason;
+        continue;
+      }
       if (!c.ok) {
         faults.push({ seat, stepId: step.id, reason: c.reason, evidence: [m.msgId] });
         continue;
@@ -863,6 +902,10 @@ export function reduceGame(input: ReduceInput): GameEval {
     }
     if (faults.length > 0) {
       stop = { kind: 'invalid', step, faults, pending: null };
+      break;
+    }
+    if (stuck !== null) {
+      stop = stuckAt(step, stuck);
       break;
     }
     // The deal gate (§3.6 pipelining): every shuffle proof verified.
@@ -900,11 +943,20 @@ export function reduceGame(input: ReduceInput): GameEval {
     const Dk = stepDigest(D, step.id, ids);
     let applied = applyCache.get(Dk);
     if (applied === undefined) {
-      applied = apply(info, state, step, doneSeats, stepMsgs, D);
+      try {
+        applied = apply(info, state, step, doneSeats, stepMsgs, D);
+      } catch (e) {
+        // Messages that passed their checks cannot make apply throw: an engine bug, never attributed.
+        applied = { stuck: `internal: ${e instanceof Error ? e.message : String(e)}` };
+      }
       applyCache.set(Dk, applied);
     }
     if ('faults' in applied) {
       stop = { kind: 'invalid', step, faults: applied.faults, pending: null };
+      break;
+    }
+    if ('stuck' in applied) {
+      stop = stuckAt(step, applied.stuck);
       break;
     }
     before.push(state);
@@ -936,16 +988,16 @@ export function reduceGame(input: ReduceInput): GameEval {
   const validCancels: CancelEvent[] = [];
   if (stop.kind === 'invalid') invalids.push({ index: chain.length, faults: stop.faults });
 
-  // Config equivocation (§4.6): INVALID(admin) at key.
+  // Config equivocation (§4.6): two configs of this gameId and lobby signed by the config's own author.
+  // A config by anybody else (another seat, an outsider: lobby souls are writable by anyone) proves
+  // nothing about the admin and is ignored; keys naming it as prev are merely absent (§3.6).
   const conflicting = input.conflictingConfigs.filter((c) => c.msgId !== configId && c.env.type === 'lobby.config'
+    && c.env.author === input.configAuthor && c.env.lobby === input.lobbyId
     && (c.env.body as GameConfig).gameId === config.gameId);
-  if (conflicting.length > 0) {
-    const authors = new Set<Pub>(conflicting.map((c) => c.env.author));
-    if (input.configAuthor !== undefined) authors.add(input.configAuthor);
-    const seats = [...authors].map((a) => info.seatOf.get(a)).filter((x): x is number => x !== undefined).sort((a, b) => a - b);
+  const adminSeat = info.seatOf.get(input.configAuthor);
+  if (conflicting.length > 0 && adminSeat !== undefined) {
     const evidence = joinHex([configId, ...conflicting.map((c) => c.msgId)]);
-    const blamed = seats.length > 0 ? seats : [0];
-    invalids.push({ index: 0, faults: blamed.map((seat) => ({ seat, stepId: 'key', reason: 'config equivocation', evidence })) });
+    invalids.push({ index: 0, faults: [{ seat: adminSeat, stepId: 'key', reason: 'config equivocation', evidence }] });
   }
 
   // Continuations: stepped messages on the natural chain, per seat.
@@ -987,6 +1039,100 @@ export function reduceGame(input: ReduceInput): GameEval {
     validCancels.push({ index: p, seat: X, m: c });
   }
 
+  // ------------------------------------------------------------ reveals (§3.7 rule 3)
+  // Judged whenever the natural walk is pending, before the rule-4 resolution, so that a premature
+  // reveal is an INVALID event at the pending step like any other (and beats a cancel at that step).
+  const revealPending: Hex32[] = [];
+  const invalidReveals: Hex32[] = [];
+  const keyKnown = state.y !== null;
+  if (keyKnown) {
+    for (const r of reveals) if (!revealKeyOk(r, (state.y as Pt[])[seatOf(r)])) invalidReveals.push(r.msgId);
+  }
+  if (keyKnown && stop.kind === 'pending' && stop.step !== null) {
+    // A reveal citing a valid cancel or the evidence of an INVALID event is an ordinary end-of-game reveal.
+    const justifying = new Set<Hex32>(validCancels.map((c) => c.m.msgId));
+    for (const e of invalids) for (const f of e.faults) for (const id of f.evidence) justifying.add(id);
+    const conflictingIds = new Set(conflicting.map((c) => c.msgId));
+    const revealIds = new Set(reveals.map((r) => r.msgId));
+    const validKey = reveals.filter((r) => !invalidReveals.includes(r.msgId));
+    const status = new Map<Hex32, { pending: boolean; justified: boolean; cites: Hex32[] }>();
+    for (const r of validKey) {
+      const body = r.env.body as Bodies['reveal'];
+      let pending = false;
+      let justified = false;
+      const cites: Hex32[] = [];
+      for (const b of body.basis) {
+        if (justifying.has(b)) justified = true;
+        if (b === configId || conflictingIds.has(b)) continue;
+        if (revealIds.has(b)) {
+          cites.push(b);
+          continue;
+        }
+        const m = input.msgs.get(b);
+        if (m === undefined || m.env.game !== config.gameId || !info.seatOf.has(m.env.author)) {
+          pending = true;
+          break;
+        }
+        if (m.env.type === 'cancel') {
+          const p = digestPos.get(m.env.prev);
+          if (p === undefined || stepAt(p) === null) pending = true;
+          continue;
+        }
+        if (!isStepped(m.env.type)) {
+          pending = true;
+          break;
+        }
+        const p = posOf(m);
+        // At the pending step itself, a basis message is still being evaluated while a verdict needed
+        // there is unknown (e.g. an extra, unverified claim at `as`): pending, not premature.
+        if (p === null || (p === chain.length && stop.pending !== null && stop.pending.unverified.length > 0)) {
+          pending = true;
+          break;
+        }
+        const sAt = stateAt(p);
+        const stAt = stepAt(p);
+        if (sAt === null || stAt === null) {
+          pending = true;
+          break;
+        }
+        const c = checkMessage(info, sAt, stAt, seatOf(m), m);
+        if (c.ok === true && c.job !== null && !verdicts.has(m.msgId)) {
+          jobs.set(m.msgId, c.job);
+          pending = true;
+          break;
+        }
+      }
+      status.set(r.msgId, { pending, justified, cites });
+    }
+    // A reveal citing a pending or unknown reveal is pending too.
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (const st of status.values()) {
+        if (st.pending) continue;
+        if (st.cites.some((c) => status.get(c)?.pending !== false)) {
+          st.pending = true;
+          changed = true;
+        }
+      }
+    }
+    const cand = [...status.entries()].filter(([, st]) => !st.pending && !st.justified);
+    const okIds = new Set([...status.entries()].filter(([, st]) => !st.pending && st.justified).map(([id]) => id));
+    const grounded = cand.filter(([, st]) => st.cites.length === 0).map(([id]) => id);
+    for (const id of grounded) okIds.add(id);
+    const cyclic = cand.filter(([, st]) => st.cites.length > 0 && !st.cites.some((c) => okIds.has(c))).map(([id]) => id);
+    const blamed = grounded.length > 0 ? grounded : cyclic;
+    if (blamed.length > 0) {
+      const stepId = stop.step.id;
+      const faults = blamed
+        .map((id) => input.msgs.get(id) as StoredMsg)
+        .map((r) => ({ seat: seatOf(r), stepId, reason: 'revealed key during the game', evidence: [r.msgId] }));
+      invalids.push({ index: chain.length, faults });
+    }
+    for (const [id, st] of status) if (st.pending) revealPending.push(id);
+  }
+
+  // ------------------------------------------------------------ resolution (§3.7 rules 4-5)
   const naturalIndex = stop.kind === 'natural' ? chain.length - 1 : null;
   let minIndex = Number.MAX_SAFE_INTEGER;
   for (const e of invalids) minIndex = Math.min(minIndex, e.index);
@@ -1018,97 +1164,17 @@ export function reduceGame(input: ReduceInput): GameEval {
     }
   }
 
-  // ------------------------------------------------------------ reveals (§3.7 rule 3)
-  const pendingReveals: Hex32[] = [];
-  const invalidReveals: Hex32[] = [];
-  const keyKnown = state.y !== null;
-  if (keyKnown) {
-    for (const r of reveals) if (!revealKeyOk(r, (state.y as Pt[])[seatOf(r)])) invalidReveals.push(r.msgId);
-  }
-  if (terminal === null && keyKnown && stop.kind === 'pending') {
-    const conflictingIds = new Set(conflicting.map((c) => c.msgId));
-    const revealIds = new Set(reveals.map((r) => r.msgId));
-    const validKey = reveals.filter((r) => !invalidReveals.includes(r.msgId));
-    const status = new Map<Hex32, { pending: boolean; cites: Hex32[] }>();
-    for (const r of validKey) {
-      const body = r.env.body as Bodies['reveal'];
-      let pending = false;
-      const cites: Hex32[] = [];
-      for (const b of body.basis) {
-        if (b === configId || conflictingIds.has(b)) continue;
-        if (revealIds.has(b)) {
-          cites.push(b);
-          continue;
-        }
-        const m = input.msgs.get(b);
-        if (m === undefined || m.env.game !== config.gameId || !info.seatOf.has(m.env.author)) {
-          pending = true;
-          break;
-        }
-        if (m.env.type === 'cancel') {
-          const p = digestPos.get(m.env.prev);
-          if (p === undefined || stepAt(p) === null) pending = true;
-          continue;
-        }
-        if (!isStepped(m.env.type)) {
-          pending = true;
-          break;
-        }
-        const p = posOf(m);
-        if (p === null) {
-          pending = true;
-          break;
-        }
-        const sAt = stateAt(p);
-        const stAt = stepAt(p);
-        if (sAt === null || stAt === null) {
-          pending = true;
-          break;
-        }
-        const c = checkMessage(info, sAt, stAt, seatOf(m), m);
-        if (c.ok && c.job !== null && !verdicts.has(m.msgId)) {
-          jobs.set(m.msgId, c.job);
-          pending = true;
-          break;
-        }
-      }
-      status.set(r.msgId, { pending, cites });
-    }
-    // A reveal citing a pending or unknown reveal is pending too.
-    let changed = true;
-    while (changed) {
-      changed = false;
-      for (const st of status.values()) {
-        if (st.pending) continue;
-        if (st.cites.some((c) => status.get(c)?.pending !== false)) {
-          st.pending = true;
-          changed = true;
-        }
-      }
-    }
-    const cand = [...status.entries()].filter(([, st]) => !st.pending);
-    const grounded = cand.filter(([, st]) => st.cites.length === 0).map(([id]) => id);
-    const groundedSet = new Set(grounded);
-    const cyclic = cand.filter(([, st]) => st.cites.length > 0 && !st.cites.some((c) => groundedSet.has(c))).map(([id]) => id);
-    const blamed = grounded.length > 0 ? grounded : cyclic;
-    if (blamed.length > 0 && stop.step !== null) {
-      const stepId = stop.step.id;
-      const faults = blamed
-        .map((id) => input.msgs.get(id) as StoredMsg)
-        .map((r) => ({ seat: seatOf(r), stepId, reason: 'revealed key during the game', evidence: [r.msgId] }));
-      terminal = invalidTerminal(faults, stepId);
-    } else {
-      for (const [id, st] of status) if (st.pending) pendingReveals.push(id);
-    }
-  }
-
+  const n = info.n;
+  const shufflesVerified = state.shuffleIds.length === n && state.shuffleIds.every((id) => verdicts.get(id)?.ok === true);
   return {
     chain, state, head: D,
     pending: stop.pending,
     terminal,
-    pendingReveals: pendingReveals.sort(compareHex),
+    // While terminal, nothing is suspended: the driver only reveals (§3.7 rule 3).
+    pendingReveals: terminal === null ? revealPending.sort(compareHex) : [],
     jobs: [...jobs.values()],
     invalidReveals: invalidReveals.sort(compareHex),
+    shufflesVerified,
   };
 }
 

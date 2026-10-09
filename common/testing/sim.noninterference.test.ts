@@ -5,6 +5,11 @@
  *     projectRole at every evaluation until the outcome is terminal.
  *  2. For a seat whose role differs between two runs, the souls it subscribes to
  *     and the kinds and sizes of the jobs its driver runs are identical.
+ *  3. Metadata (§9): for every seat, the job sequence, and the relay's whole
+ *     publication log (virtual time, publishing peer, type, step, value
+ *     length, re-puts) are identical across the three runs (whose deals all
+ *     differ) until the assassination.
+ *  4. The decryption allow-list (§5.11) holds for every seat in every run.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -13,6 +18,8 @@ import { seen } from '../protocol/rules.ts';
 import type { GameSecrets } from '../protocol/private.ts';
 import { memoCrypto, simConfig, simGameSeed, simulate, type ScriptedStrategy, type SimResult } from './simulate.ts';
 import { predictDeal } from './predict.ts';
+import { allowListViolations } from './oracle.ts';
+import { decodeEnvelope } from '../protocol/envelope.ts';
 import type { Hex32, Verdict } from '../protocol/types.ts';
 
 const N = 6;
@@ -57,23 +64,40 @@ function search(): { a: Candidate; b: Candidate; c: Candidate } {
   throw new Error('no suitable deals found');
 }
 
-interface Recording { views: string[]; jobs: string[]; souls: string[]; r: SimResult }
+interface Recording { views: string[]; jobs: string[]; allJobs: string[][]; pubs: string[]; souls: string[]; r: SimResult }
+
+/** Up to the assassination: the assassin's own prove, the verification of its opening, any reveal or log. */
+const END_JOB = /^(prove:(assassinate|reveal|log)|verify open:)/;
 
 async function run(c: Candidate): Promise<Recording> {
   const views: string[] = [];
-  const jobs: string[] = [];
+  const allJobs: string[][] = Array.from({ length: N }, () => []);
+  const pubs: string[] = [];
   const memo = new Map<Hex32, Verdict>();
+  let ended = false;
   const r = await simulate({
     n: N, roles: ROLES, seed: SEED, strategy: SCRIPT, gameSeeds: c.seeds,
     // The log bundle is written after the end and carries the (public, run-specific) outcome: compared by kind.
-    crypto: (seat) => memoCrypto(memo, seat === S ? (kind, size) => jobs.push(kind === 'prove:log' ? kind : `${kind} ${size}`) : undefined),
+    crypto: (seat) => memoCrypto(memo, (kind, size) => allJobs[seat].push(kind === 'prove:log' ? kind : `${kind} ${size}`)),
+    onTransport: (t) => {
+      t.onPublish = (e) => {
+        const d = decodeEnvelope(e.value, e.key);
+        if ('error' in d || ['assassinate', 'reveal', 'log'].includes(d.env.type)) ended = true;
+        if (!ended && !('error' in d)) pubs.push(`${e.time} ${e.peer} ${d.env.type}:${d.env.step} ${e.value.length}`);
+      };
+    },
     onView: (seat, v) => {
       if (seat !== S || v.terminal) return;
       const j = JSON.stringify({ game: v.game, role: v.role });
       if (views[views.length - 1] !== j) views.push(j);
     },
   });
-  return { views, jobs, souls: [...r.peers[S].subscribed], r };
+  return { views, jobs: allJobs[S], allJobs, pubs, souls: [...r.peers[S].subscribed], r };
+}
+
+function untilEnd(jobs: string[]): string[] {
+  const k = jobs.findIndex((x) => END_JOB.test(x));
+  return k < 0 ? jobs : jobs.slice(0, k);
 }
 
 test('non-interference: projections, subscriptions and job sequences do not depend on hidden roles', async () => {
@@ -102,4 +126,15 @@ test('non-interference: projections, subscriptions and job sequences do not depe
   // ...while the outcomes differ (S, the assassination target, is Merlin only in run c).
   assert.equal(ra.r.outcome?.state, 'GOOD_WIN');
   assert.equal(rc.r.outcome?.state, 'EVIL_WIN');
+  // 3. Every seat's jobs and the whole publication log agree across the three deals until the assassination.
+  assert.ok(ra.pubs.length > 60, `${ra.pubs.length} publications`);
+  for (const x of [rb, rc]) {
+    assert.deepEqual(x.pubs, ra.pubs);
+    for (let j = 0; j < N; j++) {
+      assert.ok(untilEnd(ra.allJobs[j]).length > 30);
+      assert.deepEqual(untilEnd(x.allJobs[j]), untilEnd(ra.allJobs[j]), `jobs of seat ${j}`);
+    }
+  }
+  // 4. The decryption allow-list.
+  for (const x of [ra, rb, rc]) assert.deepEqual(allowListViolations(x.r), []);
 });

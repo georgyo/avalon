@@ -114,9 +114,11 @@ export function resolveReveals(config: GameConfig, ev: GameEval, msgs: ReadonlyM
   const audit: { seat: number; reason: string }[] = [];
   const A = finalA(s);
   const labels: (CardLabel | null)[] = new Array<CardLabel | null>(n).fill(null);
-  const cards = A !== null;
+  // Cards exist once the final deck's shuffles are all verified (the deal gate): before that, a
+  // structurally complete but unproven deck may decrypt to anything.
+  const cards = A !== null && ev.shufflesVerified;
   const allX = revealed.size === n ? mod([...revealed.values()].reduce((acc, r) => acc + r.x, 0n)) : null;
-  if (A !== null) {
+  if (A !== null && cards) {
     for (let j = 0; j < n; j++) {
       const r = revealed.get(j);
       let P: Point | null = null;
@@ -127,9 +129,25 @@ export function resolveReveals(config: GameConfig, ev: GameEval, msgs: ReadonlyM
       }
       if (P !== null) {
         const l = findLabel(P, labelsAll);
-        if (l === null) audit.push({ seat: j, reason: 'audit: card does not decrypt to a label' });
+        if (l === null) audit.push({ seat: -1, reason: 'audit: card does not decrypt to a label' });
         labels[j] = l;
       }
+    }
+    // A false assassination claim (§5.10) opened its author's card publicly: C_a − O_a is its label.
+    for (const f of ev.terminal?.faults ?? []) {
+      if (f.reason !== 'false assassination claim' || s.C === null) continue;
+      const m = msgs.get(f.evidence[0]);
+      if (m === undefined || m.env.type !== 'assassinate') continue;
+      let l: CardLabel | null;
+      try {
+        l = findLabel(dpt(s.C[f.seat]).subtract(dpt((m.env.body as Bodies['assassinate']).open)), labelsAll);
+      } catch {
+        l = null;
+      }
+      if (l === null) continue;
+      const known = labels[f.seat];
+      if (known === null) labels[f.seat] = l;
+      else if (!labelEq(known, l)) audit.push({ seat: -1, reason: 'audit: assassination claim opening does not match' });
     }
     if (s.assassination !== null) {
       const a = s.assassination.assassin;
@@ -146,7 +164,7 @@ export function resolveReveals(config: GameConfig, ev: GameEval, msgs: ReadonlyM
     const known = labels.filter((l): l is CardLabel => l !== null);
     const rest = multisetMinus(deck, known);
     if (rest === null) {
-      audit.push({ seat: labels.findIndex((l) => l !== null), reason: 'audit: revealed cards do not match the deck' });
+      audit.push({ seat: -1, reason: 'audit: revealed cards do not match the deck' });
     } else {
       unresolved = rest;
       const unknown = labels.map((l, j) => (l === null ? j : -1)).filter((j) => j >= 0);
@@ -191,12 +209,12 @@ export function resolveReveals(config: GameConfig, ev: GameEval, msgs: ReadonlyM
       for (const v of vm.values()) known += v;
       const v = ms.numFails - known;
       if (v === 0 || v === 1) vm.set(unknown[0], v);
-      else audit.push({ seat: unknown[0], reason: 'audit: mission votes inconsistent with the tally' });
+      else audit.push({ seat: -1, reason: 'audit: mission votes inconsistent with the tally' });
     }
     if (ms.numFails !== null && vm.size === ms.team.length) {
       let sum = 0;
       for (const v of vm.values()) sum += v;
-      if (sum !== ms.numFails) audit.push({ seat: ms.team[0], reason: 'audit: mission votes inconsistent with the tally' });
+      if (sum !== ms.numFails) audit.push({ seat: -1, reason: 'audit: mission votes inconsistent with the tally' });
     }
     for (const [seat, v] of vm) {
       const l = labels[seat];
@@ -225,7 +243,7 @@ export function computeOutcome(config: GameConfig, ev: GameEval, msgs: ReadonlyM
   for (const m of msgs.values()) {
     if (m.env.game === config.gameId && (m.env.type === 'reveal' || (m.env.type === 'vote.reveal' && m.env.prev === ev.head))) extra.push(m.msgId);
   }
-  const key = [config.gameId, ev.head, term.kind, term.atStep, String(term.by), term.basis.join(','),
+  const key = [config.gameId, ev.head, String(ev.shufflesVerified), term.kind, term.atStep, String(term.by), term.basis.join(','),
     term.faults.map((f) => `${f.seat}:${f.reason}`).join(','), JSON.stringify(term.cancel ?? null), extra.sort().join(',')].join('|');
   const hit = outcomeCache.get(key);
   if (hit !== undefined) return structuredClone(hit);
@@ -377,6 +395,8 @@ function restoreWithheld(config: GameConfig, ev: GameEval, msgs: ReadonlyMap<Hex
   }
   const vr = /^vr\/(\d+)\/4$/.exec(atStep);
   if (vr !== null) {
+    const cur = s.cursor;
+    if (cur.t !== 'vr' || cur.m !== Number(vr[1]) || cur.p !== 4) return null;
     const reveals = pendingVoteReveals(config, ev, msgs);
     if (reveals === null) return null;
     let rejections = 0;

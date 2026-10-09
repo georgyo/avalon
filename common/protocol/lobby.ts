@@ -254,8 +254,10 @@ export function checkConfig(
   if (local.knownGame !== undefined && local.knownGame.gameId === config.gameId && local.knownGame.configId !== configId) {
     return { ok: false, reason: 'This device already accepted another configuration of this game' };
   }
+  // Equivocation is two configs of one gameId by the same author; a copy by anybody else (lobby
+  // souls are writable by anyone) neither proves anything about the admin nor blocks the start.
   for (const other of state.configs.values()) {
-    if (other.configId !== configId && other.config.gameId === config.gameId) {
+    if (other.configId !== configId && other.author === author && other.config.gameId === config.gameId) {
       return { ok: false, reason: 'The admin published two configurations of this game' };
     }
   }
@@ -265,16 +267,23 @@ export function checkConfig(
   return { ok: true, seat };
 }
 
-/** The other `lobby.config` messages with the same gameId as `configId` (input of reduceGame, §4.6). */
+/**
+ * The other `lobby.config` messages of the same lobby and author with the same
+ * gameId as `configId` (input of reduceGame, §4.6): only the config's own
+ * author can equivocate on it.
+ */
 export function conflictingConfigs(configId: Hex32, msgs: Iterable<StoredMsg>): StoredMsg[] {
   const all = [...msgs].filter((m) => typed(m, 'lobby.config'));
   const mine = all.find((m) => m.msgId === configId);
   if (mine === undefined) return [];
   const gameId = (mine.env.body as GameConfig).gameId;
   const lobby = mine.env.lobby;
+  const author = mine.env.author;
   const out = new Map<Hex32, StoredMsg>();
   for (const m of all) {
-    if (m.msgId !== configId && m.env.lobby === lobby && (m.env.body as GameConfig).gameId === gameId) out.set(m.msgId, m);
+    if (m.msgId !== configId && m.env.lobby === lobby && m.env.author === author && (m.env.body as GameConfig).gameId === gameId) {
+      out.set(m.msgId, m);
+    }
   }
   return [...out.values()].sort((a, b) => compareHex(a.msgId, b.msgId));
 }

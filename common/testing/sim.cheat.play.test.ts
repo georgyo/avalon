@@ -17,6 +17,7 @@ import { simulate, SIM_T, type SimOptions } from './simulate.ts';
 import type { Adversary, AdversaryContext } from './adversary.ts';
 import { assertInvalid, copy, dealOf, forge, info, own, pctx, seatWith, twin, xOf } from './cheatkit.ts';
 import { assertAgreement } from './simkit.ts';
+import { allowListViolations } from './oracle.ts';
 import { teamOf } from '../protocol/rules.ts';
 
 const ROLES = ['MERLIN', 'PERCIVAL', 'MORGANA'];
@@ -75,6 +76,8 @@ test('ballot = another seat\'s card ciphertext (decryption oracle attempt): INVA
   });
   const r = await simulate({ ...o, adversary: adv });
   assertInvalid(r, g, 'invalid ballot proof', { atStep: adv.steps[0] });
+  // No honest seat ever published x_j·T for the poisoned T (§5.11).
+  assert.deepEqual(allowListViolations(r, [g]), []);
 });
 
 /** A team member that withholds its own ballot and publishes `make(victimBallot)` once another member's ballot is visible. */

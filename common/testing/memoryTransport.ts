@@ -71,6 +71,10 @@ export class MemPeer implements Transport {
     return this.net.subscribeFrom(this, soul, onValue);
   }
 
+  synced(soul: string): Promise<void> {
+    return this.net.syncedFrom(this, soul);
+  }
+
   /** Called (after a random delay) when the relay restarted empty. */
   onRestart(cb: () => void): () => void {
     this.restartListeners.push(cb);
@@ -99,6 +103,8 @@ export class MemoryTransport {
   private readonly delivered = new Map<MemPeer, Set<string>>();
   /** Number of events processed by run(). */
   events = 0;
+  /** Observer of every publish call (metadata checks, §9): virtual time, publishing peer, soul, key, value. */
+  onPublish: ((e: { time: number; peer: number; soul: string; key: string; value: string }) => void) | null = null;
 
   constructor(o?: MemoryTransportOptions) {
     this.opts = {
@@ -251,6 +257,7 @@ export class MemoryTransport {
   }
 
   publishFrom(peer: MemPeer, soul: string, key: Hex32, value: string): Promise<void> {
+    this.onPublish?.({ time: this.now, peer: peer.id, soul, key, value });
     return new Promise((resolve) => {
       const attempt = (): void => {
         if (!peer.online) {
@@ -306,6 +313,27 @@ export class MemoryTransport {
     };
     this.schedule(this.delay(), attempt);
     if (this.opts.duplicateRate > 0 && this.rng() < this.opts.duplicateRate) this.schedule(this.delay(), attempt);
+  }
+
+  /**
+   * Transport.synced: resolves once every value the relay holds now for `soul`
+   * (and that can reach `peer`) was delivered to the peer's subscription
+   * (immediately if the peer does not subscribe to the soul; after 30 s of
+   * virtual time at the latest, like a sync request that times out).
+   */
+  syncedFrom(peer: MemPeer, soul: string): Promise<void> {
+    const keys = [...(this.store.get(soul) ?? new Map<string, Entry>())]
+      .filter(([, e]) => this.reachable(null, peer, e)).map(([key]) => key);
+    const deadline = this.now + 30_000;
+    return new Promise((resolve) => {
+      const check = (): void => {
+        const subscribed = this.subs.some((x) => x.active && x.peer === peer && x.soul === soul);
+        const got = this.delivered.get(peer);
+        if (!subscribed || this.now >= deadline || keys.every((k) => got?.has(soul + '\u0000' + k) === true)) resolve();
+        else this.schedule(10, check);
+      };
+      check();
+    });
   }
 
   subscribeFrom(peer: MemPeer, soul: string, cb: (key: string, value: string) => void): () => void {

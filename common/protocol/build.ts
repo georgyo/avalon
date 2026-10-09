@@ -40,7 +40,8 @@ export interface BuildCtx {
   seat: number;
   me: Pub;
   ev: GameEval;
-  secrets: GameSecrets;
+  /** Null for a device that lost its game record (§3.10): only buildCancel accepts that. */
+  secrets: GameSecrets | null;
   priv: PrivateView | null;
   now: number;
 }
@@ -54,10 +55,29 @@ function envelope<T extends GameMsgType | 'log'>(ctx: BuildCtx, type: T, step: s
   return { v: 1, type, lobby: ctx.lobbyId, game: ctx.config.gameId, step, author: ctx.me, prev, t: toT(ctx.now), body };
 }
 
-/** The pending step, which must have type `type` and require this seat. */
-function pendingStep(ctx: BuildCtx, type: GameMsgType): StepDef {
+/** The game secrets; every builder but buildCancel needs them (§3.10: a lost record never regenerates x_j). */
+function secretsOf(ctx: BuildCtx): GameSecrets {
+  if (ctx.secrets === null) throw new Error('This browser lost the secret keys for this game');
+  return ctx.secrets;
+}
+
+/**
+ * Defense in depth (§5.11): every builder of a step message runs only for the
+ * running game's pending step whose gate is open (every earlier verdict known
+ * and valid), and never while a reveal is pending (the driver is suspended,
+ * §3.7 rule 3).
+ */
+function requireRunning(ctx: BuildCtx): NonNullable<GameEval['pending']> {
   const p = ctx.ev.pending;
   if (ctx.ev.terminal !== null || p === null) throw new Error('The game is not running');
+  if (ctx.ev.pendingReveals.length > 0) throw new Error('Suspended: a reveal is pending');
+  if (!p.gateOpen) throw new Error(`Gate closed at ${p.step.id}: earlier verdicts unknown`);
+  return p;
+}
+
+/** The pending step, which must have type `type` and require this seat. */
+function pendingStep(ctx: BuildCtx, type: GameMsgType): StepDef {
+  const p = requireRunning(ctx);
   if (p.step.type !== type) throw new Error(`Not at a ${type} step (pending: ${p.step.id})`);
   if (p.step.req !== 'assassin' && !p.step.req.includes(ctx.seat)) throw new Error(`Seat ${ctx.seat} is not required at ${p.step.id}`);
   return p.step;
@@ -68,7 +88,7 @@ function proofCtx(ctx: BuildCtx, stepId: string): { configId: Hex32; stepId: str
 }
 
 function seed(ctx: BuildCtx): SeedRef {
-  return seedRefOf(ctx.config, ctx.secrets);
+  return seedRefOf(ctx.config, secretsOf(ctx));
 }
 
 function y(ctx: BuildCtx, j: number): Point {
@@ -100,10 +120,10 @@ function labelIndex(ctx: BuildCtx, priv: PrivateView): number {
 
 export function buildKey(ctx: BuildCtx): Envelope<'key'> {
   const step = pendingStep(ctx, 'key');
-  const x = secretKey(ctx.config, ctx.secrets);
+  const x = secretKey(ctx.config, secretsOf(ctx));
   const yj = mul(G, x);
   const pok = proveSigma(pokStatement(proofCtx(ctx, step.id), yj), 0, [x], seed(ctx));
-  const seedCommit = seedCommitOf(ctx.configId, ctx.seat, beaconSeed(ctx.config, ctx.secrets));
+  const seedCommit = seedCommitOf(ctx.configId, ctx.seat, beaconSeed(ctx.config, secretsOf(ctx)));
   return envelope(ctx, 'key', step.id, ctx.configId, { y: ept(yj), pok, seedCommit });
 }
 
@@ -127,7 +147,7 @@ export function buildDeal(ctx: BuildCtx): Envelope<'deal'> {
   const A = finalA(ctx.ev.state);
   if (A === null) throw new Error('final deck unknown');
   const Ap = A.map(dpt);
-  const x = secretKey(ctx.config, ctx.secrets);
+  const x = secretKey(ctx.config, secretsOf(ctx));
   const dPts = Ap.map((Ai, i) => (i === ctx.seat ? null : mul(Ai, x)));
   const proof = proveSigma(dealStatement(proofCtx(ctx, step.id), y(ctx, ctx.seat), Ap, dPts, ctx.seat), 0, [x], seed(ctx));
   return envelope(ctx, 'deal', step.id, ctx.ev.head, { d: dPts.map((P) => (P === null ? null : ept(P))), proof });
@@ -138,8 +158,8 @@ export function buildOtRecv(ctx: BuildCtx): Envelope<'ot.recv'> {
   const priv = requirePriv(ctx);
   const info = configInfo(ctx.config, ctx.configId);
   const real = labelIndex(ctx, priv);
-  const x = secretKey(ctx.config, ctx.secrets);
-  const beta = otBeta(ctx.config, ctx.secrets);
+  const x = secretKey(ctx.config, secretsOf(ctx));
+  const beta = otBeta(ctx.config, secretsOf(ctx));
   const U = otChoice(beta, priv.c);
   const { A, C } = own(ctx);
   const st = otRecvStatement(proofCtx(ctx, step.id), y(ctx, ctx.seat), A, C, U, info.labelPts, info.labelRoleIdx);
@@ -152,13 +172,14 @@ export function buildOtSend(ctx: BuildCtx): Envelope<'ot.send'> {
   const priv = requirePriv(ctx);
   const info = configInfo(ctx.config, ctx.configId);
   const s = ctx.ev.state;
-  if (s.U === null) throw new Error('receiver commitments unknown');
+  // E_{Q,r} is released to every receiver Q: only once `otR` completed, i.e. every U_Q was proven (§5.5).
+  if (s.cursor.t !== 'otS' || s.U === null || s.U.length !== s.n) throw new Error('receiver commitments unknown');
   const real = labelIndex(ctx, priv);
   const bits = info.seenRows[real];
   const U = s.U.map((u, Q) => (Q === ctx.seat ? null : dpt(u)));
   const sd = seed(ctx);
   const { F, E, f, k } = otSenderMessages(sd, bits, U, ctx.seat);
-  const x = secretKey(ctx.config, ctx.secrets);
+  const x = secretKey(ctx.config, secretsOf(ctx));
   const { A, C } = own(ctx);
   const pctx = proofCtx(ctx, step.id);
   const profile = proveSigma(otProfileStatement(pctx, y(ctx, ctx.seat), A, C, F, info.labelPts, info.seenRows), real, [x, ...f], sd);
@@ -167,7 +188,7 @@ export function buildOtSend(ctx: BuildCtx): Envelope<'ot.send'> {
   const eq = proveSigma(otEqStatement(pctx, F, E, U, ctx.seat), 0, [...f, ...kFlat], sd);
   return envelope(ctx, 'ot.send', step.id, ctx.ev.head, {
     F: F.map(ect), E: E.map((row) => (row === null ? null : row.map(ect))), profile, eq,
-    seed: b64uEncode(beaconSeed(ctx.config, ctx.secrets)),
+    seed: b64uEncode(beaconSeed(ctx.config, secretsOf(ctx))),
   });
 }
 
@@ -175,8 +196,8 @@ export function buildOtSend(ctx: BuildCtx): Envelope<'ot.send'> {
 
 /** `team`: seat indices (any order, no duplicates); validated against the rules with the legacy server's messages. */
 export function buildPropose(ctx: BuildCtx, team: number[]): Envelope<'propose'> {
-  const p = ctx.ev.pending;
-  if (ctx.ev.terminal !== null || p === null || p.step.type !== 'propose') throw new Error('Not in team proposal phase');
+  const p = requireRunning(ctx);
+  if (p.step.type !== 'propose') throw new Error('Not in team proposal phase');
   if (p.step.req === 'assassin' || p.step.req[0] !== ctx.seat) throw new Error('You are not the proposer');
   const cur = ctx.ev.state.cursor;
   if (cur.t !== 'p') throw new Error('Not in team proposal phase');
@@ -229,7 +250,7 @@ export function buildBallot(ctx: BuildCtx, success: boolean): Envelope<'ballot'>
   const Y = dpt(s.Y);
   const ballot = encryptBit(Y, v, r);
   const real = v === 0 ? 0 : 1 + info.evilLabelIdx.indexOf(labelIndex(ctx, priv));
-  const x = secretKey(ctx.config, ctx.secrets);
+  const x = secretKey(ctx.config, secretsOf(ctx));
   const { A, C } = own(ctx);
   const st = ballotStatement(proofCtx(ctx, step.id), Y, ballot, y(ctx, ctx.seat), A, C, info.evilLabelPts);
   const proof = proveSigma(st, real, v === 0 ? [r] : [r, x], seed(ctx));
@@ -245,7 +266,7 @@ export function buildTally(ctx: BuildCtx): Envelope<'tally'> {
   const Tm = ctx.ev.state.missions[cur.m].T;
   if (Tm === null) throw new Error('tally base unknown');
   const T = dpt(Tm);
-  const x = secretKey(ctx.config, ctx.secrets);
+  const x = secretKey(ctx.config, secretsOf(ctx));
   const D = mul(T, x);
   const proof = proveSigma(tallyStatement(proofCtx(ctx, step.id), y(ctx, ctx.seat), T, D), 0, [x], seed(ctx));
   return envelope(ctx, 'tally', step.id, ctx.ev.head, { share: ept(D), proof });
@@ -253,12 +274,12 @@ export function buildTally(ctx: BuildCtx): Envelope<'tally'> {
 
 /** §5.11 item 3: the opening x_a·A_a, only by the holder of the assassin card. */
 export function buildAssassinate(ctx: BuildCtx, target: number): Envelope<'assassinate'> {
-  const p = ctx.ev.pending;
-  if (ctx.ev.terminal !== null || p === null || p.step.type !== 'assassinate') throw new Error('Not in assassination phase');
+  const p = requireRunning(ctx);
+  if (p.step.type !== 'assassinate') throw new Error('Not in assassination phase');
   const priv = requirePriv(ctx);
   if (!priv.label.assassin) throw new Error('You are not the assassin');
   if (!Number.isInteger(target) || target < 0 || target >= ctx.ev.state.n || target === ctx.seat) throw new Error('Invalid assassination target');
-  const x = secretKey(ctx.config, ctx.secrets);
+  const x = secretKey(ctx.config, secretsOf(ctx));
   const { A, C } = own(ctx);
   const Oa = mul(A, x);
   if (!C.subtract(Oa).equals(cardPoint(priv.label))) throw new Error('own card does not open to the assassin card');
@@ -281,6 +302,7 @@ export function buildCancel(ctx: BuildCtx, reason: CancelReason): Envelope<'canc
 export function buildReveal(ctx: BuildCtx): Envelope<'reveal'> {
   const term = ctx.ev.terminal;
   if (term === null) throw new Error('The game is not over');
+  if (ctx.ev.pendingReveals.length > 0) throw new Error('Suspended: a reveal is pending');
   const s = ctx.ev.state;
   const sd = seed(ctx);
   const ballots: { m: number; r: string }[] = [];
@@ -298,7 +320,7 @@ export function buildReveal(ctx: BuildCtx): Envelope<'reveal'> {
       }
     }
   });
-  const x = secretKey(ctx.config, ctx.secrets);
+  const x = secretKey(ctx.config, secretsOf(ctx));
   return envelope(ctx, 'reveal', 'reveal', ctx.ev.head, { x: encScalar(x), ballots, basis: [...term.basis] });
 }
 

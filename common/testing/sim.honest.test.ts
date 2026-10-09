@@ -6,12 +6,14 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { simulate } from './simulate.ts';
 import { assertHonestGame } from './simkit.ts';
+import { allowListViolations } from './oracle.ts';
 
 const ALL = ['MERLIN', 'PERCIVAL', 'MORGANA', 'MORDRED', 'OBERON', 'ASSASSIN'];
 
 test('n=5, Merlin/Percival/Morgana: assassination missed -> GOOD_WIN', async () => {
   const r = await simulate({ n: 5, roles: ['MERLIN', 'PERCIVAL', 'MORGANA'], seed: 11, strategy: 'good-wins' });
   const out = assertHonestGame(r);
+  assert.deepEqual(allowListViolations(r), []);
   assert.equal(out.state, 'GOOD_WIN');
   assert.equal(out.message, 'Three successful missions');
   assert.ok(out.assassinated !== undefined);
@@ -22,6 +24,7 @@ test('n=5, Merlin/Percival/Morgana: assassination missed -> GOOD_WIN', async () 
 test('n=6, Merlin/Assassin: Merlin assassinated -> EVIL_WIN', async () => {
   const r = await simulate({ n: 6, roles: ['MERLIN', 'ASSASSIN'], seed: 12, strategy: 'merlin-dies' });
   const out = assertHonestGame(r);
+  assert.deepEqual(allowListViolations(r), []);
   assert.equal(out.state, 'EVIL_WIN');
   assert.equal(out.message, 'Merlin assassinated');
   assert.equal(out.roles.find((x) => x.name === out.assassinated)?.role, 'MERLIN');
@@ -31,6 +34,7 @@ test('n=6, Merlin/Assassin: Merlin assassinated -> EVIL_WIN', async () => {
 test('n=7, no special roles: three successes without Merlin -> GOOD_WIN', async () => {
   const r = await simulate({ n: 7, roles: [], seed: 13, strategy: 'good-wins' });
   const out = assertHonestGame(r);
+  assert.deepEqual(allowListViolations(r), []);
   assert.equal(out.state, 'GOOD_WIN');
   assert.equal(out.message, 'Three missions succeeded');
   assert.equal(out.assassinated, undefined);

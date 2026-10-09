@@ -15,6 +15,7 @@ import { simulate, SIM_T, type SimOptions } from './simulate.ts';
 import type { Adversary, AdversaryContext } from './adversary.ts';
 import { assertInvalid, dealOf, randomHex, seatWith } from './cheatkit.ts';
 import { assertAgreement } from './simkit.ts';
+import { allowListViolations } from './oracle.ts';
 
 const ROLES = ['MERLIN', 'PERCIVAL', 'MORGANA'];
 const base = (seed: number, strategy: SimOptions['strategy'] = 'random'): SimOptions => ({ n: 5, roles: ROLES, seed, strategy });
@@ -53,6 +54,8 @@ test('premature x_j reveal during the game: INVALID(revealed key during the game
   assert.ok(adv.fired);
   const out = assertInvalid(r, 3, 'revealed key during the game', { atStep: 'vc/1/0' });
   assert.equal(out.final, true);
+  // §5.11: the honest seats published no multiple of their key outside the allow-list.
+  assert.deepEqual(allowListViolations(r, [3]), []);
 });
 
 test('premature reveal with a bogus basis: the game is suspended (not continued) until a player cancels', async () => {

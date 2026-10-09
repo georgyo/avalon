@@ -96,6 +96,15 @@ export class MemJournal implements Journal {
     m.set(slot, value);
   }
 
+  async putIfAbsent(scope: string, slot: string, value: string): Promise<string> {
+    let m = this.entries.get(scope);
+    if (m === undefined) this.entries.set(scope, (m = new Map()));
+    const prior = m.get(slot);
+    if (prior !== undefined) return prior;
+    m.set(slot, value);
+    return value;
+  }
+
   async all(scope: string): Promise<string[]> {
     return [...(this.entries.get(scope)?.values() ?? [])];
   }

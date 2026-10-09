@@ -71,6 +71,23 @@ export interface SimOptions {
   maxEvents?: number;
   /** Human think time in virtual ms [min, max]. */
   thinkMs?: [number, number];
+  /**
+   * Envelope clock: 'constant' (SIM_T, the default: byte-identical rebuilds)
+   * or 'virtual' (SIM_T + the transport's virtual time: a rebuild of a slot
+   * differs from the journaled value, as with a real clock).
+   */
+  clock?: 'constant' | 'virtual';
+  /**
+   * Seats that also run a second driver for the whole game, overlapping the
+   * first (another tab of the device, e.g. after a Web Lock steal, §3.9): same
+   * journal and secrets, its own relay connection, journal reads delayed by
+   * `twinJournalDelayMs` virtual ms so its publishes interleave with the
+   * first driver's. Only the first driver takes human decisions.
+   */
+  twins?: number[];
+  twinJournalDelayMs?: number;
+  /** Called with the transport before any driver starts (e.g. to set `onPublish`). */
+  onTransport?: (t: MemoryTransport) => void;
 }
 
 export interface SimHandle {
@@ -118,8 +135,52 @@ export interface SimResult {
   reloads: number;
 }
 
+/**
+ * A journal view whose reads return the state at the time of the call but
+ * complete only after `delayMs` of the transport's virtual time (a slow
+ * storage, or a tab that read just before another tab wrote); writes are
+ * immediate. A driver waiting on such a read is
+ * blocked on the transport's clock, not busy: `outstanding` and `blocked()`
+ * let the simulation's idle check tell the two apart.
+ */
+export class DelayedJournal implements Journal {
+  outstanding = 0;
+  private blockWaiters: (() => void)[] = [];
+  constructor(private readonly inner: Journal, private readonly transport: MemoryTransport, private readonly delayMs: number) {}
+  /** Resolves when a read is (or becomes) outstanding. */
+  blocked(): Promise<void> {
+    if (this.outstanding > 0) return Promise.resolve();
+    return new Promise((resolve) => this.blockWaiters.push(resolve));
+  }
+  private later<T>(f: () => Promise<T>): Promise<T> {
+    this.outstanding++;
+    const w = this.blockWaiters;
+    this.blockWaiters = [];
+    for (const r of w) r();
+    const result = f();
+    return new Promise<T>((resolve, reject) => this.transport.schedule(this.delayMs, () => {
+      this.outstanding--;
+      result.then(resolve, reject);
+    }));
+  }
+  get(scope: string, slot: string): Promise<string | null> {
+    return this.later(() => this.inner.get(scope, slot));
+  }
+  put(scope: string, slot: string, value: string): Promise<void> {
+    return this.inner.put(scope, slot, value);
+  }
+  putIfAbsent(scope: string, slot: string, value: string): Promise<string> {
+    return this.inner.putIfAbsent(scope, slot, value);
+  }
+  all(scope: string): Promise<string[]> {
+    return this.later(() => this.inner.all(scope));
+  }
+}
+
 export class MemJournal implements Journal {
   readonly entries = new Map<string, Map<string, string>>();
+  /** Number of putIfAbsent calls that found the slot taken (overlapping writers, tests). */
+  conflicts = 0;
   async get(scope: string, slot: string): Promise<string | null> {
     return this.entries.get(scope)?.get(slot) ?? null;
   }
@@ -127,6 +188,17 @@ export class MemJournal implements Journal {
     let m = this.entries.get(scope);
     if (m === undefined) this.entries.set(scope, (m = new Map()));
     m.set(slot, value);
+  }
+  async putIfAbsent(scope: string, slot: string, value: string): Promise<string> {
+    let m = this.entries.get(scope);
+    if (m === undefined) this.entries.set(scope, (m = new Map()));
+    const prior = m.get(slot);
+    if (prior !== undefined) {
+      if (prior !== value) this.conflicts++;
+      return prior;
+    }
+    m.set(slot, value);
+    return value;
   }
   async all(scope: string): Promise<string[]> {
     return [...(this.entries.get(scope)?.values() ?? [])];
@@ -273,6 +345,7 @@ export async function simulate(o: SimOptions): Promise<SimResult> {
   const configId = configMsg.msgId;
   const secrets: GameSecrets[] = Array.from({ length: n }, (_, j) => ({ gameSeed: o.gameSeeds?.[j] ?? simGameSeed(o.seed, j) }));
   const transport = new MemoryTransport({ seed: o.seed, ...o.net });
+  o.onTransport?.(transport);
   const peers = Array.from({ length: n }, () => transport.peer());
   const journals = Array.from({ length: n }, () => new MemJournal());
   const memo = new Map<Hex32, Verdict>();
@@ -378,10 +451,11 @@ export async function simulate(o: SimOptions): Promise<SimResult> {
     return ev.pending?.step.id === step || ev.chain.some((c) => c.stepId === step);
   };
 
+  const now = o.clock === 'virtual' ? (): number => SIM_T + transport.now : (): number => SIM_T;
   const makeDriver = (j: number): SeatDriver => new SeatDriver({
     config, configId, lobbyId, lobbyCode: SIM_LOBBY_CODE, seat: j, signer: signers[j], secrets: secrets[j],
     transport: advTransport !== null && adv?.seat === j ? advTransport : peers[j],
-    journal: journals[j], crypto: backends[j], now: () => SIM_T, configAuthor: signers[0].pub, createdAt: SIM_T,
+    journal: journals[j], crypto: backends[j], now, configAuthor: signers[0].pub, createdAt: SIM_T,
     onError: (e) => errors.push(`seat ${j}: ${e instanceof Error ? e.stack ?? e.message : String(e)}`),
     onView: (v) => o.onView?.(j, v, handle),
     onEval: (ev) => {
@@ -413,21 +487,36 @@ export async function simulate(o: SimOptions): Promise<SimResult> {
   });
 
   for (let j = 0; j < n; j++) drivers.push(makeDriver(j));
+  const twinJournals = (o.twins ?? []).map((j) => new DelayedJournal(journals[j], transport, o.twinJournalDelayMs ?? 7));
+  const twins: SeatDriver[] = (o.twins ?? []).map((j, i) => new SeatDriver({
+    config, configId, lobbyId, lobbyCode: SIM_LOBBY_CODE, seat: j, signer: signers[j], secrets: secrets[j],
+    transport: transport.peer(), journal: twinJournals[i],
+    crypto: backends[j], now, configAuthor: signers[0].pub, createdAt: SIM_T,
+    onError: (e) => errors.push(`twin of seat ${j}: ${e instanceof Error ? e.stack ?? e.message : String(e)}`),
+    onView: () => undefined,
+  }));
+  const twinSettled = (i: number): boolean => twins[i].idleNow || twinJournals[i].outstanding > 0;
   for (let j = 0; j < n; j++) {
     peers[j].onRestart(() => {
       if (!stopped.has(j)) track(drivers[j].republish(true), `seat ${j} republish`);
     });
   }
   for (let j = 0; j < n; j++) track(drivers[j].start(), `seat ${j} start`);
+  // Not tracked: a twin's start waits on delayed journal reads, i.e. on the event queue (see twinSettled).
+  twins.forEach((d, i) => {
+    d.start().catch((e: unknown) => errors.push(`twin ${i} start: ${e instanceof Error ? e.message : String(e)}`));
+  });
 
   const idle = async (): Promise<void> => {
     for (let guard = 0; guard < 1000; guard++) {
       await Promise.all(drivers.map((d) => d.idle()));
+      // A twin is settled when idle or blocked on a delayed journal read (an event in the queue).
+      await Promise.all(twins.map((d, i) => (twinSettled(i) ? undefined : Promise.race([d.idle(), twinJournals[i].blocked()]))));
       if (pending.size > 0) {
         await Promise.all([...pending]);
         continue;
       }
-      if (drivers.every((d) => d.idleNow)) return;
+      if (drivers.every((d) => d.idleNow) && twins.every((_, i) => twinSettled(i))) return;
     }
     throw new Error('simulation does not settle');
   };

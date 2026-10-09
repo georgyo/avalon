@@ -6,6 +6,7 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { decodeEnvelope } from '../protocol/envelope.ts';
 import { simulate, simConfig, simGameSeed, type SimOptions, type SimResult } from './simulate.ts';
 import { predictDeal } from './predict.ts';
 import { assertAgreement, assertHonestGame } from './simkit.ts';
@@ -130,4 +131,23 @@ test('two non-revealers after Merlin is assassinated (Merlin and a Loyal Followe
   assert.equal(out.assassinated, r.config.seats[merlin].name);
   assert.equal(out.final, false);
   assert.deepEqual(out.unrevealed.filter((x) => names.includes(x)), names);
+});
+
+test('two overlapping drivers of one seat with a real clock never journal two envelopes for one slot', async () => {
+  // A Web Lock steal (§3.9) can leave two drivers of one seat running; with a non-constant clock their
+  // builds of one slot differ, so only the atomic putIfAbsent keeps the seat from equivocating.
+  const r = await simulate({ ...BASE, clock: 'virtual', twins: [1, 3], twinJournalDelayMs: 3 });
+  // The overlap really happened: some slot was built twice with different values.
+  assert.ok(r.seats[1].journal.conflicts + r.seats[3].journal.conflicts > 0);
+  const out = assertHonestGame(r);
+  assert.ok(out.state === 'GOOD_WIN' || out.state === 'EVIL_WIN');
+  // Exactly one value per (author, step) on the relay.
+  const seen = new Map<string, string>();
+  for (const v of r.transcript) {
+    const d = decodeEnvelope(v);
+    if ('error' in d) continue;
+    const k = `${d.env.author}/${d.env.type}/${d.env.step}`;
+    assert.ok(!seen.has(k), `two values for ${k}`);
+    seen.set(k, v);
+  }
 });

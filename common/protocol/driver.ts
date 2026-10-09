@@ -9,12 +9,19 @@
  * current pending step.
  *
  * Additions to the §11.2 constructor (documented in the WP-C report):
- * `lobbyId` (required: game envelopes carry it), and the optional
- * `conflictingConfigs`, `configAuthor`, `createdAt` and `onEval`. `secrets`
+ * `lobbyId` and `configAuthor` (required: game envelopes carry the lobbyId,
+ * and only the config's author can equivocate on it, §4.6), and the optional
+ * `conflictingConfigs`, `createdAt` and `onEval`. `secrets`
  * may be null for a device that lost its game record (§3.10): it can then only
  * cancel with reason 'lost'. Extra public members: `evaluation`,
  * `privateView`, `outcome`, `view`, `messages()`, `republish()`,
  * `setConflictingConfigs()`, `tick()`, `idle()`, `idleNow`.
+ *
+ * Every journal-writing publish runs under one driver-wide mutex, so a cancel
+ * is serialized with the automatic and human publishes: it waits for those in
+ * flight, then targets the step pending in a fresh evaluation, and once it is
+ * journaled no step message of this seat can be journaled any more (§3.7
+ * rule 2: an honest seat never cancels and continues).
  */
 import type { Hex32, Pub } from '../crypto/types.ts';
 import { decodeEnvelope, encodeEnvelope, gameSoul, gunKeyOf, parseEnvelope, soulOf, type Signer } from './envelope.ts';
@@ -26,7 +33,7 @@ import { derivePrivate, type GameSecrets, type PrivateView } from './private.ts'
 import { projectGame, projectProgress, projectRole } from './project.ts';
 import type { StepDef } from './steps.ts';
 import type {
-  CancelReason, Envelope, GameConfig, Journal, SetupProgress, StoredMsg, Transport, Verdict,
+  Bodies, CancelReason, Envelope, GameConfig, Journal, SetupProgress, StoredMsg, Transport, Verdict,
 } from './types.ts';
 import type { GameData, GameOutcome, RoleDoc } from './views.ts';
 import type { LobbyState } from './lobby.ts';
@@ -65,7 +72,8 @@ export interface SeatDriverOptions {
   now: () => number;
   onView(v: SeatView): void;
   conflictingConfigs?: StoredMsg[];
-  configAuthor?: Pub;
+  /** The config envelope's author (the admin): config equivocation is two configs by this author (§4.6). */
+  configAuthor: Pub;
   /** The config envelope's t, for log bundles (§6). */
   createdAt?: number;
   /** Called after every evaluation (session status, tests). */
@@ -97,6 +105,9 @@ export function decodeCached(value: string, key?: string): StoredMsg | { error: 
 function primeDecoded(d: StoredMsg): void {
   decodedCache.set(d.key, d);
 }
+
+/** A publish decided on an older evaluation whose step is no longer pending (nothing was built or sent). */
+class StaleStepError extends Error {}
 
 function isEnvelopeLike(v: unknown): v is Envelope {
   return typeof v === 'object' && v !== null && 'type' in v && 'body' in v && 'author' in v;
@@ -130,6 +141,13 @@ export class SeatDriver {
   private idleWaiters: (() => void)[] = [];
   private terminalAt: number | null = null;
   private keyed = false;
+  /** Tail of the driver-wide publish mutex. */
+  private lockTail: Promise<void> = Promise.resolve();
+  /** Set synchronously by cancel(): no new automatic or human publish starts. */
+  private cancelling = false;
+  private cancelInFlight: Promise<void> | null = null;
+  /** Basis msgIds of the journaled reveal still to re-put once known (§7.7, after a reload). */
+  private readonly basisToResend = new Set<Hex32>();
 
   constructor(o: SeatDriverOptions) {
     this.o = o;
@@ -206,26 +224,49 @@ export class SeatDriver {
     if (expected !== soul) return false;
     if (this.msgs.has(d.msgId)) return false;
     this.msgs.set(d.msgId, d);
+    if (this.basisToResend.delete(d.msgId)) this.send(d);
     this.scheduleEval();
     return true;
   }
 
-  /** Re-puts every journal entry (§7.4); with `full`, also the whole transcript (relay restarted empty). */
+  /**
+   * Re-puts every journal entry (§7.4) and, for a journaled reveal, every
+   * envelope of its basis (now if known, else as soon as it is ingested), so a
+   * peer that missed the deciding message is not left suspended; with `full`,
+   * also the whole transcript (relay restarted empty).
+   */
   async republish(full: boolean): Promise<void> {
     const values = await this.o.journal.all(this.scope);
     for (const value of values) {
       const d = decodeCached(value);
       if ('error' in d) continue;
       if (d.env.type === 'key') this.keyed = true;
+      if (d.env.type === 'reveal') for (const id of (d.env.body as Bodies['reveal']).basis) this.basisToResend.add(id);
       this.ingestOwn(d);
       this.send(d);
     }
+    this.flushBasis();
     if (full) for (const m of this.msgs.values()) this.send(m);
   }
 
   setConflictingConfigs(list: StoredMsg[]): void {
     this.conflicting = [...list];
+    this.flushBasis();
     this.scheduleEval();
+  }
+
+  /** A known envelope by msgId: a game message or a conflicting config (basis items, §3.7 rule 3). */
+  private known(id: Hex32): StoredMsg | undefined {
+    return this.msgs.get(id) ?? this.conflicting.find((c) => c.msgId === id);
+  }
+
+  private flushBasis(): void {
+    for (const id of [...this.basisToResend]) {
+      const m = this.known(id);
+      if (m === undefined) continue;
+      this.basisToResend.delete(id);
+      this.send(m);
+    }
   }
 
   /** Re-runs time-based actions (the log write 120 s after the end, §6) and pending verifications. */
@@ -292,29 +333,91 @@ export class SeatDriver {
 
   /**
    * Cancel (§3.7, §7.7): first this seat's own message for a pending automatic
-   * step whose gate is open, then the cancel. Refused during the assassination
-   * and, at the mt/m before a possible assassination, once the own tally is
-   * journaled (rule 2a; a click that publishes the tally stops there).
+   * step whose gate is open (unless a reveal is pending: the driver is then
+   * suspended), then the cancel. Refused during the assassination and, at the
+   * mt/m before a possible assassination, once the own tally is journaled
+   * (rule 2a; a click that publishes the tally stops there).
+   *
+   * Serialized with every other publish (the driver mutex): it waits for the
+   * publishes in flight, then re-evaluates and re-checks on that snapshot, and
+   * builds the cancel against the same snapshot. A device without secrets
+   * (§3.10) first waits for the transport to deliver the souls and for every
+   * verdict, so its cancel cannot target a step before one of its own earlier
+   * messages.
    */
-  async cancel(reason: CancelReason): Promise<void> {
-    let ev = this.requireEval();
+  cancel(reason: CancelReason): Promise<void> {
+    if (this.cancelInFlight !== null) return this.cancelInFlight;
+    const p = this.cancelOnce(reason).finally(() => {
+      this.cancelling = false;
+      this.cancelInFlight = null;
+    });
+    this.cancelInFlight = p;
+    return p;
+  }
+
+  private async cancelOnce(reason: CancelReason): Promise<void> {
+    const ev0 = this.requireEval();
     if (await this.o.journal.get(this.scope, 'cancel') !== null) {
       await this.publish('cancel', (ctx) => ({ kind: 'build', fn: 'cancel', ctx, reason }));
       return;
     }
+    this.checkCancelable(ev0);
+    this.cancelling = true;
+    this.busy++;
+    try {
+      await this.withLock(async () => {
+        if (this.o.secrets === null) await this.settleForLostCancel();
+        let ev = this.evaluateNow();
+        if (ev.terminal !== null) return;   // the game ended meanwhile: nothing left to cancel
+        const p = this.checkCancelable(ev);
+        const rule2a = p.step.type === 'tally' && ev.state.succeeded === 2 && ev.state.merlin;
+        if (rule2a && await this.o.journal.get(this.scope, p.step.id) !== null) throw new Error('Canceling now would forfeit');
+        if (p.step.kind === 'automatic' && p.gateOpen && p.missing.includes(this.seat) && this.o.secrets !== null
+            && ev.pendingReveals.length === 0) {
+          await this.publishAutomatic(p.step, true);
+          if (rule2a) throw new Error('Canceling now would forfeit');
+          ev = this.evaluateNow();
+          if (ev.terminal !== null) return;
+          this.checkCancelable(ev);   // the step may have completed: the cancel targets the new pending step
+        }
+        // Built against the very evaluation the checks ran on (not a later this.ev).
+        const snapshot = ev;
+        await this.publishLocked('cancel', (ctx) => ({ kind: 'build', fn: 'cancel', ctx, reason }), snapshot);
+      });
+    } finally {
+      this.done();
+    }
+  }
+
+  /** The pending step a cancel of `ev` targets; throws when no cancel is allowed (§3.7 rule 6). */
+  private checkCancelable(ev: GameEval): NonNullable<GameEval['pending']> {
     if (ev.terminal !== null) throw new Error('The game is over');
     const p = ev.pending;
     if (p === null) throw new Error('The game is over');
     if (p.step.kind === 'assassination' || ev.state.phase === 'ASSASSINATION') throw new Error('Cannot cancel during the assassination');
-    const rule2a = p.step.type === 'tally' && ev.state.succeeded === 2 && ev.state.merlin;
-    if (rule2a && await this.o.journal.get(this.scope, p.step.id) !== null) throw new Error('Canceling now would forfeit');
-    if (p.step.kind === 'automatic' && p.gateOpen && p.missing.includes(this.seat) && this.o.secrets !== null) {
-      await this.publishAutomatic(p.step);
-      if (rule2a) throw new Error('Canceling now would forfeit');
-      ev = this.evaluateNow();
-      if (ev.terminal !== null) return;
+    return p;
+  }
+
+  /**
+   * §3.10 lost storage: this device's own earlier messages may not have synced
+   * back yet. Wait for the transport to deliver both game souls (if it can
+   * tell), then for every verdict the evaluation needs, so the cancel targets
+   * the step after them (otherwise rule 2 would blame this honest seat).
+   */
+  private async settleForLostCancel(): Promise<void> {
+    const t = this.o.transport;
+    if (t.synced !== undefined) await Promise.all([t.synced(this.setupSoul), t.synced(this.playSoul)]);
+    for (let i = 0; i < 1000 && !this.stopped; i++) {
+      const ev = this.evaluateNow();
+      const todo = ev.jobs.filter((j) => !this.verdicts.has(j.id));
+      if (todo.length === 0) return;
+      const vs = await this.o.crypto.verify(todo);
+      todo.forEach((j, k) => {
+        const v = vs[k];
+        if (v !== undefined) this.verdicts.set(j.id, v.ok ? { ok: true } : { ok: false, reason: v.reason ?? 'invalid' });
+      });
+      if (todo.every((j) => !this.verdicts.has(j.id))) return;
     }
-    await this.publish('cancel', (ctx) => ({ kind: 'build', fn: 'cancel', ctx, reason }));
   }
 
   // ------------------------------------------------------------ internals
@@ -326,6 +429,7 @@ export class SeatDriver {
 
   private requireRunning(): GameEval {
     const ev = this.requireEval();
+    if (this.cancelling) throw new Error('Canceling the game');
     if (ev.terminal !== null) throw new Error('The game is over');
     if (ev.pendingReveals.length > 0) throw new Error('Waiting for messages cited by a reveal');
     if (this.o.secrets === null) throw new Error('This browser lost the secret keys for this game');
@@ -366,43 +470,71 @@ export class SeatDriver {
     this.o.transport.publish(soul, d.key, d.value).catch(() => undefined);
   }
 
-  private buildCtx(): BuildCtx {
-    const ev = this.ev ?? this.evaluateNow();
-    const secrets = this.o.secrets ?? { gameSeed: new Uint8Array(32) };
+  /** The build context; only a cancel may be built without secrets (§3.10). */
+  private buildCtx(slot: string, ev?: GameEval): BuildCtx {
+    if (this.o.secrets === null && slot !== 'cancel') throw new Error('This browser lost the secret keys for this game');
+    const e = ev ?? this.ev ?? this.evaluateNow();
     return {
       config: this.config, configId: this.configId, lobbyId: this.o.lobbyId, seat: this.seat, me: this.o.signer.pub,
-      ev: { ...ev, jobs: [] }, secrets, priv: this.priv, now: this.o.now(),
+      ev: { ...e, jobs: [] }, secrets: this.o.secrets, priv: this.priv, now: this.o.now(),
     };
   }
 
-  /** publish(slot, build) of §3.9: re-put the journaled value if the slot exists, else build, sign, journal, put. */
+  /** Runs `fn` under the driver-wide publish mutex (FIFO). */
+  private async withLock<T>(fn: () => Promise<T>): Promise<T> {
+    const prior = this.lockTail;
+    let release: () => void = () => undefined;
+    this.lockTail = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    try {
+      await prior;
+      return await fn();
+    } finally {
+      release();
+    }
+  }
+
+  /** publish(slot, build) of §3.9 under the driver mutex; concurrent calls for one slot share one run. */
   private publish(slot: string, mk: (ctx: BuildCtx) => BuildTask): Promise<StoredMsg | null> {
     const prior = this.slotLocks.get(slot);
     if (prior !== undefined) return prior;
-    const p = this.publishUnlocked(slot, mk).finally(() => this.slotLocks.delete(slot));
+    this.busy++;
+    const p = this.withLock(() => this.publishLocked(slot, mk)).finally(() => {
+      this.slotLocks.delete(slot);
+      this.done();
+    });
     this.slotLocks.set(slot, p);
     return p;
   }
 
-  private async publishUnlocked(slot: string, mk: (ctx: BuildCtx) => BuildTask): Promise<StoredMsg | null> {
+  /**
+   * publish(slot, build) of §3.9, with the driver mutex held: re-put the
+   * journaled value if the slot exists, else build, sign, journal (atomically,
+   * keeping a value another driver of this seat journaled first) and put. A
+   * step message is never journaled once a cancel is (§3.7 rule 2). `ev`: the
+   * evaluation to build against (default: the latest).
+   */
+  private async publishLocked(slot: string, mk: (ctx: BuildCtx) => BuildTask, ev?: GameEval): Promise<StoredMsg | null> {
     this.busy++;
     try {
       const existing = await this.o.journal.get(this.scope, slot);
       if (this.stopped) return null;
-      if (existing !== null) {
-        const d = decodeCached(existing);
-        if ('error' in d) throw new Error(`corrupt journal entry ${slot}: ${d.error}`);
-        this.ingestOwn(d);
-        this.send(d);
-        return d;
-      }
-      const raw = await this.o.crypto.prove(mk(this.buildCtx()));
+      if (existing !== null) return this.resend(slot, existing);
+      const stepped = slot !== 'cancel' && slot !== 'reveal' && slot !== 'log';
+      if (stepped && await this.o.journal.get(this.scope, 'cancel') !== null) return null;
+      const ctx = this.buildCtx(slot, ev);
+      if (stepped && ctx.ev.pending?.step.id !== slot) throw new StaleStepError(`${slot} is no longer pending`);
+      const raw = await this.o.crypto.prove(mk(ctx));
       if (this.stopped) return null;
       if (!isEnvelopeLike(raw)) throw new Error('build returned no envelope');
       const env = parseEnvelope(raw);
+      if (stepped && env.step !== slot) throw new Error(`built a message for ${env.step} in slot ${slot}`);
       const enc = encodeEnvelope(env, this.o.signer);
-      if (await this.o.journal.get(this.scope, slot) !== null) return this.publishUnlockedExisting(slot);
-      await this.o.journal.put(this.scope, slot, enc.value);
+      if (stepped && await this.o.journal.get(this.scope, 'cancel') !== null) return null;
+      if (this.stopped) return null;
+      const stored = await this.o.journal.putIfAbsent(this.scope, slot, enc.value);
+      if (stored !== enc.value) return this.resend(slot, stored);
       if (env.type === 'key') this.keyed = true;
       const d: StoredMsg = { msgId: enc.msgId, env: parseEnvelope(JSON.parse(JSON.stringify(env))), value: enc.value, key: enc.key };
       primeDecoded(d);
@@ -414,11 +546,11 @@ export class SeatDriver {
     }
   }
 
-  private async publishUnlockedExisting(slot: string): Promise<StoredMsg | null> {
-    const existing = await this.o.journal.get(this.scope, slot);
-    if (existing === null) return null;
-    const d = decodeCached(existing);
-    if ('error' in d) return null;
+  /** Ingests and re-puts a journaled value. */
+  private resend(slot: string, value: string): StoredMsg {
+    const d = decodeCached(value);
+    if ('error' in d) throw new Error(`corrupt journal entry ${slot}: ${d.error}`);
+    if (d.env.type === 'key') this.keyed = true;
     this.ingestOwn(d);
     this.send(d);
     return d;
@@ -442,7 +574,7 @@ export class SeatDriver {
 
   private evaluateNow(): GameEval {
     const ev = reduceGame({
-      config: this.config, configId: this.configId, msgs: this.msgs, verdicts: this.verdicts,
+      config: this.config, configId: this.configId, lobbyId: this.o.lobbyId, msgs: this.msgs, verdicts: this.verdicts,
       conflictingConfigs: this.conflicting, configAuthor: this.o.configAuthor,
     });
     this.ev = ev;
@@ -515,7 +647,8 @@ export class SeatDriver {
         try {
           await this.actOnce();
         } catch (e) {
-          this.o.onError?.(e);
+          // A stale automatic decision is retried on the next evaluation; anything else is reported.
+          if (!(e instanceof StaleStepError)) this.o.onError?.(e);
         }
       } while (this.actAgain && !this.stopped);
     } finally {
@@ -533,7 +666,7 @@ export class SeatDriver {
       this.keyed = true;
       if (await this.o.journal.get(this.scope, 'reveal') === null) {
         for (const id of ev.terminal.basis) {
-          const m = this.msgs.get(id);
+          const m = this.known(id);
           if (m !== undefined) this.send(m);
         }
       }
@@ -549,31 +682,34 @@ export class SeatDriver {
       }
       return;
     }
-    if (ev.pendingReveals.length > 0) return;
+    if (ev.pendingReveals.length > 0 || this.cancelling) return;
     if (await this.o.journal.get(this.scope, 'cancel') !== null) return;
     const p = ev.pending;
     if (p === null || !p.gateOpen || !p.missing.includes(this.seat)) return;
     if (p.step.kind === 'setup' || p.step.kind === 'automatic') await this.publishAutomatic(p.step);
   }
 
-  private async publishAutomatic(step: StepDef): Promise<void> {
+  /** This seat's message for an automatic or setup step; `locked`: the caller holds the driver mutex. */
+  private async publishAutomatic(step: StepDef, locked = false): Promise<void> {
+    const pub = (mk: (ctx: BuildCtx) => BuildTask): Promise<StoredMsg | null> =>
+      (locked ? this.publishLocked(step.id, mk) : this.publish(step.id, mk));
     switch (step.type) {
       case 'key':
-        await this.publish(step.id, (ctx) => ({ kind: 'build', fn: 'key', ctx }));
+        await pub((ctx) => ({ kind: 'build', fn: 'key', ctx }));
         return;
       case 'shuffle':
-        await this.publish(step.id, (ctx) => ({ kind: 'build', fn: 'shuffle', ctx }));
+        await pub((ctx) => ({ kind: 'build', fn: 'shuffle', ctx }));
         return;
       case 'deal':
-        await this.publish(step.id, (ctx) => ({ kind: 'build', fn: 'deal', ctx }));
+        await pub((ctx) => ({ kind: 'build', fn: 'deal', ctx }));
         return;
       case 'ot.recv':
         if (this.priv === null) return;
-        await this.publish(step.id, (ctx) => ({ kind: 'build', fn: 'otRecv', ctx }));
+        await pub((ctx) => ({ kind: 'build', fn: 'otRecv', ctx }));
         return;
       case 'ot.send':
         if (this.priv === null) return;
-        await this.publish(step.id, (ctx) => ({ kind: 'build', fn: 'otSend', ctx }));
+        await pub((ctx) => ({ kind: 'build', fn: 'otSend', ctx }));
         return;
       case 'vote.reveal': {
         const commitValue = await this.o.journal.get(this.scope, step.id.replace(/^vr\//, 'vc/'));
@@ -581,11 +717,11 @@ export class SeatDriver {
         const d = decodeCached(commitValue);
         if ('error' in d || d.env.type !== 'vote.commit') return;
         const commitEnv = d.env as Envelope<'vote.commit'>;
-        await this.publish(step.id, (ctx) => ({ kind: 'build', fn: 'voteReveal', ctx, commitEnv }));
+        await pub((ctx) => ({ kind: 'build', fn: 'voteReveal', ctx, commitEnv }));
         return;
       }
       case 'tally':
-        await this.publish(step.id, (ctx) => ({ kind: 'build', fn: 'tally', ctx }));
+        await pub((ctx) => ({ kind: 'build', fn: 'tally', ctx }));
         return;
       default:
         return;
