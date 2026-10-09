@@ -1,24 +1,27 @@
 {
   "name": "@avalon/common",
   "version": "1.0.0",
-  "description": "Shared game logic for Avalon",
-  "main": "dist/index.js",
-  "types": "index.ts",
+  "description": "Shared game logic and peer-to-peer protocol for Avalon",
   "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./index.ts",
+    "./avalonlib": "./avalonlib.ts",
+    "./crypto": "./crypto/index.ts",
+    "./protocol": "./protocol/index.ts",
+    "./testing": "./testing/index.ts"
+  },
   "scripts": {
-    "build": "tsc"
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test \"**/*.test.ts\"",
+    "bench": "node --import tsx crypto/bench.ts"
+  },
+  "dependencies": {
+    "@noble/curves": "^2.4.0",
+    "@noble/hashes": "^2.4.0"
   },
   "devDependencies": {
+    "tsx": "^4.23.15",
     "typescript": "^6.0.3"
-  },
-  "exports": {
-    ".": {
-      "types": "./index.ts",
-      "default": "./dist/index.js"
-    },
-    "./avalonlib": {
-      "types": "./avalonlib.ts",
-      "default": "./dist/avalonlib.js"
-    }
   }
 }
