@@ -1,21 +1,25 @@
 {
   "name": "@avalon/server",
+  "private": true,
+  "type": "module",
+  "description": "Untrusted GUN relay and static host for Avalon (docs/p2p-protocol.md §8)",
   "scripts": {
     "start": "tsx server.ts",
     "serve": "tsx watch server.ts",
-    "lint": "eslint *.ts && tsc --noEmit",
-    "typecheck": "tsc --noEmit"
+    "bundle": "tsx bundle.ts",
+    "lint": "eslint . && tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test relay.test.ts",
+    "smoke": "tsx smoke.ts"
   },
   "dependencies": {
-    "@avalon/common": "workspace:^",
     "express": "^5.2.1",
-    "express-rate-limit": "^8.7.0",
-    "firebase-admin": "^14.5.0",
-    "lodash": "^4.18.1"
+    "gun": "github:georgyo/gun#6fccabecd0a51fce43cb500602d96494543805a9"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
-    "@types/lodash": "^4.17.25",
+    "@types/node": "^26.6.3",
+    "esbuild": "^0.28.2",
     "eslint": "^10.11.0",
     "tsx": "^4.23.15",
     "typescript": "^6.0.3"

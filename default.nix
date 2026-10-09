@@ -20,6 +20,9 @@ let
     ".doltcfg"
     ".github"
     "Dockerfile"
+    "result"
+    "dist-server"
+    "radata"
   ];
 in
 stdenv.mkDerivation (finalAttrs: {
@@ -59,13 +62,13 @@ stdenv.mkDerivation (finalAttrs: {
     nodejs
     yarn-berry_4
     yarn-berry_4.yarnBerryConfigHook
-    # python3 is needed for node-gyp native module builds (e.g. re2) that run
-    # during the build-step of `yarn install`.
+    # python3 is needed for node-gyp native module builds that may run during
+    # the build step of `yarn install`.
     python3
   ];
 
-  # Force native modules (re2, etc.) to build from source rather than fetch
-  # prebuilt binaries over the (disabled) network.
+  # Force native modules to build from source rather than fetch prebuilt
+  # binaries over the (disabled) network.
   env.npm_config_build_from_source = "true";
 
   buildPhase = ''
@@ -73,24 +76,52 @@ stdenv.mkDerivation (finalAttrs: {
 
     yarn workspace @avalon/server typecheck
     yarn build
+    # Single-file ESM bundle of the relay (server.ts + gun + gun/sea + express),
+    # with gun-shim.ts so that SEA works inside the bundle (docs/p2p-protocol.md §8).
     yarn bundle:server
 
     runHook postBuild
   '';
 
+  # The bundled relay must pass its boot self-test (SEA + input filter) outside
+  # node_modules, exactly as installed. Loopback networking only.
+  doInstallCheck = true;
+  installCheckPhase = ''
+    runHook preInstallCheck
+
+    export TMPDIR="$(mktemp -d)"
+    GUN_DIR="$TMPDIR/radata" PORT=0 HOST=127.0.0.1 \
+      '${nodejs}/bin/node' "$out/lib/avalon/server.js" > "$TMPDIR/relay.log" 2>&1 &
+    relay=$!
+    for _ in $(seq 1 60); do
+      if grep -q 'listening on port' "$TMPDIR/relay.log"; then break; fi
+      if ! kill -0 "$relay" 2>/dev/null; then break; fi
+      sleep 0.5
+    done
+    cat "$TMPDIR/relay.log"
+    grep -q 'Relay self-test passed' "$TMPDIR/relay.log"
+    grep -q 'listening on port' "$TMPDIR/relay.log"
+    kill "$relay"
+    wait "$relay" || true
+
+    runHook postInstallCheck
+  '';
+
   installPhase = ''
     runHook preInstall
 
-    # Install only the bundled server and client dist.
+    # Install only the bundled relay and the client dist.
     mkdir -p $out/lib/avalon
 
-    # Copy the bundled server (single file).
+    # The bundled relay (single file, includes gun, gun/sea and the shim).
     cp dist-server/server.js $out/lib/avalon/server.js
 
-    # Copy the built client assets next to the server.
+    # The built SPA next to it (server.js serves ./dist relative to itself).
     cp -r server/dist $out/lib/avalon/dist
 
-    # Create bin wrapper.
+    # bin wrapper. The radisk directory defaults to ./radata relative to the
+    # working directory, which must be writable: set GUN_DIR to a persistent
+    # volume (the container uses /data/radata).
     mkdir -p $out/bin
     cat > $out/bin/avalon-server <<WRAPPER
     #!/bin/sh
