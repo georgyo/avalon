@@ -28,7 +28,7 @@ export default defineComponent({
   },
   data() {
     return {
-      handlers: {} as Record<string, (data?: string) => void>
+      handlers: {} as Record<string, (data: unknown) => void>
     }
   },
   mounted() {
@@ -52,14 +52,14 @@ export default defineComponent({
       TEAM_PROPOSED: () => {
         this.toast(`${this.avalon.lobby.game.currentProposal.proposer} has proposed a team`);
       },
-      PLAYER_LEFT: (name?: string) => {
-        this.toast(`${name} left the lobby`);
+      PLAYER_LEFT: (name: unknown) => {
+        this.toast(`${String(name)} left the lobby`);
       },
-      PLAYER_JOINED: (name?: string) => {
-        this.toast(`${name} joined the lobby`);
+      PLAYER_JOINED: (name: unknown) => {
+        this.toast(`${String(name)} joined the lobby`);
       },
-      DISCONNECTED_FROM_LOBBY: (lobby?: string) => {
-        this.toast(`You've been disconnected from ${lobby}`);
+      DISCONNECTED_FROM_LOBBY: (lobby: unknown) => {
+        this.toast(`You've been disconnected from ${String(lobby)}`);
       }
     };
     for (const [event, handler] of Object.entries(this.handlers)) {

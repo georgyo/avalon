@@ -8,7 +8,7 @@
         {{ roleOf(player) == 'UNKNOWN' ? '?' : roleOf(player) }}
       </td>
       <template v-for='mission in missions'>
-        <td v-for='proposal in mission.proposals.filter(p => p.team.length > 0)'
+        <td v-for='proposal in mission.proposals.filter((p: { team: string[] }) => p.team.length > 0)'
          :key='player + "_proposal" + missions.indexOf(mission) + "_" + mission.proposals.indexOf(proposal)'>
         <font-awesome-layers>
           <font-awesome-icon v-if='proposal.proposer == player'
@@ -25,7 +25,9 @@
       </td>
       <td v-if='missionVotes' :key='player + "_mission" + missions.indexOf(mission)' class='mission-result'>
         <template v-if='mission.team.includes(player)'>
-          <span v-if='missionVote(mission, player) === undefined' class='vote-unknown' title='Vote unknown (not revealed)'>?</span>
+          <span v-if='missionVote(mission, player) === undefined && mission.state == "PENDING"' class='vote-unknown'
+            title='No vote (the game ended during this mission)'>–</span>
+          <span v-else-if='missionVote(mission, player) === undefined' class='vote-unknown' title='Vote unknown (not revealed)'>?</span>
           <v-icon size="small" v-else-if='missionVote(mission, player)'
             color='green' icon="fa:fas fa-check-circle" />
           <v-icon size="small" v-else color="red" icon="fa:fas fa-times-circle" />

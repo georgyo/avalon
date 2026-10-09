@@ -65,7 +65,8 @@
 
           update-deps = pkgs.writeShellApplication {
             name = "update-deps";
-            runtimeInputs = [ pkgs.yarn-berry_4.yarn-berry-fetcher ];
+            # nix-prefetch-git: yarn-berry-fetcher shells out to it for git dependencies (gun).
+            runtimeInputs = [ pkgs.yarn-berry_4.yarn-berry-fetcher pkgs.nix-prefetch-git ];
             text = ''
               if [ ! -f yarn.lock ] || [ ! -f default.nix ]; then
                 echo "error: run this from the repository root (need yarn.lock and default.nix)" >&2
@@ -120,6 +121,25 @@
               runHook preBuild
               export HOME="$TMPDIR"
               yarn test:unit
+              runHook postBuild
+            '';
+            doInstallCheck = false;
+            installPhase = ''
+              runHook preInstall
+              touch $out
+              runHook postInstall
+            '';
+          });
+
+          # `nix flake check` also runs checks.lint: ESLint over the whole repository and the type
+          # checks of every workspace (common: tsc; client: vue-tsc, .vue SFCs included; server: tsc).
+          checks.lint = pkgs.avalon-online.overrideAttrs (_old: {
+            name = "avalon-lint";
+            buildPhase = ''
+              runHook preBuild
+              export HOME="$TMPDIR"
+              yarn lint
+              yarn typecheck
               runHook postBuild
             '';
             doInstallCheck = false;

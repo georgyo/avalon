@@ -1,10 +1,18 @@
-// vite.config.js
+// vite.config.mjs (ESM: the CommonJS config loader is deprecated)
 
 import { defineConfig } from 'vite'
 import vue from "@vitejs/plugin-vue";
 import vuetify from "vite-plugin-vuetify";
 
-import path from "path";
+import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
+
+const require = createRequire(import.meta.url);
+const srcDir = fileURLToPath(new URL('./src', import.meta.url));
+// vuedraggable's UMD build does `require("vue")`, which resolves through Vue's `require` condition to
+// vue.cjs.prod.js and drags the template compiler (@vue/compiler-dom/-core) into the bundle although
+// every template is precompiled. Pin `vue` to the runtime-only ESM build.
+const vueRuntime = require.resolve('vue/dist/vue.runtime.esm-bundler.js');
 
 // The relay (server/server.ts) serves the GUN websocket on /gun and /api/relay-info. In development
 // both are proxied to a locally running relay (`yarn start`, port 8001); the e2e stack
@@ -38,12 +46,24 @@ export default defineConfig({
   build: {
     outDir: '../server/dist',
     emptyOutDir: true,
+    rolldownOptions: {
+      output: {
+        // Third-party code in its own long-cached chunks (it changes less often than the app).
+        codeSplitting: {
+          groups: [
+            { name: 'vuetify', test: /node_modules[\\/]vuetify/ },
+            { name: 'vendor', test: /node_modules[\\/](vue|@vue|gun|@noble|@fortawesome|lodash-es|mitt|vue-toastification|vuedraggable|sortablejs)[\\/]/ },
+          ],
+        },
+      },
+    },
   },
   resolve: {
     extensions: ['.mjs', '.js', '.ts', '.jsx', '.tsx', '.json', '.vue'],
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
-    },
+    alias: [
+      { find: /^vue$/, replacement: vueRuntime },
+      { find: '@', replacement: srcDir },
+    ],
     dedupe: ['vue', 'vuetify'],
   },
   // @avalon/common is source-only TypeScript (§11.1): Vite compiles it like the app's own sources, so it

@@ -63,6 +63,9 @@ export default defineComponent({
       }
   },
   computed: {
+      gameState(): string | null {
+          return this.avalon.lobby && this.avalon.lobby.connected ? this.avalon.lobby.game.state : null;
+      },
       title() {
           switch (this.avalon.game.outcome.state) {
               case 'GOOD_WIN': return 'Good wins!';
@@ -102,15 +105,28 @@ export default defineComponent({
           this.endGameDialog = false;
       }
   },
+  watch: {
+      // The fullscreen, persistent dialog would otherwise stay up, empty, once the admin starts the
+      // next game (ENDED -> INIT setup), blocking the toolbar during the whole setup.
+      gameState(state: string | null) {
+          if (state != 'ENDED') this.endGameDialog = false;
+      }
+  },
   mounted() {
-      this.onGameEnded = () => { this.endGameDialog = true; };
-      this.onGameStarted = () => { this.endGameDialog = false; };
-      EventBus.on('GAME_ENDED', this.onGameEnded);
-      EventBus.on('GAME_STARTED', this.onGameStarted);
+      const onGameEnded = () => { this.endGameDialog = true; };
+      const onGameStarted = () => { this.endGameDialog = false; };
+      this.onGameEnded = onGameEnded;
+      this.onGameStarted = onGameStarted;
+      EventBus.on('GAME_ENDED', onGameEnded);
+      EventBus.on('GAME_STARTED', onGameStarted);
+      EventBus.on('GAME_SETUP', onGameStarted);
   },
   beforeUnmount() {
-      EventBus.off('GAME_ENDED', this.onGameEnded);
-      EventBus.off('GAME_STARTED', this.onGameStarted);
+      if (this.onGameEnded) EventBus.off('GAME_ENDED', this.onGameEnded);
+      if (this.onGameStarted) {
+          EventBus.off('GAME_STARTED', this.onGameStarted);
+          EventBus.off('GAME_SETUP', this.onGameStarted);
+      }
   }
 })
 </script>

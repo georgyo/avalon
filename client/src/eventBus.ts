@@ -5,6 +5,7 @@ type Events = {
   LOBBY_NEW_ADMIN: void
   GAME_STARTED: void
   GAME_ENDED: void
+  GAME_SETUP: void
   MISSION_RESULT: void
   PROPOSAL_REJECTED: void
   PROPOSAL_APPROVED: void

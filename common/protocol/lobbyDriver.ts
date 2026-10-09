@@ -7,15 +7,19 @@
  *
  * Additions to the §11.2 constructor: an optional `now()` for envelope `t`
  * (protocol code has no clock, §11.1; the client passes its drift-corrected
- * clock, default 0). Additional helpers: `state`, `ready()`, `messages()`,
- * `candidates()`, `ingest()`. Publishing does not wait for the relay echo.
+ * clock, default 0), `openAdmission` (tests: admit every valid join without a
+ * ticket) and `keyComplete` (reclaim and takeover checks, §4.5). Additional
+ * helpers: `state`, `ready()`, `messages()`, `candidates()`, `ingest()`,
+ * `inviteKey()`, `approve()`, `decline()`, `awaitingApproval()`,
+ * `rerunAutomation()`. Publishing does not wait for the relay echo.
  */
 import { b64uEncode, randomBytes } from '../crypto/bytes.ts';
-import type { Hex32, Pub } from '../crypto/types.ts';
+import type { B64, Hex32, Pub } from '../crypto/types.ts';
+import { decodeCached } from './driver.ts';
 import { decodeEnvelope, encodeEnvelope, lobbySoul, soulOf, type Signer } from './envelope.ts';
 import {
-  adminNextAction, candidates as lobbyCandidates, memberOf, reduceLobby, rejectionMessage,
-  type LobbyCandidate, type LobbyState,
+  adminNextAction, awaitingApproval, candidates as lobbyCandidates, inviteKeyOf, inviteTicket, memberOf, reduceLobby,
+  rejectionMessage, type LobbyCandidate, type LobbyState,
 } from './lobby.ts';
 import { MAX_PLAYERS, MIN_PLAYERS, RULES_HASH, validateName, validateSelectedRoles } from './rules.ts';
 import type { Bodies, Envelope, GameConfig, Journal, LobbyMsgType, StoredMsg, Transport } from './types.ts';
@@ -34,6 +38,10 @@ export interface LobbyDriverOptions {
   journal: Journal;
   onState(s: LobbyState): void;
   now?: () => number;
+  /** Admit every valid join automatically, ticket or not (tests and simulations; default false, §4.3). */
+  openAdmission?: boolean;
+  /** Whether step `key` of a config completed on this device (§4.5 reclaim). */
+  keyComplete?: (configId: Hex32) => boolean;
 }
 
 export class LobbyDriver {
@@ -46,6 +54,8 @@ export class LobbyDriver {
   private readonly now: () => number;
   private readonly soul: string;
   private readonly msgs = new Map<Hex32, StoredMsg>();
+  /** GUN keys of the accepted messages. */
+  private readonly keys = new Set<Hex32>();
   private unsub: (() => void) | null = null;
   private current: LobbyState | null = null;
   private gameActive = false;
@@ -55,6 +65,11 @@ export class LobbyDriver {
   private waiters: Waiter[] = [];
   private readyWaiters: { resolve: (s: LobbyState) => void; reject: (e: Error) => void }[] = [];
   private lastT = 0;
+  private readonly openAdmission: boolean;
+  private readonly keyComplete: (configId: Hex32) => boolean;
+  private inviteKeyBytes: Uint8Array | null = null;
+  private readonly approved = new Set<Hex32>();
+  private readonly declined = new Set<Hex32>();
 
   constructor(o: LobbyDriverOptions) {
     this.code = o.code;
@@ -65,6 +80,8 @@ export class LobbyDriver {
     this.journal = o.journal;
     this.onStateCb = o.onState;
     this.now = o.now ?? (() => 0);
+    this.openAdmission = o.openAdmission === true;
+    this.keyComplete = o.keyComplete ?? ((): boolean => false);
   }
 
   get lobbyId(): Hex32 | null {
@@ -79,6 +96,11 @@ export class LobbyDriver {
   /** Every verified message of this code's soul, in ingestion order. */
   messages(): StoredMsg[] {
     return [...this.msgs.values()];
+  }
+
+  /** Whether a value with this GUN key was ingested (verified and kept). */
+  accepted(key: string): boolean {
+    return this.keys.has(key);
   }
 
   /** The lobbies currently using this code (§4.3). */
@@ -113,7 +135,11 @@ export class LobbyDriver {
   /** Ingestion pipeline (§3.4): returns true if the message was new and valid. */
   ingest(soul: string, key: string, value: string): boolean {
     if (soul !== this.soul) return false;
-    const d = decodeEnvelope(value, key);
+    // Before the signature check: only this code's creates and, once the lobby is known, its own messages.
+    const lobbyId = this.lobbyIdValue;
+    const d = decodeCached(value, key, (env) => (env.type === 'lobby.create'
+      ? (env.body as Bodies['lobby.create']).code === this.code
+      : lobbyId === null || env.lobby === lobbyId));
     if ('error' in d) return false;
     let expected: string;
     try {
@@ -125,6 +151,7 @@ export class LobbyDriver {
     if (d.env.type === 'lobby.create' && (d.env.body as Bodies['lobby.create']).code !== this.code) return false;
     if (this.msgs.has(d.msgId)) return false;
     this.msgs.set(d.msgId, d);
+    this.keys.add(d.key);
     this.scheduleEval();
     return true;
   }
@@ -153,21 +180,68 @@ export class LobbyDriver {
     return lobbyId;
   }
 
-  /** Resolves when a roster on the head chain admits this join; rejects with Error(reason). */
-  async join(name: string): Promise<void> {
+  /** This admin's invite key (§4.3), for the invite link; null before the lobby is known. */
+  inviteKey(): B64 | null {
+    const key = this.inviteKeyRaw();
+    return key === null ? null : b64uEncode(key);
+  }
+
+  private inviteKeyRaw(): Uint8Array | null {
+    const lobbyId = this.lobbyIdValue;
+    if (lobbyId === null) return null;
+    this.inviteKeyBytes ??= inviteKeyOf(this.signer, lobbyId);
+    return this.inviteKeyBytes;
+  }
+
+  /** Join requests that wait for this admin's approval (§4.3); empty unless this device is the admin. */
+  awaitingApproval(): { joinId: Hex32; pub: Pub; name: string }[] {
+    const s = this.current;
+    const key = this.inviteKeyRaw();
+    if (s === null || key === null || s.head.admin !== this.signer.pub || this.openAdmission) return [];
+    return awaitingApproval(s, key).filter((j) => !this.approved.has(j.joinId) && !this.declined.has(j.joinId));
+  }
+
+  /** The admin admits a join request without a ticket (§4.3); the next automatic roster lists it. */
+  approve(joinId: Hex32): void {
+    this.requireAdmin();
+    this.approved.add(joinId);
+    this.declined.delete(joinId);
+    this.scheduleEval();
+  }
+
+  /** The admin declines a join request (reason 'declined'). */
+  decline(joinId: Hex32): void {
+    this.requireAdmin();
+    this.declined.add(joinId);
+    this.approved.delete(joinId);
+    this.scheduleEval();
+  }
+
+  /** Re-runs the admin automation (e.g. after a game's key step completed: §4.5 reclaim). */
+  rerunAutomation(): void {
+    if (this.unsub !== null && this.current !== null) void this.runAutomation();
+  }
+
+  /**
+   * Resolves when a roster on the head chain admits this join; rejects with Error(reason).
+   * `inviteKey`: the key of the invite link; the join then carries a ticket and is admitted
+   * automatically, otherwise it waits for the admin's approval (§4.3).
+   */
+  async join(name: string, inviteKey?: Uint8Array): Promise<void> {
     const lobbyId = this.requireLobby();
     if (validateName(name) !== null) throw new Error('Invalid name');
     const s = await this.ready();
     if (s.head.closed) throw new Error(`Lobby ${this.code} is closed`);
     const me = memberOf(s, this.signer.pub);
     if (me !== undefined && !s.leaves.has(this.signer.pub)) return;
+    const ticket = inviteKey === undefined ? null : inviteTicket(inviteKey, lobbyId, this.signer.pub);
     let joinId: Hex32 | null = null;
     for (const [id, j] of s.joins) {
-      if (j.pub === this.signer.pub && j.name === name && j.status === 'pending') joinId = id;
+      if (j.pub === this.signer.pub && j.name === name && j.status === 'pending' && (ticket === null || j.ticket === ticket)) joinId = id;
     }
     if (joinId === null) {
       const t = Math.max(this.nextT(), this.lastOwnJoinT(s) + 1);
-      const env = this.envelope('lobby.join', lobbyId, '', { name }, t);
+      const env = this.envelope('lobby.join', lobbyId, '', ticket === null ? { name } : { name, ticket }, t);
       const enc = encodeEnvelope(env, this.signer);
       joinId = enc.msgId;
       await this.journal.put(lobbyId, 'join/' + joinId, enc.value);
@@ -248,7 +322,16 @@ export class LobbyDriver {
       options: { inGameLog: options.inGameLog },
       rulesHash: RULES_HASH,
     };
-    const env = this.envelope('lobby.config', lobbyId, s.head.rosterId, config);
+    // A config based on a roster another config already used could lose the §4.6.4 tie-break (lowest
+    // msgId) to the old, terminal game: base the new one on a fresh no-op roster, so it is the only
+    // config at the highest roster seq.
+    let base = s.head.rosterId;
+    if ([...s.configs.values()].some((c) => c.rosterId === base)) {
+      base = await this.publishRoster(lobbyId, base, {
+        seq: s.head.seq + 1, admin: this.signer.pub, members: s.head.members.map((m) => ({ ...m })), rejected: [], closed: false,
+      });
+    }
+    const env = this.envelope('lobby.config', lobbyId, base, config);
     const msgId = await this.publish(lobbyId, 'config/' + config.gameId, env);
     this.gameActive = true;
     return msgId;
@@ -385,7 +468,10 @@ export class LobbyDriver {
         const s = this.evaluateNow();
         const lobbyId = this.lobbyIdValue;
         if (s === null || lobbyId === null || this.unsub === null) break;
-        const action = adminNextAction(s, this.signer.pub, this.gameActive);
+        const inviteKey = this.openAdmission ? undefined : this.inviteKeyRaw() ?? undefined;
+        const action = adminNextAction(s, this.signer.pub, this.gameActive, {
+          inviteKey, approved: this.approved, declined: this.declined, keyComplete: this.keyComplete,
+        });
         if (action.kind === 'none') continue;
         await this.publishRoster(lobbyId, action.prev ?? s.head.rosterId, action.body);
         const after = this.evaluateNow();

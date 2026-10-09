@@ -14,10 +14,11 @@ interface Peer { name: string; signer: Signer; driver: LobbyDriver; journal: Mem
 
 let fakeNow = 1760000000000;
 
-function peer(relay: FakeRelay, i: number, lobbyId: Hex32 | null, journal = new MemJournal()): Peer {
+function peer(relay: FakeRelay, i: number, lobbyId: Hex32 | null, journal = new MemJournal(), openAdmission = true): Peer {
   const states: LobbyState[] = [];
   const driver = new LobbyDriver({
     code: CODE, lobbyId, signer: SIGNERS[i], transport: relay.peer(), journal, onState: (s) => states.push(s), now: () => fakeNow++,
+    openAdmission,
   });
   driver.start();
   return { name: NAMES[i], signer: SIGNERS[i], driver, journal, states };

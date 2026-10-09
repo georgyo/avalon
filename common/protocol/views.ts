@@ -61,6 +61,8 @@ export interface LobbyData {
   admin: { uid: string; name: string };
   users: Record<string, LobbyUser>;
   game: GameData;
+  /** Admin only: join requests without an invite ticket, waiting for approval (§4.3). */
+  requests?: { joinId: string; name: string }[];
 }
 
 export interface RoleDoc { role: Role; assassin: boolean; sees?: string[] }

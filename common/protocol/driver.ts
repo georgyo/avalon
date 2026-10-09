@@ -91,13 +91,13 @@ const decodedCache = new Lru<Hex32, StoredMsg>(1 << 12);
  * pure function of the value, and the GUN key is its SHA-256, so re-deliveries
  * (echoes, republishes, other drivers in one process) skip the ECDSA check.
  */
-export function decodeCached(value: string, key?: string): StoredMsg | { error: string } {
+export function decodeCached(value: string, key?: string, admit?: (env: Envelope) => boolean): StoredMsg | { error: string } {
   if (typeof value !== 'string') return { error: 'value is not a string' };
   const k = gunKeyOf(value);
   if (key !== undefined && key !== k) return { error: 'key is not the hash of the value' };
   const hit = decodedCache.get(k);
-  if (hit !== undefined && hit.value === value) return hit;
-  const d = decodeEnvelope(value, k);
+  if (hit !== undefined && hit.value === value) return admit === undefined || admit(hit.env) ? hit : { error: 'not admitted' };
+  const d = decodeEnvelope(value, k, admit);
   if (!('error' in d)) decodedCache.set(k, d);
   return d;
 }
@@ -148,6 +148,7 @@ export class SeatDriver {
   private cancelInFlight: Promise<void> | null = null;
   /** Basis msgIds of the journaled reveal still to re-put once known (§7.7, after a reload). */
   private readonly basisToResend = new Set<Hex32>();
+  private readonly seatPubs: ReadonlySet<Pub>;
 
   constructor(o: SeatDriverOptions) {
     this.o = o;
@@ -159,6 +160,7 @@ export class SeatDriver {
     this.playSoul = gameSoul(o.config.gameId, 'play');
     this.verdicts = o.verdictCache ?? new Map();
     this.conflicting = [...(o.conflictingConfigs ?? [])];
+    this.seatPubs = new Set(o.config.seats.map((x) => x.pub));
     if (o.config.seats[o.seat]?.pub !== o.signer.pub) throw new Error('SeatDriver: the signer is not seated at this seat');
   }
 
@@ -212,9 +214,10 @@ export class SeatDriver {
   ingest(soul: string, key: string, value: string): boolean {
     if (this.stopped) return false;
     if (soul !== this.setupSoul && soul !== this.playSoul) return false;
-    const d = decodeCached(value, key);
+    // Parsed but not yet verified: only this game's messages by its seats reach the ECDSA check, so
+    // junk under the game souls (anyone may write there) costs every seat no verification and is not kept.
+    const d = decodeCached(value, key, (env) => env.game === this.config.gameId && this.seatPubs.has(env.author));
     if ('error' in d) return false;
-    if (d.env.game !== this.config.gameId) return false;
     let expected: string;
     try {
       expected = soulOf(d.env, this.o.lobbyCode);
@@ -320,8 +323,9 @@ export class SeatDriver {
     await this.publish(p.step.id, (ctx) => ({ kind: 'build', fn: 'ballot', ctx, success }));
   }
 
+  /** Assassination (§5.10); allowed while a reveal is pending (see buildAssassinate). */
   async assassinate(targetSeat: number): Promise<void> {
-    const ev = this.requireRunning();
+    const ev = this.requireRunning(true);
     const p = ev.pending;
     if (p === null || p.step.type !== 'assassinate') throw new Error('Not in assassination phase');
     if (this.priv === null || !this.priv.label.assassin) throw new Error('You are not the assassin');
@@ -427,11 +431,11 @@ export class SeatDriver {
     return this.ev ?? this.evaluateNow();
   }
 
-  private requireRunning(): GameEval {
+  private requireRunning(allowPendingReveals = false): GameEval {
     const ev = this.requireEval();
     if (this.cancelling) throw new Error('Canceling the game');
     if (ev.terminal !== null) throw new Error('The game is over');
-    if (ev.pendingReveals.length > 0) throw new Error('Waiting for messages cited by a reveal');
+    if (ev.pendingReveals.length > 0 && !allowPendingReveals) throw new Error('Waiting for messages cited by a reveal');
     if (this.o.secrets === null) throw new Error('This browser lost the secret keys for this game');
     return ev;
   }

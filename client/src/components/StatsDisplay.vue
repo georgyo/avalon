@@ -34,12 +34,6 @@
           <td>{{ evil_win_rate }}</td>
           <td>{{ win_rate }}</td>
         </tr>
-        <tr v-if='globalStats'>
-          <td class='font-weight-medium'>All Users</td>
-          <td>{{ global_good_win_rate }}</td>
-          <td>{{ global_evil_win_rate }}</td>
-          <td></td>
-        </tr>
     </tbody>
   </table>
   <div class="pt-2">
@@ -52,7 +46,8 @@ import { defineComponent } from 'vue'
 
 export default defineComponent({
   name: 'StatsDisplay',
-  props: [ 'stats', 'globalStats' ],
+  // Local stats only: there is no server-side global stats in the P2P design (§6, §11.3).
+  props: [ 'stats' ],
   computed: {
       games(): number { return this.stats?.games ?? 0 },
       good(): number { return this.stats?.good ?? 0 },
@@ -63,8 +58,6 @@ export default defineComponent({
       win_rate(): string { return this.games ? (100 * this.wins / this.games).toFixed(0)  + '%' : 'N/A' },
       good_win_rate(): string { return this.good ? (100 * this.good_wins / this.good).toFixed(0) + '%' : 'N/A' },
       evil_win_rate(): string { return this.evil ? (100 * this.evil_wins / this.evil).toFixed(0) + '%' : 'N/A' },
-      global_good_win_rate(): string { return (100 * this.globalStats.good_wins / this.globalStats.games).toFixed(0) + '%' },
-      global_evil_win_rate(): string { return (100 * (this.globalStats.games - this.globalStats.good_wins) / this.globalStats.games).toFixed(0) + '%' },
       playtime(): string {
         const seconds = this.stats?.playtimeSeconds ?? 0;
         const hours = seconds / 60 / 60;

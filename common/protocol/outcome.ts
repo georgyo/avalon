@@ -222,7 +222,42 @@ export function resolveReveals(config: GameConfig, ev: GameEval, msgs: ReadonlyM
     }
     votes[m] = vm;
   });
+  // A game that ended during MISSION_VOTE (a cancel at mv/m): the ballots already cast are not on the
+  // chain, but with every key revealed they open like any other (§5.12), as the legacy server showed them.
+  const cur = s.cursor;
+  if (cur.t === 'mv' && allX !== null) {
+    const ms = s.missions[cur.m];
+    if (ms !== undefined && ms.team !== null && ms.ballots === null) {
+      const vm = new Map<number, 0 | 1>();
+      for (const [seat, b] of partialBallots(config, ev, msgs, cur.m, ms.team)) {
+        const X = dpt(b.b).subtract(mulPub(dpt(b.a), allX));
+        const w = X.equals(O) ? 0 : X.equals(G) ? 1 : null;
+        if (w === null) continue;
+        vm.set(seat, w);
+        const l = labels[seat];
+        if (w === 1 && l !== null && teamOf(l.role) === 'good') audit.push({ seat, reason: 'audit: good player failed a mission' });
+      }
+      votes[cur.m] = vm;
+    }
+  }
   return { cards, labels, teams, unresolved, votes, revealed, invalidReveals: invalid, audit };
+}
+
+/** The ballots cast at the pending `mv/m` (prev = the head digest), one per team seat; equivocating seats are left out. */
+function partialBallots(config: GameConfig, ev: GameEval, msgs: ReadonlyMap<Hex32, StoredMsg>, m: number, team: readonly number[]):
+  Map<number, Bodies['ballot']['ballot']> {
+  const byseat = new Map<number, Bodies['ballot']['ballot'][]>();
+  for (const msg of msgs.values()) {
+    if (msg.env.game !== config.gameId || msg.env.type !== 'ballot' || msg.env.step !== `mv/${m}` || msg.env.prev !== ev.head) continue;
+    const seat = config.seats.findIndex((x) => x.pub === msg.env.author);
+    if (seat < 0 || !team.includes(seat)) continue;
+    const l = byseat.get(seat) ?? [];
+    l.push((msg.env.body as Bodies['ballot']).ballot);
+    byseat.set(seat, l);
+  }
+  const out = new Map<number, Bodies['ballot']['ballot']>();
+  for (const [seat, l] of byseat) if (l.length === 1) out.set(seat, l[0]);
+  return out;
 }
 
 const CANCEL_TEXT: Record<string, (name: string) => string> = {
@@ -241,7 +276,9 @@ export function computeOutcome(config: GameConfig, ev: GameEval, msgs: ReadonlyM
   // The outcome is a function of the evaluation and of the game's reveals and vote reveals (rule 5a).
   const extra: Hex32[] = [];
   for (const m of msgs.values()) {
-    if (m.env.game === config.gameId && (m.env.type === 'reveal' || (m.env.type === 'vote.reveal' && m.env.prev === ev.head))) extra.push(m.msgId);
+    if (m.env.game === config.gameId && (m.env.type === 'reveal' || ((m.env.type === 'vote.reveal' || m.env.type === 'ballot') && m.env.prev === ev.head))) {
+      extra.push(m.msgId);
+    }
   }
   const key = [config.gameId, ev.head, String(ev.shufflesVerified), term.kind, term.atStep, String(term.by), term.basis.join(','),
     term.faults.map((f) => `${f.seat}:${f.reason}`).join(','), JSON.stringify(term.cancel ?? null), extra.sort().join(',')].join('|');

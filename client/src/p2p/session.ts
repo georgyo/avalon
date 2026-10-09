@@ -13,7 +13,7 @@
 import { b64uDecode, b64uEncode, randomBytes } from '@avalon/common/crypto';
 import {
   checkConfig, computeUserStats, conflictingConfigs, decodeCached, emptyGameData, gameSoul, isSuperseded, lobbySoul,
-  memberOf, selectCurrentGame, soulOf, SeatDriver, validateName,
+  memberOf, parseInviteKey, selectCurrentGame, soulOf, SeatDriver, validateName,
   type CancelReason, type CryptoBackend, type GameConfig, type GameEval, type Hex32, type HistoryEntry,
   type LobbyCandidate, type LobbyData, type LobbyState, type LobbyUser, type Pub, type RoleDoc, type SeatView,
   type SetupProgress, type StoredMsg, type Transport, type UserStats, type Verdict, type VerifyJob, type ProveTask,
@@ -199,6 +199,12 @@ export class P2PSession {
   private everConnected = false;
   /** Configs this device dismissed (abandoned, superseded, conflicting record): not "active" for the lobby. */
   private readonly dismissed = new Set<Hex32>();
+  /** Local receipt time (timers.now()) of every lobby roster (§4.5 takeover settle window). */
+  private readonly rosterReceivedAt = new Map<Hex32, number>();
+  /** Configs refused temporarily (a recent takeover): re-evaluated at this local time. */
+  private readonly retryAt = new Map<Hex32, number>();
+  /** Removed from the head roster while seated in the lobby's running game: disconnect once it is over (§4.6.4). */
+  private removedWhilePlaying = false;
   private lastStatusKey = '';
   private closed = false;
   private readonly stops: (() => void)[] = [];
@@ -296,7 +302,23 @@ export class P2PSession {
 
   get profile(): LocalProfile | null {
     if (this.identity === null) return null;
-    return { uid: this.identity.pub, name: this.profileRec.name, lobby: this.profileRec.lobbyCode };
+    return { uid: this.identity.pub, name: this.displayName(), lobby: this.profileRec.lobbyCode };
+  }
+
+  /**
+   * This device's name as the lobby knows it: its seat in the current game, else its head-roster
+   * entry (both by pub), else the name it chose. The UI identifies "me" by name, so it must be the
+   * name the roster binds to this pub, never a local guess.
+   */
+  private displayName(): string | null {
+    const id = this.identity;
+    if (id === null) return this.profileRec.name;
+    const rt = this.currentRuntime();
+    const seat = rt?.config.seats.find((x) => x.pub === id.pub);
+    if (seat !== undefined) return seat.name;
+    const s = this.lobbyState;
+    const m = s === null ? undefined : memberOf(s, id.pub);
+    return m?.name ?? this.profileRec.name;
   }
 
   get status(): SessionStatus {
@@ -395,7 +417,12 @@ export class P2PSession {
     return found.candidates;
   }
 
-  async joinLobby(name: string, code: string, lobbyId?: Hex32): Promise<{ lobby: string }> {
+  /**
+   * Joins a lobby by code (§4.3). `lobbyId` (a prefix, from an invite link) narrows the candidates;
+   * `inviteKey` (the link's `k`) makes the join carry a ticket the admin's device admits
+   * automatically, otherwise the request waits for the admin's approval.
+   */
+  async joinLobby(name: string, code: string, lobbyId?: Hex32, inviteKey?: string): Promise<{ lobby: string }> {
     this.requireIdentity();
     const bad = validateName(name);
     if (bad !== null) throw new Error(bad);
@@ -418,8 +445,9 @@ export class P2PSession {
     this.joining = client;
     client.start();
     client.ingest(found.msgs);
+    const key = inviteKey === undefined || inviteKey === '' ? null : parseInviteKey(inviteKey);
     try {
-      await client.driver.join(name);
+      await client.driver.join(name, key ?? undefined);
     } catch (e) {
       client.stop();
       if (this.joining === client) this.joining = null;
@@ -481,6 +509,27 @@ export class P2PSession {
     if (m === undefined) throw new Error('No such player ' + name);
     if (m.pub === this.identity.pub) throw new Error("Can't kick yourself");
     await client.driver.kick(m.pub);
+  }
+
+  /** The invite of this lobby (§4.1, §4.3): code, lobbyId and, for the admin, the invite key (`k`). */
+  invite(): { code: string; lobbyId: Hex32; key: string | null } | null {
+    const client = this.lobby;
+    const s = this.lobbyState;
+    if (client === null || s === null) return null;
+    const isAdmin = s.head.admin === this.identity?.pub;
+    return { code: client.code, lobbyId: s.lobbyId, key: isAdmin ? client.driver.inviteKey() : null };
+  }
+
+  /** Admin: admits a join request that came without an invite ticket (§4.3). */
+  approveJoin(joinId: Hex32): void {
+    this.requireWriter();
+    this.requireLobby().driver.approve(joinId);
+  }
+
+  /** Admin: declines a join request. */
+  declineJoin(joinId: Hex32): void {
+    this.requireWriter();
+    this.requireLobby().driver.decline(joinId);
   }
 
   async takeOverAdmin(): Promise<void> {
@@ -702,7 +751,11 @@ export class P2PSession {
     const client: LobbyClient = new LobbyClient({
       code, lobbyId, signer: id.signer, transport: this.transport, journal: this.store.journal, now: () => this.clock.now(),
       onState: (s) => this.onLobbyState(client, s),
-      onMessage: (m, soul) => this.record(m, soul, m.env.lobby === '' ? m.msgId : m.env.lobby),
+      onMessage: (m, soul) => {
+        if (m.env.type === 'lobby.roster' && !this.rosterReceivedAt.has(m.msgId)) this.rosterReceivedAt.set(m.msgId, this.timers.now());
+        this.record(m, soul, m.env.lobby === '' ? m.msgId : m.env.lobby);
+      },
+      keyComplete: (configId) => this.keyCompleteFor(configId),
     });
     return client;
   }
@@ -719,10 +772,18 @@ export class P2PSession {
       const removed = s.head.closed || s.leaves.has(me) || (this.memberSeq >= 0 && s.head.seq > this.memberSeq)
         || (this.memberSeq < 0 && this.lobbySynced);
       if (removed) {
-        this.disconnectLobby();
-        return;
+        // §4.6.4: roster forks (a takeover, a kick) do not affect a running game. A device seated in
+        // the lobby's current non-terminal game stays attached to it until it is over; its own leave
+        // (s.leaves) disconnects at once, as does a closed lobby.
+        if (!s.head.closed && !s.leaves.has(me) && this.seatedInRunningGame()) {
+          this.removedWhilePlaying = true;
+        } else {
+          this.disconnectLobby();
+          return;
+        }
       }
     }
+    if (member !== undefined) this.removedWhilePlaying = false;
     this.presence.watch(this.watchedPubs(s.head.members.map((m) => m.pub)));
     this.syncGames();
     this.emitAll();
@@ -751,7 +812,18 @@ export class P2PSession {
     return info.online && info.value !== null && info.value.lobby === c.lobbyId;
   }
 
+  /** This device is seated (with or without secrets) in the lobby's current, non-terminal game. */
+  private seatedInRunningGame(): boolean {
+    const rt = this.currentRuntime();
+    return rt !== null && (rt.mode === 'seat' || rt.mode === 'lost') && !isTerminal(rt) && !rt.abandoned && keyComplete(rt.ev);
+  }
+
+  private keyCompleteFor(configId: Hex32): boolean {
+    return keyComplete(this.runtimes.get(configId)?.ev ?? null);
+  }
+
   private disconnectLobby(): void {
+    this.removedWhilePlaying = false;
     const client = this.lobby;
     this.lobby = null;
     this.lobbyState = null;
@@ -902,11 +974,17 @@ export class P2PSession {
       }
       const others = (await this.store.games.all()).filter((r) => r.status === 'active' && r.gameId !== config.gameId
         && !(this.runtimes.get(r.configId) !== undefined && isTerminal(this.runtimes.get(r.configId) as GameRuntime)));
+      const now = this.timers.now();
       const check = s.currentConfig?.configId === configId
-        ? checkConfig(s, id.pub, { activeGameIds: others.map((r) => r.gameId) })
+        ? checkConfig(s, id.pub, {
+          activeGameIds: others.map((r) => r.gameId),
+          keyComplete: (cid) => this.keyCompleteFor(cid),
+          rosterAgeMs: (rid) => now - (this.rosterReceivedAt.get(rid) ?? now),
+        })
         : { ok: false as const, reason: 'The configuration is no longer current' };
       if (!check.ok) {
         observer.refusal = check.reason;
+        if ('retryAfterMs' in check && check.retryAfterMs !== undefined) this.retryAt.set(configId, now + check.retryAfterMs);
         this.errors.push(`config ${configId.slice(0, 8)} refused: ${check.reason}`);
         this.emitAll();
         return;
@@ -987,7 +1065,9 @@ export class P2PSession {
       publish: (soul, key, value) => t.publish(soul, key, value),
       subscribe: (soul, onValue) => t.subscribe(soul, (key, value) => {
         onValue(key, value);
-        const d = decodeCached(value, key);
+        // The driver verified and cached what it accepted; anything else (non-seat junk) is neither
+        // verified again nor persisted (§3.4).
+        const d = decodeCached(value, key, (env) => this.isSeatMessage(env.game, env.author));
         if ('error' in d || d.env.game === '') return;
         try {
           if (soulOf(d.env, lobbyCode) !== soul) return;
@@ -998,6 +1078,12 @@ export class P2PSession {
       }),
       synced: (soul) => t.synced(soul),
     };
+  }
+
+  /** A message author seated in a game this device evaluates. */
+  private isSeatMessage(gameId: string, author: Pub): boolean {
+    for (const rt of this.runtimes.values()) if (rt.config.gameId === gameId && rt.config.seats.some((x) => x.pub === author)) return true;
+    return false;
   }
 
   private record(m: StoredMsg, soul: string, scope: string): void {
@@ -1103,6 +1189,18 @@ export class P2PSession {
         }
       }
       if (dropped) this.maybeRebuild();
+      // Temporary refusals (§4.5 takeover settle window): evaluate the config again.
+      for (const [configId, at] of [...this.retryAt]) {
+        if (now < at) continue;
+        this.retryAt.delete(configId);
+        const r = this.runtimes.get(configId);
+        if (r !== undefined && r.mode === 'observer' && r.refusal !== null) {
+          this.dropRuntime(r);
+          this.syncGames();
+        }
+      }
+      // Removed from the roster while playing: leave once the game is over and its end is shown.
+      if (this.removedWhilePlaying && !this.seatedInRunningGame() && this.computeStatus().kind !== 'ENDING') this.disconnectLobby();
     }
     this.refreshStatus();
   }
@@ -1129,8 +1227,26 @@ export class P2PSession {
     const users: Record<string, LobbyUser> = {};
     for (const m of s.head.members) users[m.name] = { name: m.name, uid: m.pub };
     const rt = this.currentRuntime();
+    // Not before the current game is projected (§11.3): a placeholder INIT game followed by the real
+    // (e.g. ENDED) one would look like a game ending again after a reload.
+    const cur = s.currentConfig;
+    const me = this.identity.pub;
+    // A config this device is seated in always gets a runtime (resumed, accepted, observed or lost),
+    // unless dismissed; until its first view, there is nothing to show yet.
+    const awaited = cur !== null && !this.dismissed.has(cur.configId) && cur.config.seats.some((x) => x.pub === me);
+    if (rt === null ? awaited : rt.view === null) {
+      if (this.lastLobbyJson !== '' && this.lastLobbyJson !== 'null') {
+        // Already connected: keep showing the previous snapshot rather than a placeholder.
+        const prev = JSON.parse(this.lastLobbyJson) as LobbyData;
+        if (prev.name === this.lobby.code) return { ...prev, admin: { uid: s.head.admin, name: admin?.name ?? '' }, users };
+      }
+      return null;
+    }
     const game = rt?.view?.game ?? emptyGameData();
-    return { name: this.lobby.code, admin: { uid: s.head.admin, name: admin?.name ?? '' }, users, game };
+    const data: LobbyData = { name: this.lobby.code, admin: { uid: s.head.admin, name: admin?.name ?? '' }, users, game };
+    const requests = this.lobby.driver.awaitingApproval();
+    if (requests.length > 0) data.requests = requests.map((r) => ({ joinId: r.joinId, name: r.name }));
+    return data;
   }
 
   private roleDoc(): RoleDoc | null {
@@ -1165,7 +1281,12 @@ export class P2PSession {
     }
     const p = ev.pending;
     const since = rt.pendingSince === null ? 0 : this.timers.now() - rt.pendingSince;
-    if (p !== null && p.stuck === undefined) {
+    // While this device is offline it can judge nobody's absence (it sees neither their messages nor
+    // their presence): no STALLED; the connection banner explains the state.
+    const online = this.transport.connected();
+    if (!online) {
+      // fall through to SETUP / ACTIVE
+    } else if (p !== null && p.stuck === undefined) {
       const missing = p.missing.filter((j) => j !== rt.seat);
       if (p.step.kind === 'setup' || p.step.kind === 'automatic') {
         if (missing.length > 0 && since >= AUTOMATIC_STALL_MS) {

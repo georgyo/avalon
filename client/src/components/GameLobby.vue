@@ -44,7 +44,7 @@
      @click='startGame()'
     >
         <v-icon start>
-          mdi-play
+          $play
         </v-icon>
       Start Game
     </v-btn>
@@ -116,7 +116,8 @@ export default defineComponent({
       return (this.avalon.config.playerList.length >= 5) && (this.avalon.config.playerList.length <= 10);
     },
     numEvilPlayers(): number {
-      return avalonLib.getNumEvilForGameSize(this.avalon.config.playerList.length);
+      // undefined outside 5..10 players (the count is shown only for a valid team size)
+      return avalonLib.getNumEvilForGameSize(this.avalon.config.playerList.length) ?? 0;
     }
   },
   methods: {

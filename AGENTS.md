@@ -43,8 +43,7 @@ is only an untrusted GUN relay plus a static host. The normative specification i
   clients need `super: false` (and `radisk: false, rfs: false, multicast: false, stats: false`)
 - The relay must be a single instance with a persistent writable `GUN_DIR`
 - After changing dependencies, run `nix run .#update-deps` (regenerates `missing-hashes.json` and
-  the offline-cache hash in `default.nix`). This is currently **pending**: `yarn.lock` changed during
-  the P2P integration and both are stale until someone with Nix runs it.
+  the offline-cache hash in `default.nix`) and commit both.
 
 ### Verifying Changes
 ```bash
@@ -172,6 +171,6 @@ bd automatically syncs via Dolt:
 - ❌ Do NOT use external issue trackers
 - ❌ Do NOT duplicate tracking systems
 
-For more details, see README.md and docs/QUICKSTART.md.
+For more details, see README.md and docs/p2p-protocol.md.
 
 <!-- END BEADS INTEGRATION -->

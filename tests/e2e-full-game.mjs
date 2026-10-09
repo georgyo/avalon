@@ -114,10 +114,43 @@ export class PlayerContext {
     this.stepNum = 0;
   }
 
-  async init(context = null) {
+  /**
+   * `o.routeWs`: route the GUN websocket through Playwright, so that `netDown()` / `netUp()` cause a
+   * real outage (context.setOffline does not close an open websocket in Chromium).
+   */
+  async init(context = null, o = {}) {
     this.context = context || (await this.browser.newContext());
+    if (o.routeWs) {
+      this.net = { down: false, live: new Set() };
+      await this.context.routeWebSocket(/\/gun$/, (ws) => {
+        if (this.net.down) {
+          ws.close({ code: 1001, reason: 'outage' }).catch(() => {});
+          return;
+        }
+        const server = ws.connectToServer();
+        const entry = { ws, server };
+        this.net.live.add(entry);
+        ws.onClose(() => this.net.live.delete(entry));
+        server.onClose(() => this.net.live.delete(entry));
+      });
+    }
     this.page = await this.context.newPage();
     this.attach(this.page);
+  }
+
+  /** A real network outage for this device's GUN socket (requires init(..., { routeWs: true })). */
+  async netDown() {
+    if (!this.net) throw new Error('netDown() needs init({ routeWs: true })');
+    this.net.down = true;
+    for (const { ws, server } of [...this.net.live]) {
+      await ws.close({ code: 1001, reason: 'outage' }).catch(() => {});
+      await server.close({ code: 1001, reason: 'outage' }).catch(() => {});
+    }
+    this.net.live.clear();
+  }
+
+  netUp() {
+    if (this.net) this.net.down = false;
   }
 
   attach(page) {
@@ -217,17 +250,48 @@ export async function createLobby(player) {
   return code;
 }
 
-// Join by code: discovery (up to 3 s), then the admin's device admits the join request (§4.3).
-export async function joinLobby(player, code) {
+// Join by code: discovery (up to 3 s), then the join request waits for the admin, who admits it by
+// hand (a join without the invite link's ticket is never admitted automatically, §4.3).
+export async function joinLobby(player, code, admin) {
   console.log(`  ${player.name} joining lobby ${code}...`);
   await player.page.click('button:has-text("Join Lobby")');
   const codeInput = player.page.locator('[data-testid="lobby-code"] input');
   await codeInput.waitFor({ state: 'visible', timeout: 5000 });
   await codeInput.fill(code);
   await player.page.click('button:has-text("Join Lobby")');
+  if (admin) {
+    await player.page.waitForSelector('[data-testid="waiting-for-admin"]', { timeout: 15000 });
+    const admit = admin.page.locator(`[data-testid="admit-${player.name}"]`);
+    await admit.waitFor({ state: 'visible', timeout: 30000 });
+    await admit.click();
+    console.log(`  ${admin.name} admitted ${player.name}`);
+  }
   await waitForText(player.page, ['Quit', 'Players'], 30000);
   await player.page.waitForTimeout(300);
   console.log(`  ${player.name} joined lobby`);
+}
+
+/** The admin's invite link (§4.1), from the "Copy invite link" toast. */
+export async function inviteLink(admin) {
+  await admin.page.click('[data-testid="copy-invite"]');
+  const toast = admin.page.locator('.Vue-Toastification__toast', { hasText: '?lobby=' }).last();
+  await toast.waitFor({ state: 'visible', timeout: 10000 });
+  const text = (await toast.textContent()) || '';
+  const m = /(https?:\/\/\S+)/.exec(text);
+  if (!m || !m[1].includes('&k=')) throw new Error(`no invite link with a key in "${text}"`);
+  return m[1];
+}
+
+/** Join through the invite link: the ticket it carries makes the admin's device admit automatically. */
+export async function joinViaInvite(player, link) {
+  console.log(`  ${player.name} opening the invite link...`);
+  await player.page.goto(link);
+  const joinBtn = player.page.locator('button:has-text("Join Lobby")');
+  await joinBtn.waitFor({ state: 'visible', timeout: 20000 });
+  await joinBtn.click();
+  await waitForText(player.page, ['Quit', 'Players'], 30000);
+  await player.page.waitForTimeout(300);
+  console.log(`  ${player.name} joined lobby via the invite link`);
 }
 
 export async function waitForAllInLobby(admin, names) {
@@ -620,17 +684,64 @@ export function reportErrors(players) {
   return hasCritical;
 }
 
-/** Log in `count` players, create a lobby with the first, join the others, start a game. */
-export async function setUpGame(browser, count, screenshotDir) {
+/**
+ * The admin starts another game in the same lobby while the others still look at the end screen: the
+ * new config must become current on every device (§4.6.4), and the end dialogs must close as soon as
+ * the setup begins (the persistent overlay must not block the setup). The game is then canceled.
+ */
+export async function secondGame(players) {
+  const admin = players[0];
+  const closeBtn = admin.page.locator('button:has-text("Close")');
+  if (await closeBtn.isVisible().catch(() => false)) await closeBtn.click();
+  await admin.page.waitForTimeout(500);
+  const watcher = players[1];
+  const endDialogOpen = () => watcher.page.locator('.v-dialog--fullscreen').isVisible().catch(() => false);
+  if (!(await endDialogOpen())) throw new Error(`${watcher.name}'s end screen should still be open`);
+  const startBtn = admin.page.locator('button:has-text("Start Game")');
+  await startBtn.waitFor({ state: 'visible', timeout: 15000 });
+  await startBtn.click();
+  let sawSetup = false;
+  try {
+    await watcher.page.waitForSelector('[data-testid="setup-progress"]', { timeout: 15000 });
+    sawSetup = true;
+  } catch {
+    // the setup may already be over
+  }
+  if (sawSetup) {
+    // The dialog closes when the game leaves ENDED (its fade-out takes a moment); before the fix it
+    // stayed up, empty, until the new game was ACTIVE.
+    const closedDuringSetup = await watcher.page.waitForFunction(() => {
+      const dialog = document.querySelector('.v-dialog--fullscreen');
+      return !dialog && !!document.querySelector('[data-testid="setup-progress"]');
+    }, null, { timeout: 5000 }).then(() => true, () => false);
+    const stillSetup = (await watcher.page.locator('[data-testid="setup-progress"]').count()) > 0;
+    if (!closedDuringSetup && stillSetup) throw new Error(`${watcher.name}'s end screen still covers the setup of the next game`);
+  }
+  await Promise.all(players.map((p) => waitForText(p.page, ['Game Started', 'Team Proposal'], 90000)));
+  console.log(`  PASS: the second game started on all ${players.length} devices${sawSetup ? ' (end screens closed during the setup)' : ''}`);
+  await dismissAllOverlays(players);
+  await waitForPhase(players, 'TEAM_PROPOSAL');
+  await admin.page.click('button:has-text("Quit")');
+  await admin.page.getByRole('button', { name: 'Cancel Game', exact: true }).click();
+  for (const player of players) await waitForText(player.page, 'Game Canceled', 60000);
+  console.log('  PASS: the second game was canceled everywhere');
+}
+
+/**
+ * Log in `count` players, create a lobby with the first, join the others (the second through the
+ * invite link, the rest by code with the admin's approval), start a game.
+ */
+export async function setUpGame(browser, count, screenshotDir, o = {}) {
   const players = [];
   for (const name of PLAYER_NAMES.slice(0, count)) {
     const player = new PlayerContext(name, browser, screenshotDir);
-    await player.init();
+    await player.init(null, o);
     players.push(player);
   }
   for (const player of players) await login(player);
   const code = await createLobby(players[0]);
-  for (const player of players.slice(1)) await joinLobby(player, code);
+  await joinViaInvite(players[1], await inviteLink(players[0]));
+  for (const player of players.slice(2)) await joinLobby(player, code, players[0]);
   await waitForAllInLobby(players[0], players.map((p) => p.name));
   console.log(`  All ${count} players in lobby ${code}`);
   const setupMs = await startGame(players[0], players);
@@ -690,7 +801,10 @@ async function testFullGame() {
     // every role is revealed at the end (§5.12): the end table shows each player's real role
     await assertEndTableRoles(players[0], players);
 
-    console.log('\n=== Step 8: All players quit lobby ===');
+    console.log('\n=== Step 8: a second game in the same lobby (unchanged roster) ===');
+    await secondGame(players);
+
+    console.log('\n=== Step 9: All players quit lobby ===');
     await quitAllPlayers(players);
     for (const player of players) {
       const text = await player.bodyText();

@@ -2,6 +2,7 @@
   lib,
   stdenv,
   nodejs-slim_24,
+  nodejs_24,
   yarn-berry_4,
   python3,
 }:
@@ -55,11 +56,14 @@ stdenv.mkDerivation (finalAttrs: {
   offlineCache = yarn-berry_4.fetchYarnBerryDeps {
     inherit (finalAttrs) src;
     missingHashes = ./missing-hashes.json;
-    hash = "sha256-yBgB5/tPfxCurUD6W68MfCVD8GYz3wxjvjgZa6ndgoQ=";
+    hash = "sha256-D5dQrkuqsTd3fCbz+tumGAtkd8PCiKlArDQfRcm+rIQ=";
   };
 
   nativeBuildInputs = [
-    nodejs
+    # The full nodejs (with npm) at build time: Yarn packs the git dependency `gun` (an npm project,
+    # it has a package-lock.json) with `npm pack` from the offline cache's checkout. The installed
+    # relay runs on nodejs-slim.
+    nodejs_24
     yarn-berry_4
     yarn-berry_4.yarnBerryConfigHook
     # python3 is needed for node-gyp native module builds that may run during
@@ -74,7 +78,10 @@ stdenv.mkDerivation (finalAttrs: {
   buildPhase = ''
     runHook preBuild
 
-    yarn workspace @avalon/server typecheck
+    # ESLint and the type checks of every workspace (the client's with vue-tsc, .vue files included);
+    # flake.nix's checks.lint runs the same for `nix flake check`.
+    yarn lint
+    yarn typecheck
     yarn build
     # Single-file ESM bundle of the relay (server.ts + gun + gun/sea + express),
     # with gun-shim.ts so that SEA works inside the bundle (docs/p2p-protocol.md §8).

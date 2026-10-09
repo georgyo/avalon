@@ -116,6 +116,9 @@ function compareHex(a: string, b: string): number {
   return a < b ? -1 : a > b ? 1 : 0;
 }
 
+/** The reveal's `basis` holds at most 256 msgIds (§3.2 list limit). */
+const MAX_BASIS = 256;
+
 function joinHex(xs: Iterable<Hex32>): Hex32[] {
   return [...new Set(xs)].sort(compareHex);
 }
@@ -870,7 +873,9 @@ export function reduceGame(input: ReduceInput): GameEval {
     for (const seat of reqSeats) {
       const ms = bySeat.get(seat) ?? [];
       if (ms.length >= 2) {
-        faults.push({ seat, stepId: step.id, reason: 'equivocation', evidence: joinHex(ms.map((m) => m.msgId)) });
+        // Two messages prove the fault; citing every one would let a mass equivocator exceed the
+        // reveal's 256-entry basis and block every honest reveal.
+        faults.push({ seat, stepId: step.id, reason: 'equivocation', evidence: joinHex(ms.map((m) => m.msgId)).slice(0, 2) });
         continue;
       }
       if (ms.length === 0) continue;
@@ -996,7 +1001,8 @@ export function reduceGame(input: ReduceInput): GameEval {
     && (c.env.body as GameConfig).gameId === config.gameId);
   const adminSeat = info.seatOf.get(input.configAuthor);
   if (conflicting.length > 0 && adminSeat !== undefined) {
-    const evidence = joinHex([configId, ...conflicting.map((c) => c.msgId)]);
+    // This config and the lowest other one prove the equivocation (bounded, like step equivocation).
+    const evidence = joinHex([configId, joinHex(conflicting.map((c) => c.msgId))[0]]);
     invalids.push({ index: 0, faults: [{ seat: adminSeat, stepId: 'key', reason: 'config equivocation', evidence }] });
   }
 
@@ -1196,7 +1202,11 @@ function invalidTerminal(faults: Fault[], atStep: string): Terminal {
     seenKey.add(k);
     uniq.push(f);
   }
-  return { kind: 'invalid', atStep, by: uniq[0].seat, faults: uniq, basis: joinHex(uniq.flatMap((f) => f.evidence)) };
+  const basis = joinHex(uniq.flatMap((f) => f.evidence));
+  // Every fault cites at most two messages (ballots cancelling out: at most the team, shared), and there
+  // is one fault per (seat, reason), so the basis stays far below the reveal's 256-entry limit. Should
+  // it ever exceed it, any cited msgId justifies a reveal (§3.7 rule 3), so a prefix keeps reveals valid.
+  return { kind: 'invalid', atStep, by: uniq[0].seat, faults: uniq, basis: basis.slice(0, MAX_BASIS) };
 }
 
 // ---------------------------------------------------------------- helpers for other modules

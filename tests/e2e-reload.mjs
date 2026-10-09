@@ -28,7 +28,7 @@ async function testReload() {
     }
     for (const player of players) await login(player);
     const code = await createLobby(players[0]);
-    for (const player of players.slice(1)) await joinLobby(player, code);
+    for (const player of players.slice(1)) await joinLobby(player, code, players[0]);
     await waitForAllInLobby(players[0], players.map((p) => p.name));
 
     console.log('\n=== Step 1: reload a device during the setup ===');

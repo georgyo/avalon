@@ -10,7 +10,8 @@
 //
 // Environment: PORT (default 8001), HOST (bind address, default all),
 // GUN_DIR (radisk directory, default ./radata; must be writable and persistent),
-// STATIC_DIR (default <this file's directory>/dist).
+// STATIC_DIR (default <this file's directory>/dist), TRUST_PROXY=1 (behind a
+// reverse proxy: per-IP relay limits use the last X-Forwarded-For entry).
 
 import './gun-shim'; // must run before gun/sea in the esbuild bundle
 import Gun from 'gun';
@@ -22,6 +23,7 @@ import type { AddressInfo } from 'node:net';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRelay, installRelayFilter, relaySelfTest, type GunFactory } from './relay';
+import { serveStatic } from './static';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT ?? 8001);
@@ -57,11 +59,12 @@ app.use('/api', (_req, res) => {
   res.status(404).json({ message: 'Not found' });
 });
 
-app.use(express.static(STATIC_DIR));
+// Hashed /assets/* immutable for a year, index.html revalidated; text assets compressed (br/gzip).
+app.use(serveStatic(STATIC_DIR));
 
 const httpServer = createServer(app);
 const gun = createRelay(httpServer, GUN_DIR, Gun as unknown as GunFactory);
-installRelayFilter(gun);
+installRelayFilter(gun, { trustProxy: process.env.TRUST_PROXY === '1' });
 
 httpServer.listen(PORT, HOST, () => {
   const { port } = httpServer.address() as AddressInfo;

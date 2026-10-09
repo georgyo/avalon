@@ -83,6 +83,8 @@ export interface LobbyClientOptions {
   onState(s: LobbyState): void;
   /** Every verified message of this lobby, once (transcript persistence). */
   onMessage?(m: StoredMsg, soul: string): void;
+  /** Whether step `key` of a config completed on this device (§4.5 reclaim). */
+  keyComplete?: (configId: Hex32) => boolean;
 }
 
 export class LobbyClient {
@@ -108,13 +110,14 @@ export class LobbyClient {
     };
     this.driver = new LobbyDriver({
       code: o.code, lobbyId: o.lobbyId, signer: o.signer, transport: recording, journal: o.journal, now: o.now,
-      onState: (s) => o.onState(s),
+      onState: (s) => o.onState(s), keyComplete: o.keyComplete,
     });
   }
 
   private record(soul: string, key: string, value: string): void {
     const cb = this.o.onMessage;
-    if (cb === undefined) return;
+    // Only what the driver accepted (it verified and cached it): junk is neither verified twice nor kept.
+    if (cb === undefined || !this.driver.accepted(key)) return;
     const d = decodeLobbyValue(this.code, soul, key, value);
     if (d === null || this.seen.has(d.msgId)) return;
     const lobbyId = this.driver.lobbyId;

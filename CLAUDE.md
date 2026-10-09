@@ -33,9 +33,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `nix flake check` - Runs `checks.unit` (`yarn test:unit`)
 - `nix run .#e2e` - E2E suite with a Nix-pinned toolchain (Node + Playwright browsers)
 - `nix run .#update-deps` - After any dependency change: regenerates `missing-hashes.json` and the offline-cache hash in `default.nix`
-- **Pending:** `yarn.lock` changed during the P2P integration and `missing-hashes.json` / the `default.nix`
-  offline-cache hash are stale (they could not be regenerated without Nix). Run `nix run .#update-deps`
-  and commit the result before relying on `nix build` / `nix flake check`.
+- `yarn lint` / `yarn typecheck` - ESLint, and tsc (common, server) plus vue-tsc (client, `.vue` included); also run by `nix build` and `nix flake check` (checks.lint)
 
 ## Architecture
 

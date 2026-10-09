@@ -10,7 +10,10 @@ import type { Hex32, LobbyData, RoleDoc, Verdict } from '@avalon/common/protocol
 import { memoCrypto } from '@avalon/common/testing';
 import { silenceGunLog } from './gun.ts';
 import { P2PSession, type LocalProfile, type SessionStatus } from './session.ts';
-import { MemoryKV } from './store.ts';
+import { MemoryKV, openStore } from './store.ts';
+import { loadIdentity } from './identity.ts';
+import { GunTransport } from './gunTransport.ts';
+import { encodeEnvelope, lobbySoul } from '@avalon/common/protocol';
 
 silenceGunLog();
 
@@ -33,6 +36,8 @@ interface Player {
   profile: LocalProfile | null;
   status: SessionStatus;
   statuses: string[];
+  /** game.state of every lobby snapshot (null: no snapshot). */
+  gameStates: (string | null)[];
 }
 
 describe('session lifecycle', () => {
@@ -47,9 +52,10 @@ describe('session lifecycle', () => {
       relayUrl: relay.url, kv, locks: null, crypto, window: null, document: null, wakeLock: null, gunClock: false,
       discoveryMs: 2000, probeMs: 300,
     });
-    const p: Player = { name, kv, session, lobby: null, role: null, profile: null, status: session.status, statuses: [] };
+    const p: Player = { name, kv, session, lobby: null, role: null, profile: null, status: session.status, statuses: [], gameStates: [] };
     session.onLobby((l) => {
       p.lobby = l;
+      p.gameStates.push(l === null ? null : l.game.state);
     });
     session.onRole((r) => {
       p.role = r;
@@ -86,7 +92,8 @@ describe('session lifecycle', () => {
 
   it('kick: the kicked member is disconnected from the lobby', async () => {
     ({ lobby: code } = await P('ALICE').session.createLobby('ALICE'));
-    for (const n of [...playing.slice(1), 'FRANK']) await P(n).session.joinLobby(n, code);
+    const inv = P('ALICE').session.invite();
+    for (const n of [...playing.slice(1), 'FRANK']) await P(n).session.joinLobby(n, code, inv?.lobbyId, inv?.key ?? undefined);
     await until(() => [...players.values()].every((p) => Object.keys(p.lobby?.users ?? {}).length === 6), 20000, 'six members');
     await assert.rejects(P('BOB').session.kickPlayer('FRANK'), /Only the admin/);
     await P('ALICE').session.kickPlayer('FRANK');
@@ -141,6 +148,47 @@ describe('session lifecycle', () => {
     // the others reveal; CAROL cannot
     await until(() => playing.filter((n) => n !== 'CAROL').every((n) => (P(n).lobby?.game.outcome?.unrevealed ?? []).every((u) => u === 'CAROL')), 30000, 'reveals');
     assert.equal((await P('ALICE').session.userStats()).games, 0, 'canceled games do not count');
+
+    // --- reload ERIN after the game ended: the first lobby snapshot already shows the ENDED game (a
+    // placeholder INIT game first would make the UI announce the end again)
+    P('ERIN').session.close();
+    const erin = await open('ERIN', P('ERIN').kv);
+    await until(() => erin.lobby?.game.state === 'ENDED', 30000, 'ERIN reconnected to the ended game');
+    assert.deepEqual(erin.gameStates.filter((x) => x !== null).slice(0, 1), ['ENDED'], JSON.stringify(erin.gameStates));
+    // the profile name comes from the roster entry of this pub
+    assert.equal(erin.profile?.name, 'ERIN');
+
+    // --- a second game in the unchanged lobby starts (its config must become the current one)
+    await P('ALICE').session.startGame(playing, [], { inGameLog: false });
+    await until(() => playing.every((n) => P(n).lobby?.game.state === 'ACTIVE' && P(n).role !== null), 120000, 'second game active');
+
+    // --- a roster dropping a seated player mid-game (a malicious admin's kick, published raw): CAROL stays
+    // attached to the running game (§4.6.4) and can still act; she leaves the lobby once the game is over
+    const aliceId = await loadIdentity(await openStore({ kv: P('ALICE').kv }));
+    const st = P('ALICE').session.lobbyStateSnapshot;
+    assert.ok(aliceId !== null && st !== null);
+    const kick = encodeEnvelope({
+      v: 1, type: 'lobby.roster', lobby: st.lobbyId, game: '', step: '', author: aliceId.pub, prev: st.head.rosterId, t: Date.now(),
+      body: { seq: st.head.seq + 1, admin: aliceId.pub, members: st.head.members.filter((m) => m.name !== 'CAROL'), rejected: [], closed: false },
+    }, aliceId.signer);
+    const raw = new GunTransport({ relayUrl: relay.url });
+    try {
+      await raw.publish(lobbySoul(code), kick.key, kick.value);
+      await until(() => !('CAROL' in (P('BOB').lobby?.users ?? {})), 20000, 'CAROL dropped from the roster');
+      await sleep(2000);
+      assert.equal(P('CAROL').profile?.lobby, code, 'CAROL still in the lobby while the game runs');
+      assert.equal(P('CAROL').lobby?.game.state, 'ACTIVE');
+      assert.notEqual(P('CAROL').session.currentDriver, null);
+      await P('ALICE').session.cancelGame();
+      await until(() => playing.every((n) => P(n).lobby?.game.state === 'ENDED' || P(n).profile?.lobby === null), 30000, 'second game canceled');
+      await until(() => P('CAROL').profile?.lobby === null, 90000, 'CAROL disconnected after the game');
+      // CAROL rejoins through the invite link (for the next test)
+      const inv = P('ALICE').session.invite();
+      await P('CAROL').session.joinLobby('CAROL', code, inv?.lobbyId, inv?.key ?? undefined);
+      await until(() => playing.every((n) => 'CAROL' in (P(n).lobby?.users ?? {})), 20000, 'CAROL back');
+    } finally {
+      raw.close();
+    }
   });
 
   it('leave after the game: the admin removes the leaver; takeover when the admin is gone', { timeout: 120000 }, async () => {

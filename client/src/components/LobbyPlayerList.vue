@@ -19,15 +19,15 @@
         v-model="playerList"
         handle=".handle"
         :disabled="!canDrag"
-        :item-key="(item) => item"
+        :item-key="(item: string) => item"
         @end="onReorderList()">
         <template #item="{element}">
           <v-list-item>
             <template v-slot:prepend>
               <v-icon v-if="canDrag" class="handle mr-2" icon="fa:fas fa-bars" />
-              <v-icon v-if="element == avalon.lobby.admin.name" class="mr-2">mdi-star</v-icon>
-              <v-icon v-else-if="element == avalon.user.name" class="mr-2">mdi-account</v-icon>
-              <v-icon v-else class="mr-2">mdi-account-outline</v-icon>
+              <v-icon v-if="element == avalon.lobby.admin.name" class="mr-2">$star</v-icon>
+              <v-icon v-else-if="element == avalon.user.name" class="mr-2">$account</v-icon>
+              <v-icon v-else class="mr-2">$accountOutline</v-icon>
             </template>
             <v-list-item-title>{{element}}</v-list-item-title>
             <template v-slot:append>
@@ -37,12 +37,23 @@
                 @click.stop="kickPlayerConfirm(element)"
                 color="black"
                 size="small">
-                <v-icon>mdi-close</v-icon>
+                <v-icon>$close</v-icon>
               </v-btn>
             </template>
           </v-list-item>
         </template>
       </draggable>
+    </v-list>
+
+    <v-list v-if="avalon.isAdmin && avalon.lobby.requests.length" class="bg-amber-lighten-4 mt-2" data-testid="join-requests">
+      <v-list-subheader>Asked to join with the lobby code</v-list-subheader>
+      <v-list-item v-for="r in avalon.lobby.requests" :key="r.joinId" :data-testid="'join-request-' + r.name">
+        <v-list-item-title>{{ r.name }}</v-list-item-title>
+        <template v-slot:append>
+          <v-btn size="small" color="green-darken-1" class="mr-1" @click="approve(r.joinId)" :data-testid="'admit-' + r.name">Admit</v-btn>
+          <v-btn size="small" variant="text" @click="decline(r.joinId)" :data-testid="'decline-' + r.name">Decline</v-btn>
+        </template>
+      </v-list-item>
     </v-list>
   </div>
 </template>
@@ -78,6 +89,20 @@ export default defineComponent({
   methods: {
     onReorderList() {
       this.avalon.config.sortList(this.playerList);
+    },
+    approve(joinId: string) {
+      try {
+        this.avalon.approveJoin(joinId);
+      } catch (err) {
+        this.toast.error(err instanceof Error ? err.message : String(err));
+      }
+    },
+    decline(joinId: string) {
+      try {
+        this.avalon.declineJoin(joinId);
+      } catch (err) {
+        this.toast.error(err instanceof Error ? err.message : String(err));
+      }
     },
     kickPlayerConfirm(player: string) {
       this.playerToKick = player;

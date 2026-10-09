@@ -133,7 +133,7 @@ const utf8Decoder = new TextDecoder('utf-8', { fatal: true });
  * Steps 1-2 of the ingestion pipeline (§3.4): value shape and length, GUN key
  * (when given), strict decoding, schema, msgId, signature.
  */
-export function decodeEnvelope(value: string, key?: string): StoredMsg | { error: string } {
+export function decodeEnvelope(value: string, key?: string, admit?: (env: Envelope) => boolean): StoredMsg | { error: string } {
   if (typeof value !== 'string') return { error: 'value is not a string' };
   if (!value.startsWith(VALUE_PREFIX)) return { error: 'value does not start with AV1.' };
   if (value.length > MAX_VALUE_LENGTH) return { error: 'value too long' };
@@ -151,6 +151,8 @@ export function decodeEnvelope(value: string, key?: string): StoredMsg | { error
   } catch (e) {
     return { error: e instanceof Error ? e.message : 'malformed value' };
   }
+  // Cheap structural filter before the ECDSA check (e.g. game messages by non-seats): junk costs no verification.
+  if (admit !== undefined && !admit(env)) return { error: 'not admitted' };
   const id = msgIdBytes(mBytes);
   if (!verifySig(env.author, id, sig)) return { error: 'bad signature' };
   return { msgId: hexEncode(id), env, value, key: gunKey };
@@ -468,8 +470,9 @@ const BODY: BodySchemas = {
     return { code: matches(o.code, p + '.code', LOBBY_CODE_RE), name: playerName(o.name, p + '.name'), nonce: bytes(o.nonce, p + '.nonce', 16) };
   },
   'lobby.join': (v, p) => {
-    const o = obj(v, p, ['name']);
-    return { name: playerName(o.name, p + '.name') };
+    const o = obj(v, p, ['name'], ['ticket']);
+    const name = playerName(o.name, p + '.name');
+    return o.ticket === undefined ? { name } : { name, ticket: bytes(o.ticket, p + '.ticket', 16) };
   },
   'lobby.leave': (v, p) => {
     obj(v, p, []);
@@ -484,7 +487,7 @@ const BODY: BodySchemas = {
       rejected: arr(o.rejected, p + '.rejected', 0, MAX_LIST).map((r, i) => {
         const rp = `${p}.rejected[${i}]`;
         const ro = obj(r, rp, ['joinId', 'reason']);
-        return { joinId: hex32(ro.joinId, rp + '.joinId'), reason: oneOf(ro.reason, rp + '.reason', ['name-taken', 'invalid-name', 'full', 'game-active'] as const) };
+        return { joinId: hex32(ro.joinId, rp + '.joinId'), reason: oneOf(ro.reason, rp + '.reason', ['name-taken', 'invalid-name', 'full', 'game-active', 'declined'] as const) };
       }),
       closed: bool(o.closed, p + '.closed'),
     };

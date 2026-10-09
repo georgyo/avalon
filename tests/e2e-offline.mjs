@@ -1,5 +1,7 @@
-// One device goes offline for 20 s in the middle of a game (context.setOffline), votes while offline,
-// and the game continues once it is back (docs/p2p-protocol.md §7.4, §7.8, §12).
+// One device loses its relay connection for 20 s in the middle of a game, votes while offline, and the
+// game continues once it is back (docs/p2p-protocol.md §7.4, §7.8, §12). The outage is real: the GUN
+// websocket is routed through Playwright, closed, and refused while down (context.setOffline does not
+// close an open websocket in Chromium).
 
 import {
   launchBrowser, screenshotDirFor, setUpGame, readRole, dismissAllOverlays, waitForPhase, findProposer,
@@ -14,7 +16,7 @@ async function testOffline() {
   const browser = await launchBrowser(process.env.BROWSER || 'chromium');
   let players = [];
   try {
-    ({ players } = await setUpGame(browser, COUNT, screenshotDirFor('offline')));
+    ({ players } = await setUpGame(browser, COUNT, screenshotDirFor('offline'), { routeWs: true }));
     for (const player of players) Object.assign(player, await readRole(player));
     await dismissAllOverlays(players);
 
@@ -28,32 +30,33 @@ async function testOffline() {
     console.log(`\n=== Step 2: one device is offline for ${OFFLINE_MS / 1000} s ===`);
     const offline = players.find((p) => p !== proposer) || players[1];
     const online = players.filter((p) => p !== offline);
-    await offline.context.setOffline(true);
+    await offline.netDown();
     const t0 = Date.now();
     await voteOnProposal(online, 1);
 
-    // the offline device shows the connection banner (§7.8: "Reconnecting..." after 3 s). Whether the
-    // browser drops an open websocket on setOffline differs between engines, so this is reported, not required.
-    let sawBanner = false;
-    try {
-      await offline.page.waitForSelector('[data-testid="banner-reconnecting"], [data-testid="banner-offline"]', { timeout: 8000 });
-      sawBanner = true;
-      console.log(`  PASS: ${offline.name} shows the reconnecting banner`);
-    } catch {
-      console.log(`  NOTE: ${offline.name} showed no reconnecting banner (the websocket may have survived setOffline)`);
-    }
+    // the offline device shows the connection banner (§7.8: "Reconnecting..." after 3 s)
+    await offline.page.waitForSelector('[data-testid="banner-reconnecting"], [data-testid="banner-offline"]', { timeout: 15000 });
+    console.log(`  PASS: ${offline.name} shows the reconnecting banner`);
 
     // it votes while offline: the move is saved and sent on reconnect
     await offline.page.locator('button:has-text("Approve")').click();
     console.log(`  ${offline.name} voted while offline`);
     await offline.page.waitForTimeout(3000);
     const phaseWhileOffline = detectPhase(await online[0].bodyText());
-    if (sawBanner && phaseWhileOffline !== 'PROPOSAL_VOTE') {
+    if (phaseWhileOffline !== 'PROPOSAL_VOTE') {
       throw new Error(`the vote cannot complete while ${offline.name} is offline, phase is ${phaseWhileOffline}`);
+    }
+    console.log('  PASS: the vote waits for the offline device');
+    // the offline device blames nobody: it cannot judge the others' absence (§7.8)
+    if ((await offline.page.locator('[data-testid="stall-notice"]').count()) > 0) {
+      throw new Error(`${offline.name} shows a stall notice while it is the one offline`);
     }
 
     await offline.page.waitForTimeout(Math.max(0, OFFLINE_MS - (Date.now() - t0)));
-    await offline.context.setOffline(false);
+    if ((await offline.page.locator('[data-testid="stall-notice"]').count()) > 0) {
+      throw new Error(`${offline.name} shows a stall notice while it is the one offline`);
+    }
+    offline.netUp();
     console.log(`  ${offline.name} is back online`);
 
     console.log('\n=== Step 3: the game continues ===');

@@ -67,10 +67,10 @@ function secretsOf(ctx: BuildCtx): GameSecrets {
  * and valid), and never while a reveal is pending (the driver is suspended,
  * §3.7 rule 3).
  */
-function requireRunning(ctx: BuildCtx): NonNullable<GameEval['pending']> {
+function requireRunning(ctx: BuildCtx, allowPendingReveals = false): NonNullable<GameEval['pending']> {
   const p = ctx.ev.pending;
   if (ctx.ev.terminal !== null || p === null) throw new Error('The game is not running');
-  if (ctx.ev.pendingReveals.length > 0) throw new Error('Suspended: a reveal is pending');
+  if (ctx.ev.pendingReveals.length > 0 && !allowPendingReveals) throw new Error('Suspended: a reveal is pending');
   if (!p.gateOpen) throw new Error(`Gate closed at ${p.step.id}: earlier verdicts unknown`);
   return p;
 }
@@ -274,7 +274,10 @@ export function buildTally(ctx: BuildCtx): Envelope<'tally'> {
 
 /** §5.11 item 3: the opening x_a·A_a, only by the holder of the assassin card. */
 export function buildAssassinate(ctx: BuildCtx, target: number): Envelope<'assassinate'> {
-  const p = requireRunning(ctx);
+  // Not suspended by a pending reveal (§3.7 rule 3): cancels are ignored during the assassination (rule 6),
+  // so a reveal citing unknown messages would otherwise veto it. If its basis is real, an earlier terminal
+  // event decides the game and this `as` is moot (rule 4); if it is bogus, this `as` decides.
+  const p = requireRunning(ctx, true);
   if (p.step.type !== 'assassinate') throw new Error('Not in assassination phase');
   const priv = requirePriv(ctx);
   if (!priv.label.assassin) throw new Error('You are not the assassin');

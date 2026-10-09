@@ -1,6 +1,6 @@
 <template>
   <v-btn :loading='loggingOut' @click='logoutButtonClicked()'>
-    <v-icon start>mdi-exit-to-app</v-icon>
+    <v-icon start>$exitToApp</v-icon>
       Logout
   </v-btn>
 </template>

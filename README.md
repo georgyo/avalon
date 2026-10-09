@@ -25,7 +25,8 @@ yarn install
 
 ### Development
 ```bash
-# Start the relay on :8001 (GUN relay + /api/relay-info, data in ./radata)
+# Start the relay on :8001 (GUN relay + /api/relay-info, data in server/radata:
+# Yarn runs workspace scripts in server/)
 yarn start
 
 # Start the client dev server (in another terminal); it proxies /gun
@@ -33,7 +34,9 @@ yarn start
 yarn workspace @avalon/client dev
 ```
 
-Relay environment variables: `PORT` (default 8001), `HOST` (bind address), `GUN_DIR` (radisk directory, default `./radata`; must be writable and persistent), `STATIC_DIR` (default: `dist/` next to the server file).
+Relay environment variables: `PORT` (default 8001), `HOST` (bind address), `GUN_DIR` (radisk directory, default `./radata` relative to the working directory, i.e. `server/radata` under `yarn start`; must be writable and persistent), `STATIC_DIR` (default: `dist/` next to the server file), `TRUST_PROXY=1` (behind a reverse proxy: the relay's per-IP limits use the last `X-Forwarded-For` entry; without it, loopback and private client addresses are exempt from them).
+
+The relay serves the SPA's content-hashed `/assets/*` with a one-year immutable cache and `index.html` with `no-cache`, brotli- or gzip-compressed when the browser accepts it.
 
 ### Build for Production
 ```bash
@@ -55,10 +58,8 @@ nix run .#e2e         # Playwright e2e suite against a throwaway local stack
 nix run .#update-deps # After changing dependencies: regenerate missing-hashes.json + offline cache hash
 ```
 
-> **Pending:** `yarn.lock` changed when Firebase was removed and the P2P stack was integrated, but
-> `missing-hashes.json` and the `fetchYarnBerryDeps` hash in `default.nix` could not be regenerated
-> in the environment where that was done. Run `nix run .#update-deps` (and commit the result) before
-> the first `nix build` / `nix flake check`.
+`nix build` and `nix flake check` also run `yarn lint` and `yarn typecheck` (tsc for common and
+server, vue-tsc for the client and its `.vue` files).
 
 ## Deployment
 
@@ -93,7 +94,7 @@ avalon/
 yarn test:unit      # Unit tests: common (crypto, protocol, simulations), client P2P runtime, relay
 yarn test:e2e       # Playwright e2e suite against a throwaway relay + vite (PLAYERS=5..10 for all sizes)
 yarn test           # E2E flow test only (needs a running stack)
-yarn test:browser   # E2E browser test (headed)
+yarn test:browser   # E2E browser test (headless Firefox by default; HEADLESS=0 to watch)
 
 # Relay smoke test: two node GUN clients through a running relay for 60 s
 yarn workspace @avalon/server smoke http://127.0.0.1:8001 60

@@ -4,8 +4,9 @@
  * * publish: `gun.get(soul).get(key).put(value)`; the promise resolves on the
  *   relay's acknowledgement (its storage wrote the value: the "relay echo").
  *   Unacknowledged puts are retried with backoff and again on every `hi`
- *   (GUN never pushes puts made while disconnected). A put rejected by SEA
- *   (wrong hash) rejects for good.
+ *   (GUN never pushes puts made while disconnected). An error acknowledgement
+ *   is retried too: any peer can forge one (the relay routes `@` replies), and
+ *   this device's own values always carry their correct hash.
  * * puts are paced under the relay's per-connection limit (50 puts/s, burst 200, §8).
  * * subscribe: one shared GUN subscription per soul (SubscriptionManager).
  * * synced(soul): resolves once the relay answered a re-ask of the soul and
@@ -50,11 +51,6 @@ interface UserWatch { cb: (value: string) => void; unsub: Unsub }
 
 const SYNC_QUIET_MS = 300;
 const SYNC_MAX_MS = 5000;
-
-/** SEA's rejection texts: permanent failures (retrying cannot help). */
-function permanentError(err: string): boolean {
-  return /hash|signature|unverified|invalid|not same/i.test(err);
-}
 
 export class GunTransport implements Transport {
   private handleValue: GunHandle;
@@ -430,16 +426,7 @@ export class GunTransport implements Transport {
       return;
     }
     if (gen !== e.gen) return;
-    if (typeof ack.err === 'string' && !ack.lack && permanentError(ack.err)) {
-      this.timers.clearTimeout(e.timer);
-      e.timer = null;
-      if (!e.settled) {
-        e.settled = true;
-        e.reject(new Error(ack.err));
-      }
-      this.entries.delete(e.soul + '\u0000' + e.key);
-      return;
-    }
+    // Never permanent: an error ack may be forged by another peer; back off and retry (bounded delay).
     this.retryLater(e);
   }
 

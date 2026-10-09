@@ -18,7 +18,7 @@ import { spawn, type ChildProcess } from 'node:child_process';
 import { createHash, randomBytes } from 'node:crypto';
 import { mkdtempSync, readdirSync, rmSync } from 'node:fs';
 import { createServer, type Server } from 'node:http';
-import type { AddressInfo } from 'node:net';
+import { createServer as createNetServer, type AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -56,7 +56,25 @@ after(() => {
 // ---------------------------------------------------------------------------
 
 const sha256Hex = (s: string): string => createHash('sha256').update(s, 'utf8').digest('hex');
-const av1 = (n = 64): string => 'AV1.' + randomBytes(n).toString('base64url') + '.' + randomBytes(64).toString('base64url');
+/** A well-shaped (unsigned) envelope value for `soul` with about `n` random bytes of padding. */
+function av1(n = 64, soul = LOBBY): string {
+  const g = /^avalon\/v1\/game\/([A-Za-z0-9_-]{22})\/(setup|play)#$/.exec(soul);
+  const type = g ? (g[2] === 'setup' ? 'key' : 'propose') : soul.startsWith('avalon/v1/logs/') ? 'log' : 'lobby.join';
+  return envValue({ v: 1, type, game: g ? g[1] : '', pad: randomBytes(n).toString('base64url') });
+}
+function envValue(env: unknown): string {
+  return 'AV1.' + Buffer.from(JSON.stringify(env)).toString('base64url') + '.' + randomBytes(64).toString('base64url');
+}
+/** The largest well-formed lobby value of at most `max` bytes. */
+function av1AtMost(max: number): string {
+  let best = '';
+  for (let k = Math.floor(max * 0.55); k < max; k += 1) {
+    const v = envValue({ v: 1, type: 'lobby.join', pad: 'p'.repeat(k) });
+    if (v.length > max) break;
+    best = v;
+  }
+  return best;
+}
 const PUB = 'A'.repeat(43) + '.' + 'b'.repeat(43);
 const LOBBY = 'avalon/v1/lobby/ABCD#';
 const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
@@ -196,11 +214,12 @@ describe('checkPut', () => {
   const gameId = 'abcdefghijklmnopqrstuv'; // 22 chars
   const accepted: [string, Record<string, unknown>][] = [
     ['lobby value', hashed(LOBBY, av1())],
-    ['game setup value', hashed(`avalon/v1/game/${gameId}/setup#`, av1())],
-    ['game play value', hashed(`avalon/v1/game/${gameId.replace('a', '-')}/play#`, av1())],
-    ['log value', hashed('avalon/v1/logs/2026-10#', av1())],
-    ['value of exactly 64 KiB', hashed(LOBBY, 'AV1.' + 'x'.repeat(64 * 1024 - 4))],
-    ['several values in one node', put(LOBBY, { [sha256Hex('AV1.a')]: 'AV1.a', [sha256Hex('AV1.b')]: 'AV1.b' })],
+    ['game setup value', hashed(`avalon/v1/game/${gameId}/setup#`, av1(64, `avalon/v1/game/${gameId}/setup#`))],
+    ['game play value', hashed(`avalon/v1/game/${gameId.replace('a', '-')}/play#`, av1(64, `avalon/v1/game/${gameId.replace('a', '-')}/play#`))],
+    ['log value', hashed('avalon/v1/logs/2026-10#', av1(64, 'avalon/v1/logs/2026-10#'))],
+    ['value of (almost exactly) 64 KiB', hashed(LOBBY, av1AtMost(64 * 1024))],
+    ['several values in one node', (() => { const a = av1(); const b = av1(); return put(LOBBY, { [sha256Hex(a)]: a, [sha256Hex(b)]: b }); })()],
+    ['lobby.create naming its soul', hashed(LOBBY, envValue({ v: 1, type: 'lobby.create', body: { code: 'ABCD' } }))],
     ['several nodes', { ...hashed(LOBBY, av1()), ...hashed('avalon/v1/lobby/ZZZZ#', av1()) }],
     ['presence', put('~' + PUB, { avalon_v1_presence: presence('{"seq":1}') })],
     ['presence with SEA prefix', put('~' + PUB, { avalon_v1_presence: 'SEA' + presence('x') })],
@@ -231,8 +250,18 @@ describe('checkPut', () => {
     ['link value', put(LOBBY, { [sha256Hex('AV1.a')]: { '#': 'x' } }), 'value is not a string'],
     ['value over 64 KiB', hashed(LOBBY, 'AV1.' + 'x'.repeat(64 * 1024 - 3)), 'value too large'],
     ['message over 256 KiB', put(LOBBY, Object.fromEntries(
-      Array.from({ length: 5 }, (_, i) => { const v = 'AV1.' + String(i) + 'x'.repeat(60 * 1024); return [sha256Hex(v), v]; }),
+      Array.from({ length: 5 }, () => { const v = av1AtMost(60 * 1024); return [sha256Hex(v), v]; }),
     )), 'message too large'],
+    ['random bytes after AV1.', hashed(LOBBY, 'AV1.' + randomBytes(96).toString('base64url') + '.' + randomBytes(64).toString('base64url')), 'envelope is not JSON'],
+    ['value with a short signature', hashed(LOBBY, envValue({ type: 'lobby.join' }).slice(0, -2)), 'value is not an AV1 envelope'],
+    ['envelope without type', hashed(LOBBY, envValue({ v: 1 })), 'envelope has no type'],
+    ['game message in a lobby soul', hashed(LOBBY, envValue({ v: 1, type: 'key' })), 'message type does not belong to the soul'],
+    ['lobby message in a game soul', hashed(`avalon/v1/game/${gameId}/play#`, envValue({ v: 1, type: 'lobby.join', game: gameId })), 'message type does not belong to the soul'],
+    ['setup message in a play soul', hashed(`avalon/v1/game/${gameId}/play#`, envValue({ v: 1, type: 'key', game: gameId })), 'message type does not belong to the soul'],
+    ['game message of another game', hashed(`avalon/v1/game/${gameId}/setup#`, av1(8, 'avalon/v1/game/zzzzzzzzzzzzzzzzzzzzzz/setup#')), 'game does not match the soul'],
+    ['lobby.create of another code', hashed(LOBBY, envValue({ v: 1, type: 'lobby.create', body: { code: 'WXYZ' } })), 'lobby code does not match the soul'],
+    ['presence naming another signer ("*")', put('~' + PUB, { avalon_v1_presence: JSON.stringify({ ':': 'x', '~': 'sig', '*': PUB }) }), 'presence value is not SEA-signed'],
+    ['presence with a certificate ("+")', put('~' + PUB, { avalon_v1_presence: 'SEA' + JSON.stringify({ ':': 'x', '~': 'sig', '+': 'cert' }) }), 'presence value is not SEA-signed'],
     ['other user-space key', put('~' + PUB, { alias: presence('x') }), 'user space key not whitelisted'],
     ['presence plus another key', put('~' + PUB, { avalon_v1_presence: presence('x'), pub: PUB }), 'user space key not whitelisted'],
     ['unsigned presence', put('~' + PUB, { avalon_v1_presence: '{"seq":1}' }), 'presence value is not SEA-signed'],
@@ -260,6 +289,8 @@ describe('checkPut', () => {
     assert.equal(isSeaSignedString('{":":"x","~":""}'), false);
     assert.equal(isSeaSignedString('{":"'), false);
     assert.equal(isSeaSignedString('[1]'), false);
+    assert.equal(isSeaSignedString(JSON.stringify({ ':': 'x', '~': 'sig', '*': PUB })), false);
+    assert.equal(isSeaSignedString(JSON.stringify({ ':': 'x', '~': 'sig', '+': 'c' })), false);
   });
 });
 
@@ -406,6 +437,127 @@ describe('relay filter (in-process relay with gun/sea)', () => {
   });
 });
 
+describe('relay routing and abuse limits (review regressions)', () => {
+  type Chain = { get(k: string): Chain; map(): Chain; on(cb: (v: unknown, k: string) => void): Chain };
+  const chain = (c: TestClient): Chain => c.gun as unknown as Chain;
+
+  it('forwards puts only to connections that asked for the soul; gets are not forwarded', async () => {
+    const relay = await startRelay(path.join(scratch, 'r1'));
+    const writer = await connect(relay.url);
+    const watcher = await connect(relay.url);
+    const passive = await connect(relay.url);
+    try {
+      const other = 'avalon/v1/lobby/QQQQ#';
+      const seen = new Set<string>();
+      chain(watcher).get(LOBBY).map().on((v) => { if (typeof v === 'string') seen.add(v); });
+      chain(passive).get(other).map().on(() => undefined);
+      // Everything the passive listener's wire receives.
+      const heard: string[] = [];
+      const peer = Object.values(passive.root.opt.peers).find((p) => p?.wire);
+      const ws = peer?.wire as unknown as { on(ev: 'message', cb: (d: unknown) => void): void };
+      ws.on('message', (d) => heard.push(String(d)));
+      await sleep(300);
+      const values = Array.from({ length: 20 }, () => av1());
+      for (const v of values) writer.say(hashed(LOBBY, v));
+      await until(() => values.every((v) => seen.has(v)), 5000, 'delivery to the subscriber');
+      await sleep(300);
+      assert.equal(heard.filter((h) => values.some((v) => h.includes(v))).length, 0, 'the passive listener received other lobbies\' puts');
+      assert.equal(heard.filter((h) => h.includes('"get"') && h.includes(LOBBY)).length, 0, 'gets were forwarded');
+      assert.equal(passive.root.graph[LOBBY], undefined);
+    } finally {
+      writer.close();
+      watcher.close();
+      passive.close();
+      await relay.close();
+    }
+  });
+
+  it('drops acknowledgements and replies sent by clients (forged acks)', async () => {
+    const relay = await startRelay(path.join(scratch, 'r2'));
+    const c = await connect(relay.url);
+    try {
+      // Raw over the socket (a GUN client drops acks it cannot route itself).
+      const wire = Object.values(c.root.opt.peers).find((p) => p?.wire)?.wire;
+      assert.ok(wire?.send);
+      wire.send(JSON.stringify({ '#': 'x1', '@': 'someone-elses-put', err: 'Data hash not same as hash!' }));
+      wire.send(JSON.stringify({ '#': 'x2', '@': 'someone-elses-get', put: hashed(LOBBY, av1()) }));
+      await until(() => (relay.filter.stats.reasons['ack from a client'] ?? 0) === 2, 5000, 'drops');
+    } finally {
+      c.close();
+      await relay.close();
+    }
+  });
+
+  it('never dials a URL named by a "mob" DAM message, and survives odd DAM names', async () => {
+    const relay = await startRelay(path.join(scratch, 'r3'));
+    const c = await connect(relay.url);
+    let dialed = 0;
+    const target = createNetServer((sock) => {
+      dialed++;
+      sock.destroy();
+    });
+    await new Promise<void>((r) => target.listen(0, '127.0.0.1', r));
+    const port = (target.address() as AddressInfo).port;
+    try {
+      const wire = Object.values(c.root.opt.peers).find((p) => p?.wire)?.wire;
+      assert.ok(wire?.send);
+      wire.send(JSON.stringify({ '#': 'm1', dam: 'mob', peers: { [`http://127.0.0.1:${port}/internal-admin`]: 1 } }));
+      for (const dam of ['c', 'd', 'one', 'call', 'apply', 'bind', 'toString', 'hi']) wire.send(JSON.stringify({ '#': 'd-' + dam, dam }));
+      await sleep(1500);
+      assert.equal(dialed, 0, 'the relay dialed the URL');
+      // Still serving.
+      const v = av1();
+      c.say(hashed(LOBBY, v));
+      await until(() => relay.root.graph[LOBBY]?.[sha256Hex(v)] === v, 5000, 'still stores');
+    } finally {
+      c.close();
+      target.close();
+      await relay.close();
+    }
+  });
+
+  it('limits gets per connection, values per soul and connections per address', async () => {
+    const server = createServer((_q, res) => { res.statusCode = 404; res.end(); });
+    await new Promise<void>((r) => server.listen(0, '127.0.0.1', r));
+    const { port } = server.address() as AddressInfo;
+    const gun = createRelay(server, path.join(scratch, 'r4'), GunCtor);
+    const clock = { t: 5_000_000 };
+    const filter = installRelayFilter(gun, {
+      now: () => clock.t,
+      ipOf: () => '203.0.113.7',
+      limits: { soulValues: { lobby: 3, game: 3, logs: 3 }, getBurst: 30, getsPerSecond: 1, connectionsPerIp: 2 },
+    });
+    const root = rootOf(gun);
+    const clients: TestClient[] = [];
+    try {
+      const a = await connect(`http://127.0.0.1:${port}/gun`);
+      clients.push(a);
+      // Soul quota: 3 values per lobby soul.
+      const vs = Array.from({ length: 5 }, () => av1());
+      for (const v of vs) a.say(hashed(LOBBY, v));
+      await until(() => (filter.stats.reasons['soul quota exceeded'] ?? 0) === 2, 5000, 'quota drops');
+      assert.equal(Object.keys(root.graph[LOBBY] ?? {}).filter((k) => k !== '_').length, 3);
+      // Gets: a burst of 30, then 1/s.
+      for (let i = 0; i < 60; i++) a.root.opt.mesh?.say({ '#': 'g' + i, get: { '#': `avalon/v1/lobby/${'ABCDEFGHJKLMNPQRSTVWXYZ'[i % 23]}AAA#` } });
+      await until(() => (filter.stats.reasons['get rate limit'] ?? 0) >= 25, 5000, 'get drops');
+      // Connections per address: the third is closed.
+      const b = await connect(`http://127.0.0.1:${port}/gun`);
+      clients.push(b);
+      const cc = GunCtor({ peers: [`http://127.0.0.1:${port}/gun`], super: false, localStorage: false, radisk: false, rfs: false, multicast: false, axe: false, stats: false });
+      clients.push({ gun: cc, root: rootOf(cc), say: () => undefined, close: () => {
+        for (const [k, p] of Object.entries(rootOf(cc).opt.peers)) { delete rootOf(cc).opt.peers[k]; clearTimeout(p?.defer); p?.wire?.close?.(); }
+      } });
+      await until(() => (filter.stats.reasons['too many connections from one address'] ?? 0) >= 1, 5000, 'connection limit');
+    } finally {
+      for (const c of clients) c.close();
+      for (const c of root.opt.ws?.web?.clients ?? []) c.terminate();
+      root.opt.ws?.web?.close();
+      server.closeAllConnections();
+      await new Promise<void>((r) => server.close(() => r()));
+    }
+  });
+});
+
 // ---------------------------------------------------------------------------
 // The boot self-test
 // ---------------------------------------------------------------------------
@@ -422,13 +574,20 @@ describe('relaySelfTest', () => {
       '(c) overwrite of a stored value is rejected',
       '(filter) correctly hashed value under a non-whitelisted soul is rejected',
       '(filter) valid lobby value is stored',
+      '(filter) presence value carrying "*" is rejected',
+      '(filter) value that is not a lobby envelope is rejected',
+      '(filter) the mesh accepts no DAM but "?" and "!"',
     ]);
     assert.deepEqual(readdirSync(scratch).filter((f) => f.startsWith('avalon-relay-selftest-')), []);
   });
 
   it('fails when the filter is not installed', async () => {
     const report = await runRelaySelfTest({ Gun: GunCtor, tmpRoot: scratch, installFilter: () => undefined });
-    assert.deepEqual(report.failures, ['(filter) correctly hashed value under a non-whitelisted soul is rejected']);
+    assert.deepEqual(report.failures, [
+      '(filter) correctly hashed value under a non-whitelisted soul is rejected',
+      '(filter) value that is not a lobby envelope is rejected',
+      '(filter) the mesh accepts no DAM but "?" and "!"',
+    ]);
   });
 
   const fixture = (name: string, ...args: string[]): Proc =>

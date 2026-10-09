@@ -47,29 +47,29 @@ export default defineComponent({
     banner(): Banner | null {
       const status = this.avalon.status;
       if (status.kind == 'READ_ONLY_OTHER_TAB') {
-        return { id: 'read-only', type: 'info', icon: 'mdi-tab', text: 'Avalon is open in another tab' };
+        return { id: 'read-only', type: 'info', icon: '$tab', text: 'Avalon is open in another tab' };
       }
       if (status.kind == 'LOST_SECRETS') {
-        return { id: 'lost-secrets', type: 'error', icon: 'mdi-key-remove',
+        return { id: 'lost-secrets', type: 'error', icon: '$keyRemove',
                  text: 'This browser lost the secret keys for this game; it cannot continue' };
       }
       const down: number = this.avalon.disconnectedMs;
       if (down > UI_TIMERS.offlineMs) {
-        return { id: 'offline', type: 'warning', icon: 'mdi-wifi-off',
+        return { id: 'offline', type: 'warning', icon: '$wifiOff',
                  text: 'Offline - your moves are saved and will be sent when reconnected' };
       }
       if (down > UI_TIMERS.reconnectingMs) {
-        return { id: 'reconnecting', type: 'warning', icon: 'mdi-wifi-strength-alert-outline', text: 'Reconnecting...' };
+        return { id: 'reconnecting', type: 'warning', icon: '$wifiStrengthAlertOutline', text: 'Reconnecting...' };
       }
       if (status.kind == 'CONNECTING') {
-        return { id: 'connecting', type: 'info', icon: 'mdi-lan-pending', text: 'Connecting...' };
+        return { id: 'connecting', type: 'info', icon: '$lanPending', text: 'Connecting...' };
       }
       if (status.kind == 'SYNCING') {
-        return { id: 'syncing', type: 'info', icon: 'mdi-sync', text: `Syncing game data ${status.percent}%`,
+        return { id: 'syncing', type: 'info', icon: '$sync', text: `Syncing game data ${status.percent}%`,
                  percent: status.percent };
       }
       if (status.kind == 'ENDING' && this.avalon.isInLobby) {
-        return { id: 'ending', type: 'info', icon: 'mdi-flag-checkered',
+        return { id: 'ending', type: 'info', icon: '$flagCheckered',
                  text: `Game over - revealing roles (${status.revealed}/${status.total} devices)`,
                  percent: status.total ? Math.round(100 * status.revealed / status.total) : 0 };
       }

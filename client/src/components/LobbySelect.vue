@@ -23,7 +23,7 @@
     </v-text-field>
     <v-text-field ref="lobbyTextField" :model-value="lobby" @update:model-value="val => lobbyChanged(val)" label="Lobby"
       :error-messages='errorMsg' @keyup.enter="joinLobby()" maxlength="4" data-testid="lobby-code"
-      :hint="inviteId ? 'Invite for lobby ' + lobby + ' · ' + inviteId.slice(0, 4).toUpperCase() : 'The 4-letter code shown in the lobby'"
+      :hint="inviteId ? 'Invite for lobby ' + lobby + ' · ' + inviteFingerprint : 'The 4-letter code shown in the lobby'"
       persistent-hint
       class="lobby-input"></v-text-field>
     <div v-if='candidates.length > 1' class="lobby-buttons pb-2" data-testid="lobby-chooser">
@@ -31,13 +31,13 @@
       <v-list class="bg-blue-grey-lighten-4" density="compact">
         <v-list-item v-for="c in candidates" :key="c.lobbyId" @click="joinCandidate(c)" :disabled="isJoiningLobby"
           :data-testid="'lobby-candidate-' + c.fingerprint">
-          <v-list-item-title>{{ c.code }} · {{ c.fingerprint }} — admin {{ c.adminName }}</v-list-item-title>
+          <v-list-item-title>{{ c.code }} · {{ c.fingerprint }} — admin {{ c.adminName }} (key {{ c.adminFingerprint }})</v-list-item-title>
           <v-list-item-subtitle>{{ c.members.joinWithAnd() }}</v-list-item-subtitle>
         </v-list-item>
       </v-list>
     </div>
     <p v-if='waitingForAdmin' class="text-body-2 pb-2" data-testid="waiting-for-admin">
-      Waiting for {{ waitingForAdmin }} to admit you
+      Waiting for {{ waitingForAdmin }} to admit you<template v-if='!inviteKey'> (joining by code: the admin approves each request; an invite link admits you directly)</template>
     </p>
     <div class="d-flex flex-column ga-2 lobby-buttons">
       <v-btn :disabled='!validCode || !nameValid' @click='joinLobby()' :loading="isJoiningLobby" block>
@@ -49,7 +49,7 @@
     </div>
    </template>
   <div style='padding-top: 30px'></div>
-  <StatsDisplay :stats='avalon.user.stats' :globalStats='avalon.globalStats'></StatsDisplay>
+  <StatsDisplay :stats='avalon.user.stats'></StatsDisplay>
   </div>
   </v-container>
 </template>
@@ -63,12 +63,14 @@ import type { LobbyCandidate } from '@/types'
 // §4.1: CODE is 4 letters from this alphabet (no I, O, U)
 const LOBBY_CODE_RE = /^[ABCDEFGHJKLMNPQRSTVWXYZ]{4}$/;
 
-function readInvite(): { lobby: string; id: string } | null {
+/** The invite of the URL (§4.1): code, lobbyId prefix and the admin's invite key (`k`, §4.3). */
+function readInvite(): { lobby: string; id: string; key: string } | null {
   const params = new URLSearchParams(window.location.search);
   const lobby = (params.get('lobby') ?? '').toUpperCase();
   if (!LOBBY_CODE_RE.test(lobby)) return null;
   const id = (params.get('id') ?? '').toLowerCase();
-  return { lobby, id: /^[0-9a-f]{1,64}$/.test(id) ? id : '' };
+  const key = params.get('k') ?? '';
+  return { lobby, id: /^[0-9a-f]{1,64}$/.test(id) ? id : '', key: /^[A-Za-z0-9_-]{22}$/.test(key) ? key : '' };
 }
 
 export default defineComponent({
@@ -82,6 +84,7 @@ export default defineComponent({
       name: this.avalon.user && this.avalon.user.name ? this.avalon.user.name : (this.avalon.preferredName || ''),
       lobby: invite ? invite.lobby : '',
       inviteId: invite ? invite.id : '',
+      inviteKey: invite ? invite.key : '',
       candidates: [] as LobbyCandidate[],
       waitingForAdmin: '',
       alertTimeoutTimer: null as ReturnType<typeof setTimeout> | null,
@@ -109,6 +112,10 @@ export default defineComponent({
     },
     validCode(): boolean {
       return LOBBY_CODE_RE.test(this.lobby);
+    },
+    inviteFingerprint(): string {
+      const h = this.inviteId.slice(0, 8).toUpperCase();
+      return h.length > 4 ? h.slice(0, 4) + '-' + h.slice(4) : h;
     }
   },
   methods: {
@@ -116,7 +123,10 @@ export default defineComponent({
       const code = val.toUpperCase();
       if (code != this.lobby) {
         this.candidates = [];
-        if (this.inviteId && code != readInvite()?.lobby) this.inviteId = '';
+        if (this.inviteId && code != readInvite()?.lobby) {
+          this.inviteId = '';
+          this.inviteKey = '';
+        }
       }
       this.lobby = code;
     },
@@ -165,7 +175,8 @@ export default defineComponent({
     async join(candidate: LobbyCandidate) {
       this.waitingForAdmin = candidate.adminName;
       try {
-        await this.avalon.joinLobby(this.name, candidate.code, candidate.lobbyId);
+        const key = this.inviteId && candidate.lobbyId.startsWith(this.inviteId) ? this.inviteKey : '';
+        await this.avalon.joinLobby(this.name, candidate.code, candidate.lobbyId, key || undefined);
         if (readInvite()) {
           // strip the invite from the URL once used
           window.history.replaceState(null, '', window.location.pathname);

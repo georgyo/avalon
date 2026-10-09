@@ -17,7 +17,7 @@
       </template>
       <v-list-item-title>{{role.name}}</v-list-item-title>
       <template v-slot:append>
-        <v-btn icon variant="text" @click='showRoleInfo(role)' size="small"><v-icon>mdi-information</v-icon></v-btn>
+        <v-btn icon variant="text" @click='showRoleInfo(role)' size="small"><v-icon>$information</v-icon></v-btn>
       </template>
   </v-list-item>
   </v-list>

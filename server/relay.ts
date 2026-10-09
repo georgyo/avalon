@@ -26,6 +26,21 @@ import { join } from 'node:path';
 export interface RelayLimits {
   /** Maximum UTF-8 size of a value in a public content-addressed soul. */
   valueBytes: number;
+  /** Values accepted per public soul (per process lifetime; re-puts of a stored key do not count). */
+  soulValues: { lobby: number; game: number; logs: number };
+  /** Bytes accepted per public soul (same accounting). */
+  soulBytes: { lobby: number; game: number; logs: number };
+  /** Sustained gets per second per connection, and their burst. */
+  getsPerSecond: number;
+  getBurst: number;
+  /** Souls whose puts are forwarded to one connection (its gets); further gets are dropped. */
+  subscriptionsPerConnection: number;
+  /** Per client IP (public addresses only, see RelayFilterOptions.ipOf): connections, puts and gets. */
+  connectionsPerIp: number;
+  putsPerSecondPerIp: number;
+  putBurstPerIp: number;
+  getsPerSecondPerIp: number;
+  getBurstPerIp: number;
   /** Maximum UTF-8 size of the SEA-signed presence value. */
   presenceBytes: number;
   /** Maximum size of the put payload of one GUN message (souls + keys + values). */
@@ -44,6 +59,16 @@ export interface RelayLimits {
 
 export const RELAY_LIMITS: Readonly<RelayLimits> = Object.freeze({
   valueBytes: 64 * 1024,
+  soulValues: Object.freeze({ lobby: 4096, game: 4096, logs: 200000 }),
+  soulBytes: Object.freeze({ lobby: 16 * 1024 * 1024, game: 32 * 1024 * 1024, logs: 1024 * 1024 * 1024 }),
+  getsPerSecond: 20,
+  getBurst: 200,
+  subscriptionsPerConnection: 1024,
+  connectionsPerIp: 32,
+  putsPerSecondPerIp: 200,
+  putBurstPerIp: 1000,
+  getsPerSecondPerIp: 60,
+  getBurstPerIp: 600,
   presenceBytes: 1024,
   messageBytes: 256 * 1024,
   putsPerSecond: 50,
@@ -62,6 +87,16 @@ export const USER_SOUL_RE = /^~[A-Za-z0-9_-]{43}\.[A-Za-z0-9_-]{43}$/;
 export const PRESENCE_KEY = 'avalon_v1_presence';
 /** Envelope prefix (§3.3). */
 export const VALUE_PREFIX = 'AV1.';
+/** An envelope value: `AV1.` ‖ b64url(canonical JSON) ‖ `.` ‖ b64url(64-byte signature) (§3.3). */
+export const VALUE_RE = /^AV1\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]{86}$/;
+
+/** Message types per public soul kind (docs/p2p-protocol.md §3.1-3.2; common/protocol/types.ts). */
+const SOUL_TYPES = {
+  lobby: ['lobby.create', 'lobby.join', 'lobby.leave', 'lobby.roster', 'lobby.config'],
+  setup: ['key', 'shuffle', 'deal', 'ot.recv', 'ot.send'],
+  play: ['propose', 'vote.commit', 'vote.reveal', 'ballot', 'tally', 'assassinate', 'cancel', 'reveal'],
+  logs: ['log'],
+} as const;
 
 // ---------------------------------------------------------------------------
 // Put validation (pure)
@@ -93,10 +128,47 @@ export function isSeaSignedString(value: string): boolean {
   } catch {
     return false;
   }
-  return isRecord(parsed)
-    && Object.prototype.hasOwnProperty.call(parsed, ':')
+  // Exactly ':' and '~': SEA verifies a value carrying '*' against that embedded pub instead of the
+  // soul's owner (and skips the certificate check without '+'), so any key pair could write it.
+  if (!isRecord(parsed)) return false;
+  const keys = Object.keys(parsed).sort();
+  return keys.length === 2 && keys[0] === ':' && keys[1] === '~'
     && typeof parsed['~'] === 'string'
     && parsed['~'].length > 0;
+}
+
+/** The kind of a public soul, and its game id / lobby code. */
+function publicSoulKind(soul: string): { kind: 'lobby'; code: string } | { kind: 'setup' | 'play'; gameId: string } | { kind: 'logs' } | null {
+  let m = /^avalon\/v1\/lobby\/([A-HJ-NP-TV-Z]{4})#$/.exec(soul);
+  if (m !== null) return { kind: 'lobby', code: m[1] };
+  m = /^avalon\/v1\/game\/([A-Za-z0-9_-]{22})\/(setup|play)#$/.exec(soul);
+  if (m !== null) return { kind: m[2] === 'setup' ? 'setup' : 'play', gameId: m[1] };
+  if (/^avalon\/v1\/logs\/\d{4}-\d{2}#$/.test(soul)) return { kind: 'logs' };
+  return null;
+}
+
+/**
+ * Cheap structural check of an envelope value for `soul` (no signature check, which clients do):
+ * the `AV1.<b64url>.<sig>` shape, a JSON object whose `type` belongs to the soul and whose `game`
+ * (game souls) or `body.code` (lobby.create) matches it.
+ */
+export function checkEnvelopeShape(soul: string, value: string): string | null {
+  if (!VALUE_RE.test(value)) return 'value is not an AV1 envelope';
+  const where = publicSoulKind(soul);
+  if (where === null) return 'soul not whitelisted';
+  let env: unknown;
+  try {
+    env = JSON.parse(Buffer.from(value.split('.')[1], 'base64url').toString('utf8'));
+  } catch {
+    return 'envelope is not JSON';
+  }
+  if (!isRecord(env) || typeof env.type !== 'string') return 'envelope has no type';
+  if (!(SOUL_TYPES[where.kind] as readonly string[]).includes(env.type)) return 'message type does not belong to the soul';
+  if ((where.kind === 'setup' || where.kind === 'play') && env.game !== where.gameId) return 'game does not match the soul';
+  if (where.kind === 'lobby' && env.type === 'lobby.create' && (!isRecord(env.body) || env.body.code !== where.code)) {
+    return 'lobby code does not match the soul';
+  }
+  return null;
 }
 
 function checkNode(soul: string, node: unknown, limits: RelayLimits): PutVerdict {
@@ -129,6 +201,8 @@ function checkNode(soul: string, node: unknown, limits: RelayLimits): PutVerdict
       if (!HASH_KEY_RE.test(key)) return { ok: false, reason: 'key is not a SHA-256 hex digest' };
       if (!value.startsWith(VALUE_PREFIX)) return { ok: false, reason: 'value is not an AV1 envelope' };
       if (size > limits.valueBytes) return { ok: false, reason: 'value too large' };
+      const shape = checkEnvelopeShape(soul, value);
+      if (shape !== null) return { ok: false, reason: shape };
     } else {
       if (size > limits.presenceBytes) return { ok: false, reason: 'presence value too large' };
       if (!isSeaSignedString(value)) return { ok: false, reason: 'presence value is not SEA-signed' };
@@ -175,11 +249,27 @@ interface OntoTag {
   last: OntoLink | OntoTag;
 }
 
-interface PeerInternals {
+export interface PeerInternals {
   id?: string;
   url?: string;
   defer?: ReturnType<typeof setTimeout>;
-  wire?: { readyState?: number; close?: () => void } | null;
+  wire?: {
+    readyState?: number;
+    close?: () => void;
+    headers?: Record<string, string | string[] | undefined>;
+    _socket?: { remoteAddress?: string };
+  } | null;
+}
+
+/** GUN's mesh (src/mesh.js), as far as the relay patches it. */
+interface MeshInternals {
+  say(msg: unknown, peer?: PeerInternals): unknown;
+  hear: ((raw: unknown, peer: unknown) => unknown) & {
+    one(msg: unknown, peer: unknown, S: unknown): unknown;
+    mob?: (msg: unknown, peer: unknown) => unknown;
+  };
+  hardened?: boolean;
+  routed?: boolean;
 }
 
 interface WebSocketServerInternals {
@@ -191,7 +281,7 @@ interface RootInternals {
   graph: Record<string, Rec | undefined>;
   opt: {
     peers: Record<string, PeerInternals | undefined>;
-    mesh?: { say(msg: Rec): unknown };
+    mesh?: MeshInternals;
     ws?: { web?: WebSocketServerInternals };
   };
   on(tag: string): OntoLink | undefined;
@@ -249,8 +339,16 @@ class TokenBucket {
 
 export interface RelayFilterOptions {
   limits?: Partial<RelayLimits>;
-  /** Clock for the rate limiter (ms). */
+  /** Clock for the rate limiters (ms). */
   now?: () => number;
+  /**
+   * The client address of a connection, for the per-IP limits; null exempts it. Default: the
+   * socket's remote address, or with `trustProxy` the last `X-Forwarded-For` entry; loopback and
+   * private addresses are exempt (behind an unconfigured reverse proxy every client would share one).
+   */
+  ipOf?: (peer: PeerInternals) => string | null;
+  /** Take the client address from the last `X-Forwarded-For` entry (the relay sits behind a proxy). */
+  trustProxy?: boolean;
 }
 
 export interface RelayFilterStats {
@@ -264,46 +362,166 @@ export interface RelayFilter {
 }
 
 /** The peer a message arrived from, or undefined for local (non-wire) messages. */
-function wirePeerOf(msg: Rec): object | undefined {
+function wirePeerOf(msg: Rec): PeerInternals | undefined {
   const meta = msg._;
   if (typeof meta !== 'function') return undefined;
   const via = (meta as { via?: unknown }).via;
-  return typeof via === 'object' && via !== null ? via : undefined;
+  return typeof via === 'object' && via !== null ? (via as PeerInternals) : undefined;
+}
+
+function isPrivateAddress(ip: string): boolean {
+  const v4 = ip.startsWith('::ffff:') ? ip.slice(7) : ip;
+  return v4 === '::1' || /^127\./.test(v4) || /^10\./.test(v4) || /^192\.168\./.test(v4)
+    || /^172\.(1[6-9]|2\d|3[01])\./.test(v4) || /^169\.254\./.test(v4) || /^f[cd][0-9a-f]{2}:/i.test(v4) || /^fe80:/i.test(v4);
+}
+
+/** Default client address of a connection (see RelayFilterOptions.ipOf). */
+export function defaultIpOf(peer: PeerInternals, trustProxy = false): string | null {
+  const wire = peer.wire;
+  if (!wire) return null;
+  let ip: string | undefined;
+  if (trustProxy) {
+    const xff = wire.headers?.['x-forwarded-for'];
+    const list = (Array.isArray(xff) ? xff.join(',') : xff ?? '').split(',').map((x) => x.trim()).filter((x) => x !== '');
+    ip = list[list.length - 1];
+  }
+  ip ??= wire._socket?.remoteAddress;
+  if (ip === undefined || ip === '' || isPrivateAddress(ip)) return null;
+  return ip;
+}
+
+/**
+ * Hardens GUN's mesh on the relay (§8): the wire may only use the `?` (handshake) and `!` (error)
+ * DAM messages. GUN's built-in `mob` handler would otherwise dial any URL a client names (SSRF,
+ * outbound socket exhaustion), and DAM names are looked up on a function object (`call`, `bind`...).
+ */
+export function hardenMesh(gun: IGunInstance): void {
+  const mesh = rootOf(gun).opt.mesh;
+  if (!mesh || mesh.hardened === true) return;
+  mesh.hardened = true;
+  mesh.hear.mob = () => undefined;
+  const one = mesh.hear.one;
+  mesh.hear.one = function (this: unknown, msg: unknown, peer: unknown, S: unknown): unknown {
+    if (isRecord(msg) && msg.dam !== undefined && msg.dam !== '?' && msg.dam !== '!') return undefined;
+    return one.call(this, msg, peer, S);
+  };
 }
 
 /**
  * Installs the relay's input filter (§8) as the first `in` middleware of
- * `gun`. Puts that arrive over the wire are dropped unless every node passes
- * `checkPut` and the connection is within its rate limit. Gets, acks and local
- * messages (disk reads, the relay's own replies) are not filtered.
+ * `gun`, and its output routing. Puts that arrive over the wire are dropped
+ * unless every node passes `checkPut`, the connection and its IP are within
+ * their rate limits and the soul within its quota; acknowledgements and replies
+ * (`@`) from clients are dropped (any client could forge one for another
+ * client's put or get); gets are rate limited. Forwarded puts go only to the
+ * connections that asked for the soul (a get), and gets are never forwarded to
+ * clients, so a passive listener learns no lobby code, game or presence it did
+ * not ask for. Local messages (disk reads, the relay's own replies) are not
+ * filtered.
  */
 export function installRelayFilter(gun: IGunInstance, options: RelayFilterOptions = {}): RelayFilter {
   const limits: RelayLimits = { ...RELAY_LIMITS, ...options.limits };
   const now = options.now ?? Date.now;
-  const buckets = new WeakMap<object, TokenBucket>();
+  const ipOf = options.ipOf ?? ((peer: PeerInternals) => defaultIpOf(peer, options.trustProxy === true));
+  const root = rootOf(gun);
+  const putBuckets = new WeakMap<object, TokenBucket>();
+  const getBuckets = new WeakMap<object, TokenBucket>();
+  const ipPutBuckets = new Map<string, TokenBucket>();
+  const ipGetBuckets = new Map<string, TokenBucket>();
+  const ipConnections = new Map<string, number>();
+  const peerIp = new WeakMap<object, string | null>();
+  const subscribed = new WeakMap<object, Set<string>>();
+  const quota = new Map<string, { values: number; bytes: number }>();
   const stats: RelayFilterStats = { accepted: 0, dropped: 0, reasons: {} };
   const drop = (reason: string): void => {
     stats.dropped++;
     stats.reasons[reason] = (stats.reasons[reason] ?? 0) + 1;
   };
+  const bucketOf = (map: WeakMap<object, TokenBucket> | Map<string, TokenBucket>, k: object | string, rate: number, burst: number): TokenBucket => {
+    let b = (map as Map<object | string, TokenBucket>).get(k);
+    if (!b) {
+      b = new TokenBucket(rate, burst, now());
+      (map as Map<object | string, TokenBucket>).set(k, b);
+    }
+    return b;
+  };
+  const ipFor = (peer: PeerInternals): string | null => {
+    if (!peerIp.has(peer)) peerIp.set(peer, ipOf(peer));
+    return peerIp.get(peer) ?? null;
+  };
 
-  prependListener(rootOf(gun), 'in', function relayFilter(this: OntoLink, msg: unknown): void {
+  hardenMesh(gun);
+
+  // Connections per IP.
+  root.on('hi', function (this: OntoLink, arg: unknown): void {
+    this.to.next(arg);
+    const peer = arg as PeerInternals;
+    const ip = ipFor(peer);
+    if (ip === null) return;
+    const n = (ipConnections.get(ip) ?? 0) + 1;
+    ipConnections.set(ip, n);
+    if (n > limits.connectionsPerIp) {
+      drop('too many connections from one address');
+      try {
+        peer.wire?.close?.();
+      } catch {
+        // already closed
+      }
+    }
+  });
+  root.on('bye', function (this: OntoLink, arg: unknown): void {
+    this.to.next(arg);
+    const ip = ipFor(arg as PeerInternals);
+    if (ip === null) return;
+    const n = (ipConnections.get(ip) ?? 1) - 1;
+    if (n <= 0) {
+      ipConnections.delete(ip);
+      ipPutBuckets.delete(ip);
+      ipGetBuckets.delete(ip);
+    } else {
+      ipConnections.set(ip, n);
+    }
+  });
+
+  prependListener(root, 'in', function relayFilter(this: OntoLink, msg: unknown): void {
     const m = typeof msg === 'object' && msg !== null ? (msg as Rec) : undefined;
-    if (!m || m.put === undefined || m.put === null) {
+    const peer = m ? wirePeerOf(m) : undefined;
+    if (!m || !peer) {
       this.to.next(msg);
       return;
     }
-    const peer = wirePeerOf(m);
-    if (!peer) {
+    if (m['@'] !== undefined) {
+      drop('ack from a client');
+      return;
+    }
+    const ip = ipFor(peer);
+    if (m.get !== undefined && m.get !== null) {
+      if (!bucketOf(getBuckets, peer, limits.getsPerSecond, limits.getBurst).take(now())
+          || (ip !== null && !bucketOf(ipGetBuckets, ip, limits.getsPerSecondPerIp, limits.getBurstPerIp).take(now()))) {
+        drop('get rate limit');
+        return;
+      }
+      const soul = isRecord(m.get) ? m.get['#'] : undefined;
+      if (typeof soul === 'string') {
+        let set = subscribed.get(peer);
+        if (!set) subscribed.set(peer, (set = new Set()));
+        if (!set.has(soul)) {
+          if (set.size >= limits.subscriptionsPerConnection) {
+            drop('too many subscriptions');
+            return;
+          }
+          set.add(soul);
+        }
+      }
       this.to.next(msg);
       return;
     }
-    let bucket = buckets.get(peer);
-    if (!bucket) {
-      bucket = new TokenBucket(limits.putsPerSecond, limits.burst, now());
-      buckets.set(peer, bucket);
+    if (m.put === undefined || m.put === null) {
+      this.to.next(msg);
+      return;
     }
-    if (!bucket.take(now())) {
+    if (!bucketOf(putBuckets, peer, limits.putsPerSecond, limits.burst).take(now())
+        || (ip !== null && !bucketOf(ipPutBuckets, ip, limits.putsPerSecondPerIp, limits.putBurstPerIp).take(now()))) {
       drop('rate limit');
       return;
     }
@@ -312,9 +530,53 @@ export function installRelayFilter(gun: IGunInstance, options: RelayFilterOption
       drop(verdict.reason);
       return;
     }
+    // Per-soul quotas, for values the relay does not hold yet.
+    const put = m.put as Rec;
+    const fresh: { soul: string; bytes: number }[] = [];
+    for (const soul of Object.keys(put)) {
+      const where = publicSoulKind(soul);
+      if (where === null) continue;
+      const node = put[soul] as Rec;
+      for (const key of Object.keys(node)) {
+        if (key === '_' || root.graph[soul]?.[key] !== undefined) continue;
+        fresh.push({ soul, bytes: utf8Bytes(String(node[key])) });
+      }
+    }
+    for (const f of fresh) {
+      const where = publicSoulKind(f.soul);
+      const kind = where === null ? 'lobby' : where.kind === 'setup' || where.kind === 'play' ? 'game' : where.kind;
+      const q = quota.get(f.soul) ?? { values: 0, bytes: 0 };
+      if (q.values + 1 > limits.soulValues[kind] || q.bytes + f.bytes > limits.soulBytes[kind]) {
+        drop('soul quota exceeded');
+        return;
+      }
+    }
+    for (const f of fresh) {
+      const q = quota.get(f.soul) ?? { values: 0, bytes: 0 };
+      q.values++;
+      q.bytes += f.bytes;
+      quota.set(f.soul, q);
+    }
     stats.accepted++;
     this.to.next(msg);
   });
+
+  // Output routing: forwarded puts only to the connections that asked for the soul; no gets to clients.
+  const mesh = root.opt.mesh;
+  if (mesh && mesh.routed !== true) {
+    mesh.routed = true;
+    const say = mesh.say;
+    mesh.say = function (this: unknown, msg: unknown, peer?: PeerInternals): unknown {
+      if (peer !== undefined && peer !== null && isRecord(msg) && msg.dam === undefined && msg['@'] === undefined) {
+        if (msg.get !== undefined) return false;
+        if (isRecord(msg.put)) {
+          const set = subscribed.get(peer);
+          if (!set || !Object.keys(msg.put).some((soul) => set.has(soul))) return false;
+        }
+      }
+      return say.call(this, msg, peer);
+    };
+  }
 
   return { stats };
 }
@@ -388,8 +650,10 @@ function sha256Hex(s: string): string {
   return createHash('sha256').update(s, 'utf8').digest('hex');
 }
 
+/** A well-shaped (unsigned) lobby envelope value: the filter checks shapes, clients check signatures. */
 function probeValue(): string {
-  return VALUE_PREFIX + randomBytes(96).toString('base64url') + '.' + randomBytes(64).toString('base64url');
+  const env = { v: 1, type: 'lobby.join', lobby: randomBytes(32).toString('hex'), nonce: randomBytes(24).toString('base64url') };
+  return VALUE_PREFIX + Buffer.from(JSON.stringify(env)).toString('base64url') + '.' + randomBytes(64).toString('base64url');
 }
 
 /** A fresh P-256 public key in SEA's `x.y` form. */
@@ -561,9 +825,20 @@ export async function runRelaySelfTest(options: SelfTestOptions = {}): Promise<S
     const eKey = sha256Hex(eValue);
     sendPut(clientR, lobbySoul, eKey, eValue);
 
+    // A presence value naming another signer in '*' (SEA's certificate path) is refused by shape.
+    const fSoul = '~' + freshPub();
+    sendPut(clientR, fSoul, PRESENCE_KEY, JSON.stringify({ ':': 'selftest', '~': randomBytes(64).toString('base64'), '*': freshPub() }));
+    // A well-hashed value that is no envelope of this soul's kind.
+    const gValue = VALUE_PREFIX + randomBytes(96).toString('base64url') + '.' + randomBytes(64).toString('base64url');
+    const gKey = sha256Hex(gValue);
+    sendPut(clientR, lobbySoul, gKey, gValue);
+
     await sleep(settleMs);
     check('(filter) correctly hashed value under a non-whitelisted soul is rejected', await absent(selftestSoul, dKey));
     check('(filter) valid lobby value is stored', await storedAs(lobbySoul, eKey, eValue));
+    check('(filter) presence value carrying "*" is rejected', await absent(fSoul, PRESENCE_KEY));
+    check('(filter) value that is not a lobby envelope is rejected', await absent(lobbySoul, gKey));
+    check('(filter) the mesh accepts no DAM but "?" and "!"', relayR.opt.mesh?.hardened === true);
   } catch (err) {
     report.failures.push(err instanceof Error ? err.message : String(err));
   } finally {

@@ -50,7 +50,8 @@ async function testFlow() {
     const code = await createLobby(player);
     await page.waitForSelector('[data-testid="lobby-fingerprint"]', { timeout: 15000 });
     const fingerprint = (await page.locator('[data-testid="lobby-fingerprint"]').textContent()).trim();
-    if (!/^· [0-9A-F]{4}$/.test(fingerprint)) throw new Error(`bad lobby fingerprint "${fingerprint}"`);
+    // 32 bits of the lobbyId, XXXX-XXXX (§4.1)
+    if (!/^· [0-9A-F]{4}-[0-9A-F]{4}$/.test(fingerprint)) throw new Error(`bad lobby fingerprint "${fingerprint}"`);
     await waitForText(page, 'Need at least 5 players', 5000);
     await player.screenshot('create-lobby');
     console.log(`  PASS: Lobby ${code} ${fingerprint} created`);

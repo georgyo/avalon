@@ -119,7 +119,7 @@ export default tseslint.config(
   },
   // Node scripts: e2e tests (Playwright; page.evaluate bodies run in the browser) and configs
   {
-    files: ['tests/**/*.mjs', '*.mjs', '*.js', 'client/*.js'],
+    files: ['tests/**/*.mjs', '*.mjs', '*.js', 'client/*.js', 'client/*.mjs'],
     languageOptions: {
       globals: {
         ...globals.node,

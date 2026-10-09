@@ -57,8 +57,10 @@ function sha256Hex(s: string): string {
   return createHash('sha256').update(s, 'utf8').digest('hex');
 }
 
+/** A well-shaped (unsigned) lobby envelope: the relay checks shapes, clients check signatures. */
 function envelopeLike(): string {
-  return VALUE_PREFIX + randomBytes(200).toString('base64url') + '.' + randomBytes(64).toString('base64url');
+  const env = { v: 1, type: 'lobby.join', lobby: randomBytes(32).toString('hex'), pad: randomBytes(150).toString('base64url') };
+  return VALUE_PREFIX + Buffer.from(JSON.stringify(env)).toString('base64url') + '.' + randomBytes(64).toString('base64url');
 }
 
 function sleep(ms: number): Promise<void> {

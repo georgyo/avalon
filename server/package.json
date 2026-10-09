@@ -9,7 +9,7 @@
     "bundle": "tsx bundle.ts",
     "lint": "eslint . && tsc --noEmit",
     "typecheck": "tsc --noEmit",
-    "test": "node --import tsx --test relay.test.ts",
+    "test": "node --import tsx --test relay.test.ts static.test.ts",
     "smoke": "tsx smoke.ts"
   },
   "dependencies": {

@@ -6,14 +6,12 @@
     "client",
     "server"
   ],
-  "bin": {
-    "avalon-server": "./server/server.ts"
-  },
   "scripts": {
     "build": "yarn workspace @avalon/client build",
     "bundle:server": "yarn workspace @avalon/server bundle",
     "start": "yarn workspace @avalon/server start",
     "lint": "eslint .",
+    "typecheck": "yarn workspace @avalon/common typecheck && yarn workspace @avalon/client typecheck && yarn workspace @avalon/server typecheck",
     "test": "node tests/e2e-flow.mjs",
     "test:unit": "yarn workspace @avalon/common test && yarn workspace @avalon/client test:unit && yarn workspace @avalon/server test",
     "test:browser": "node tests/e2e-browser.mjs",

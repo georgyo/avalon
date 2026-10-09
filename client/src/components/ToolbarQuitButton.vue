@@ -2,7 +2,7 @@
   <v-dialog v-model="dialog" max-width='450'>
     <template v-slot:activator="{ props }">
         <v-btn v-bind="props" :loading='quitting' class="quit-btn">
-        <v-icon start>mdi-exit-to-app</v-icon>
+        <v-icon start>$exitToApp</v-icon>
         <span class="quit-btn-text">Quit</span>
         </v-btn>
     </template>

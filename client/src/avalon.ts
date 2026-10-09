@@ -1,6 +1,7 @@
 import { markRaw } from 'vue'
 import { difference, keys, keyBy, values } from 'lodash-es'
 import * as avalonLib from '@avalon/common/avalonlib';
+import { fingerprintOf } from '@avalon/common/protocol';
 import { P2PSession, type SessionStatus, type LocalProfile } from './p2p/session';
 import type {
   Role, GameData, GameOutcome, Mission, Proposal, LobbyData, LobbyUser, UserData, RoleDoc, LobbyCandidate, SetupProgress,
@@ -183,15 +184,26 @@ class LobbySubscription {
     return this._roleDoc;
   }
 
-  /** Lobby fingerprint shown for verbal confirmation (§4.1): CODE · first 4 hex of lobbyId, uppercase. */
+  /** Lobby fingerprint shown for verbal confirmation (§4.1): CODE · first 32 bits of lobbyId (XXXX-XXXX). */
   get fingerprint(): string | null {
-    return this.lobbyId ? this.lobbyId.slice(0, 4).toUpperCase() : null;
+    return this.lobbyId ? fingerprintOf(this.lobbyId) : null;
   }
 
-  /** Invite link (§4.1). Without a known lobbyId it carries only the code. */
+  /**
+   * Invite link (§4.1). Without a known lobbyId it carries only the code. The admin's link also
+   * carries the invite key (`k`): joins through it are admitted automatically, joins by code alone
+   * wait for the admin's approval (§4.3).
+   */
   get inviteLink(): string {
     const base = window.location.origin + '/?lobby=' + encodeURIComponent(this.name);
-    return this.lobbyId ? base + '&id=' + this.lobbyId.slice(0, 16) : base;
+    if (!this.lobbyId) return base;
+    const key = this._session.invite()?.key ?? null;
+    return base + '&id=' + this.lobbyId.slice(0, 16) + (key ? '&k=' + key : '');
+  }
+
+  /** Admin: join requests without an invite ticket, waiting for approval. */
+  get requests(): { joinId: string; name: string }[] {
+    return this._doc?.requests ?? [];
   }
 
   start(): void {
@@ -225,6 +237,8 @@ class LobbySubscription {
 
     this._doc = newDoc;
     this._game = new Game(newDoc.game, this._config);
+    const invite = this._session.invite();
+    if (invite && invite.code == this.name) this.lobbyId = invite.lobbyId;
 
     if ((oldDoc == null) ||
         (oldDoc.name != newDoc.name)) {
@@ -248,7 +262,11 @@ class LobbySubscription {
       } else if (newDoc.game.state == 'ENDED') {
         this._eventHandler('GAME_ENDED');
       }
-      // ENDED -> INIT: the admin published a new config; the setup progress shows in the lobby view.
+      if (oldDoc.game.state == 'ENDED' && newDoc.game.state != 'ENDED' && newDoc.game.state != 'ACTIVE') {
+        // ENDED -> INIT: the admin published a new config; the setup progress shows in the lobby view,
+        // and the previous game's end screens close.
+        this._eventHandler('GAME_SETUP');
+      }
     } else if (oldDoc.game.phase != newDoc.game.phase && newDoc.game.state == 'ACTIVE') {
       if (this.game.phase == 'TEAM_PROPOSAL') {
         if (this.game.currentProposalIdx > 0) {
@@ -417,8 +435,8 @@ export default class AvalonGame {
     return this.session.findLobbies(code);
   }
 
-  async joinLobby(name: string, lobby: string, lobbyId?: string): Promise<void> {
-    const resp = await this.session.joinLobby(name, lobby, lobbyId);
+  async joinLobby(name: string, lobby: string, lobbyId?: string, inviteKey?: string): Promise<void> {
+    const resp = await this.session.joinLobby(name, lobby, lobbyId, inviteKey);
     this.subscribeToLobby(resp.lobby);
     if (lobbyId && this.lobby && this.lobby.name == resp.lobby) this.lobby.lobbyId = lobbyId;
   }
@@ -437,6 +455,16 @@ export default class AvalonGame {
       this._leaving = false;
     }
     void this._refreshStats();
+  }
+
+  /** Admin: admit a join request that came without an invite link (§4.3). */
+  approveJoin(joinId: string): void {
+    this.session.approveJoin(joinId);
+  }
+
+  /** Admin: decline a join request. */
+  declineJoin(joinId: string): void {
+    this.session.declineJoin(joinId);
   }
 
   kickPlayer(name: string): Promise<void> {

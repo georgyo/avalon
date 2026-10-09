@@ -42,6 +42,27 @@ export function unpackUserValue(data: unknown): string | null {
   return data;
 }
 
+/**
+ * Whether the raw SEA value GUN stored for a user-space key was signed by that user itself: its JSON
+ * has exactly the keys ':' (data) and '~' (signature). SEA verifies a value carrying '*' against that
+ * embedded pub instead of the soul's (and skips the certificate check without '+'), so such a value
+ * may be signed by anybody: presence must ignore it (§7.6).
+ */
+export function isOwnSignedUserValue(raw: unknown): boolean {
+  if (typeof raw !== 'string') return false;
+  const json = raw.startsWith('SEA{') ? raw.slice(3) : raw;
+  if (!json.startsWith('{')) return false;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(json);
+  } catch {
+    return false;
+  }
+  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) return false;
+  const keys = Object.keys(parsed).sort();
+  return keys.length === 2 && keys[0] === ':' && keys[1] === '~' && typeof (parsed as Record<string, unknown>)['~'] === 'string';
+}
+
 export class SubscriptionManager {
   private readonly souls = new Map<string, SoulSub>();
   private readonly users = new Map<string, UserSub>();
@@ -93,6 +114,8 @@ export class SubscriptionManager {
       this.users.set(id, created);
       this.order.push('~' + pub);
       this.handle.gun.get('~' + pub).get(key).on((data) => {
+        // SEA accepted the value; make sure it verified it against this soul's pub (no '*'/'+' override).
+        if (!isOwnSignedUserValue(this.handle.root.graph['~' + pub]?.[key])) return;
         const v = unpackUserValue(data);
         if (v === null || v === created.value) return;
         created.value = v;

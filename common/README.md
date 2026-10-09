@@ -45,7 +45,7 @@ yarn workspace @avalon/common bench       # crypto benchmarks
 ## Usage
 
 ```ts
-import avalonLib from '@avalon/common/avalonlib';
+import * as avalonLib from '@avalon/common/avalonlib';   // named exports only
 
 avalonLib.ROLES;                     // all role definitions
 avalonLib.getNumEvilForGameSize(7);  // 3

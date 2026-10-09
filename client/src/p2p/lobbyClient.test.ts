@@ -56,7 +56,9 @@ describe('lobby client helpers', () => {
     await t.publish(lobbySoul('ABCD'), 'f'.repeat(64), a.value); // wrong key
     const found = await discover(t, 'ABCD', { timeoutMs: 50 });
     assert.deepEqual(found.candidates.map((c) => c.adminName).sort(), ['ALICE', 'BOB']);
-    assert.equal(found.candidates[0].fingerprint, found.candidates[0].lobbyId.slice(0, 4).toUpperCase());
+    const fp = found.candidates[0].lobbyId.slice(0, 8).toUpperCase();
+    assert.equal(found.candidates[0].fingerprint, fp.slice(0, 4) + '-' + fp.slice(4), '32-bit fingerprint (§4.1)');
+    assert.match(found.candidates[0].adminFingerprint, /^[0-9A-F]{4}-[0-9A-F]{4}$/);
     assert.equal(decodeLobbyValue('ABCD', lobbySoul('ABCD'), 'f'.repeat(64), a.value), null);
     assert.equal(decodeLobbyValue('ABCD', lobbySoul('ABCD'), a.key, a.value)?.msgId, a.msgId);
   });

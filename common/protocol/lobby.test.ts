@@ -4,8 +4,10 @@ import { b64uEncode } from '../crypto/bytes.ts';
 import type { Hex32 } from '../crypto/types.ts';
 import type { Signer } from './envelope.ts';
 import {
-  adminNextAction, candidates, checkConfig, conflictingConfigs, reduceLobby, rejectionMessage, type LobbyState,
+  adminNextAction, awaitingApproval, candidates, checkConfig, conflictingConfigs, fingerprintOf, inviteKeyOf, inviteTicket,
+  MAX_REJECTIONS_PER_ROSTER, parseInviteKey, pubFingerprint, reduceLobby, rejectionMessage, TAKEOVER_SETTLE_MS, type LobbyState,
 } from './lobby.ts';
+import { encodeEnvelope } from './envelope.ts';
 import { makeMsg, testSigner } from './lobbyTestkit.ts';
 import { RULES_HASH } from './rules.ts';
 import type { Bodies, GameConfig, Member, StoredMsg } from './types.ts';
@@ -30,8 +32,8 @@ function roster(s: Signer, lobbyId: Hex32, prev: Hex32, body: Partial<Bodies['lo
   });
 }
 
-function join(s: Signer, lobbyId: Hex32, name = nameOf(s)): StoredMsg {
-  return makeMsg(s, 'lobby.join', { lobby: lobbyId, t: clock++ }, { name });
+function join(s: Signer, lobbyId: Hex32, name = nameOf(s), ticket?: string): StoredMsg {
+  return makeMsg(s, 'lobby.join', { lobby: lobbyId, t: clock++ }, ticket === undefined ? { name } : { name, ticket });
 }
 
 function leave(s: Signer, lobbyId: Hex32, joinId: Hex32): StoredMsg {
@@ -91,7 +93,13 @@ test('create + roster 1: head, root admin, fingerprint candidate', () => {
   assert.equal(s1.head.seq, 1);
   assert.throws(() => reduceLobby(c.msgId, [r1]), /not found/);
   const cands = candidates('ABCD', [c, r1]);
-  assert.deepEqual(cands, [{ lobbyId: c.msgId, code: 'ABCD', adminPub: A.pub, adminName: 'ALICE', members: ['ALICE'], fingerprint: c.msgId.slice(0, 4).toUpperCase() }]);
+  const fp = c.msgId.slice(0, 8).toUpperCase();
+  assert.deepEqual(cands, [{
+    lobbyId: c.msgId, code: 'ABCD', adminPub: A.pub, adminName: 'ALICE', members: ['ALICE'],
+    fingerprint: fp.slice(0, 4) + '-' + fp.slice(4), adminFingerprint: pubFingerprint(A.pub),
+  }]);
+  assert.match(pubFingerprint(A.pub), /^[0-9A-F]{4}-[0-9A-F]{4}$/);
+  assert.notEqual(pubFingerprint(A.pub), pubFingerprint(B.pub));
   assert.deepEqual(candidates('WXYZ', [c, r1]), []);
 });
 
@@ -157,7 +165,7 @@ test('join requests: admitted, rejected with reason, latest decision, withdrawn'
   const r2 = roster(A, lobbyId, r1.msgId, { seq: 2, members: [member(A, lobbyId), member(B, jB.msgId)], rejected: [{ joinId: jC.msgId, reason: 'name-taken' }] });
   s = reduceLobby(lobbyId, [c, r1, jB, jC, jD, r2]);
   assert.equal(s.joins.get(jB.msgId)?.status, 'admitted');
-  assert.deepEqual(s.joins.get(jC.msgId), { pub: C.pub, name: 'ALICE', status: 'rejected', reason: 'name-taken' });
+  assert.deepEqual(s.joins.get(jC.msgId), { pub: C.pub, name: 'ALICE', status: 'rejected', reason: 'name-taken', ticket: null });
   assert.equal(s.joins.get(jD.msgId)?.status, 'pending');
   assert.equal(rejectionMessage('name-taken'), 'Name taken');
   // D withdraws its request with a leave naming the join.
@@ -254,14 +262,18 @@ test('takeover and reclaim by the incumbent (§4.5)', () => {
   const bAdm = roster(B, lobbyId, take.msgId, { seq: 4, members: [...members, member(D, jD.msgId)] });
   s = reduceLobby(lobbyId, [...msgs, take, jD, bAdm]);
   assert.equal(s.joins.get(jD.msgId)?.status, 'admitted');
-  // A sees it and reclaims at the parent of the takeover; not while a game is active; B does nothing.
-  assert.deepEqual(adminNextAction(s, A.pub, true), { kind: 'none' });
+  // A sees it and reclaims at the parent of the takeover, even while a game is active (a running game is
+  // not affected by roster forks, §4.6.4); C does nothing.
+  const recBody = { kind: 'roster', prev: head, body: { seq: 3, admin: A.pub, members, rejected: [], closed: false } };
+  assert.deepEqual(adminNextAction(s, A.pub, true), recBody);
   assert.deepEqual(adminNextAction(s, C.pub, false), { kind: 'none' });
   const bCfg = config(B, lobbyId, bAdm.msgId, [...members, member(D, jD.msgId), member(E, lobbyId)]);
-  assert.deepEqual(adminNextAction(reduceLobby(lobbyId, [...msgs, take, jD, bAdm, bCfg]), A.pub, false), { kind: 'none' },
-    'no reclaim once a game was configured on the takeover branch');
+  const withCfg = reduceLobby(lobbyId, [...msgs, take, jD, bAdm, bCfg]);
+  assert.deepEqual(adminNextAction(withCfg, A.pub, false), recBody, 'a mere config on the takeover branch does not block the reclaim');
+  assert.deepEqual(adminNextAction(withCfg, A.pub, false, { keyComplete: (id) => id === bCfg.msgId }), { kind: 'none' },
+    'no reclaim once a game started (key complete) on the takeover branch');
   const rec = adminNextAction(s, A.pub, false);
-  assert.deepEqual(rec, { kind: 'roster', prev: head, body: { seq: 3, admin: A.pub, members, rejected: [], closed: false } });
+  assert.deepEqual(rec, recBody);
   if (rec.kind !== 'roster' || rec.prev === undefined) return;
   const sib = roster(A, lobbyId, rec.prev, rec.body);
   s = reduceLobby(lobbyId, [...msgs, take, jD, bAdm, sib]);
@@ -354,4 +366,164 @@ test('candidates: several lobbies per code, sorted, closed ones dropped', () => 
   const list = candidates('QQQQ', [c1, c2, c3, close3, other]);
   assert.deepEqual(list.map((x) => x.lobbyId), [c1.msgId, c2.msgId].sort());
   assert.deepEqual(list.map((x) => x.adminName).sort(), ['ALICE', 'BOB']);
+});
+
+// ---------------------------------------------------------------- review regressions
+
+test('roster members are bound to their own join requests: renames, swaps and phantoms are ignored', () => {
+  const { msgs, lobbyId, members, head } = lobbyWith([B, C, D, E]);
+  // An evil admin swaps the names of B's and C's devices.
+  const swapped = members.map((m) => (m.pub === B.pub ? { ...m, name: 'CAROL' } : m.pub === C.pub ? { ...m, name: 'BOB' } : m));
+  const swap = roster(A, lobbyId, head, { seq: 3, members: swapped });
+  assert.equal(reduceLobby(lobbyId, [...msgs, swap]).head.rosterId, head, 'swapped names: roster ignored');
+  // A plain rename of one member, and a rename of the creator.
+  const rename = roster(A, lobbyId, head, { seq: 3, members: members.map((m) => (m.pub === D.pub ? { ...m, name: 'ZED' } : m)) });
+  const renameA = roster(A, lobbyId, head, { seq: 3, members: members.map((m) => (m.pub === A.pub ? { ...m, name: 'ZED' } : m)) });
+  assert.equal(reduceLobby(lobbyId, [...msgs, rename, renameA]).head.rosterId, head);
+  // A phantom pub with an invented joinId, and a real pub under somebody else's join.
+  const phantom = roster(A, lobbyId, head, { seq: 3, members: [...members, { pub: F.pub, name: 'FRANK', joinId: 'ab'.repeat(32) }] });
+  const stolen = roster(A, lobbyId, head, { seq: 3, members: [...members, { pub: F.pub, name: 'BOB', joinId: members[1].joinId }] });
+  assert.equal(reduceLobby(lobbyId, [...msgs, phantom, stolen]).head.rosterId, head);
+  // F's own join admits it, under the name F asked for.
+  const jF = join(F, lobbyId);
+  const ok = roster(A, lobbyId, head, { seq: 3, members: [...members, member(F, jF.msgId)] });
+  const s = reduceLobby(lobbyId, [...msgs, swap, phantom, jF, ok]);
+  assert.equal(s.head.rosterId, ok.msgId);
+  // A config seating the swapped names is refused by every honest seat.
+  const cfg = config(A, lobbyId, head, swapped);
+  const r = checkConfig(reduceLobby(lobbyId, [...msgs, swap, cfg]), B.pub, { activeGameIds: [] });
+  assert.ok(!r.ok && /do not match/.test(r.reason));
+});
+
+test('takeover rosters must keep the parent members', () => {
+  const { msgs, lobbyId, members, head } = lobbyWith([B, C, D, E]);
+  const dropC = roster(B, lobbyId, head, { seq: 3, members: members.filter((m) => m.pub !== C.pub), admin: B.pub });
+  const reorder = roster(B, lobbyId, head, { seq: 3, members: [members[1], members[0], ...members.slice(2)], admin: B.pub });
+  assert.equal(reduceLobby(lobbyId, [...msgs, dropC, reorder]).head.rosterId, head);
+  const fair = roster(B, lobbyId, head, { seq: 3, members, admin: B.pub });
+  assert.equal(reduceLobby(lobbyId, [...msgs, dropC, fair]).head.rosterId, fair.msgId);
+});
+
+test('a member cannot hijack a live admin: takeover-based configs are refused until the takeover settles', () => {
+  const { msgs, lobbyId, members, head } = lobbyWith([B, C, D, E]);
+  // BOB publishes, in one burst, a takeover and a config of his choice based on it.
+  const take = roster(B, lobbyId, head, { seq: 3, members, admin: B.pub });
+  const cfg = config(B, lobbyId, take.msgId, members);
+  const s = reduceLobby(lobbyId, [...msgs, take, cfg]);
+  assert.equal(s.currentConfig?.configId, cfg.msgId);
+  // ALICE, the ousted admin, never keys it and reclaims instead.
+  const rA = checkConfig(s, A.pub, { activeGameIds: [] });
+  assert.ok(!rA.ok && /took over your lobby/.test(rA.reason));
+  assert.equal(adminNextAction(s, A.pub, true).kind, 'roster', 'ALICE reclaims although a config is pending');
+  // The other seats wait for the 60 s settle window (local receipt time) before keying.
+  const fresh = checkConfig(s, C.pub, { activeGameIds: [], rosterAgeMs: () => 1000 });
+  assert.ok(!fresh.ok && fresh.retryAfterMs === TAKEOVER_SETTLE_MS - 1000);
+  assert.ok(!checkConfig(s, C.pub, { activeGameIds: [] }).ok, 'unknown receipt time counts as just received');
+  assert.deepEqual(checkConfig(s, C.pub, { activeGameIds: [], rosterAgeMs: () => TAKEOVER_SETTLE_MS }), { ok: true, seat: 2 });
+  // ALICE's reclaim wins (§4.4 rule 1): BOB's config is no longer current.
+  const rec = adminNextAction(s, A.pub, false);
+  assert.ok(rec.kind === 'roster' && rec.prev !== undefined);
+  if (rec.kind !== 'roster' || rec.prev === undefined) return;
+  const sib = roster(A, lobbyId, rec.prev, rec.body);
+  assert.equal(reduceLobby(lobbyId, [...msgs, take, cfg, sib]).currentConfig, null);
+  // Once a game started on the takeover branch (ALICE was away), the takeover stands for everyone,
+  // including ALICE's later configs checks.
+  const started = { activeGameIds: [], keyComplete: (id: Hex32) => id === cfg.msgId, rosterAgeMs: () => 0 };
+  const r2 = roster(B, lobbyId, take.msgId, { seq: 4, members });
+  const cfg2 = config(B, lobbyId, r2.msgId, members);
+  const s2 = reduceLobby(lobbyId, [...msgs, take, cfg, r2, cfg2]);
+  assert.equal(s2.currentConfig?.configId, cfg2.msgId);
+  assert.deepEqual(checkConfig(s2, A.pub, started), { ok: true, seat: 0 });
+  assert.deepEqual(adminNextAction(s2, A.pub, false, { keyComplete: started.keyComplete }), { kind: 'none' });
+  // A voluntary handoff is not a takeover.
+  const h = roster(A, lobbyId, head, { seq: 3, members, admin: B.pub });
+  const cfgH = config(B, lobbyId, h.msgId, members);
+  assert.deepEqual(checkConfig(reduceLobby(lobbyId, [...msgs, h, cfgH]), A.pub, { activeGameIds: [] }), { ok: true, seat: 0 });
+});
+
+test('a join flood is decided in bounded rosters (each roster stays within the schema)', () => {
+  const c = create(A);
+  const lobbyId = c.msgId;
+  const r1 = roster(A, lobbyId, lobbyId, { seq: 1, members: [member(A, lobbyId)] });
+  const flood: StoredMsg[] = [];
+  const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  for (let i = 0; i < 300; i++) flood.push(join(S[1 + (i % 13)], lobbyId, 'SYB' + letters[Math.floor(i / 26) % 26] + letters[i % 26]));
+  const all: StoredMsg[] = [c, r1, ...flood];
+  let prev = r1.msgId;
+  let rosters = 0;
+  for (;;) {
+    const s = reduceLobby(lobbyId, all);
+    const a = adminNextAction(s, A.pub, true);
+    if (a.kind === 'none') break;
+    assert.ok(a.body.rejected.length <= MAX_REJECTIONS_PER_ROSTER);
+    const env = { v: 1 as const, type: 'lobby.roster' as const, lobby: lobbyId, game: '', step: '', author: A.pub, prev, t: clock++, body: a.body };
+    encodeEnvelope(env, A);   // within the 256-entry schema limit: encodes
+    const r = roster(A, lobbyId, prev, a.body);
+    all.push(r);
+    prev = r.msgId;
+    rosters++;
+  }
+  assert.equal(rosters, Math.ceil(300 / MAX_REJECTIONS_PER_ROSTER));
+  const done = reduceLobby(lobbyId, all);
+  assert.ok([...done.joins.values()].every((j) => j.status === 'rejected' && j.reason === 'game-active'));
+  // A real join after the flood is still decided.
+  const late = join(B, lobbyId, 'BOB');
+  all.push(late);
+  const a = adminNextAction(reduceLobby(lobbyId, all), A.pub, false);
+  assert.ok(a.kind === 'roster' && a.body.members.some((m) => m.joinId === late.msgId));
+});
+
+test('invite tickets: auto-admission only with the invite key, others wait for the admin (§4.3)', () => {
+  const c = create(A);
+  const lobbyId = c.msgId;
+  const r1 = roster(A, lobbyId, lobbyId, { seq: 1, members: [member(A, lobbyId)] });
+  const key = inviteKeyOf(A, lobbyId);
+  assert.deepEqual(inviteKeyOf(A, lobbyId), key, 'deterministic across reloads');
+  assert.notDeepEqual(inviteKeyOf(B, lobbyId), key, 'only the admin can compute it');
+  assert.equal(key.length, 16);
+  const jB = join(B, lobbyId, 'BOB', inviteTicket(key, lobbyId, B.pub));
+  const jC = join(C, lobbyId, 'CAROL');                                         // no ticket (typed the code)
+  const jD = join(D, lobbyId, 'DAVE', inviteTicket(key, lobbyId, C.pub));      // somebody else's ticket
+  const jE = join(E, lobbyId, 'ERIN', inviteTicket(inviteKeyOf(B, lobbyId), lobbyId, E.pub));
+  const s = reduceLobby(lobbyId, [c, r1, jB, jC, jD, jE]);
+  assert.equal(s.joins.get(jB.msgId)?.ticket, inviteTicket(key, lobbyId, B.pub));
+  const a = adminNextAction(s, A.pub, false, { inviteKey: key });
+  assert.ok(a.kind === 'roster');
+  if (a.kind !== 'roster') return;
+  assert.deepEqual(a.body.members.map((m) => m.name), ['ALICE', 'BOB']);
+  assert.deepEqual(a.body.rejected, []);
+  assert.deepEqual(awaitingApproval(s, key).map((j) => j.name), ['CAROL', 'DAVE', 'ERIN']);
+  // The admin approves CAROL and declines DAVE.
+  const b = adminNextAction(s, A.pub, false, { inviteKey: key, approved: new Set([jC.msgId]), declined: new Set([jD.msgId]) });
+  assert.ok(b.kind === 'roster');
+  if (b.kind !== 'roster') return;
+  assert.deepEqual(b.body.members.map((m) => m.name), ['ALICE', 'BOB', 'CAROL']);
+  assert.deepEqual(b.body.rejected, [{ joinId: jD.msgId, reason: 'declined' }]);
+  assert.equal(rejectionMessage('declined'), 'The admin declined your request');
+  // Without an invite key (tests, simulations) every valid join is admitted automatically.
+  const open = adminNextAction(s, A.pub, false);
+  assert.ok(open.kind === 'roster' && open.body.members.length === 5);
+  assert.deepEqual(parseInviteKey(b64uEncode(key)), key);
+  assert.equal(parseInviteKey('nope'), null);
+});
+
+test('two configs on one roster: the reducer breaks the tie by msgId (why startGame bases a new config on a fresh roster)', () => {
+  const { msgs, lobbyId, members, head } = lobbyWith([B, C, D, E]);
+  const first = config(A, lobbyId, head, members);
+  let lostTies = 0;
+  for (let i = 0; i < 20; i++) {
+    const again = config(A, lobbyId, head, members);
+    if (reduceLobby(lobbyId, [...msgs, first, again]).currentConfig?.configId !== again.msgId) lostTies++;
+    // Based on a no-op roster, the new config always wins.
+    const noop = roster(A, lobbyId, head, { seq: 3, members });
+    const next = config(A, lobbyId, noop.msgId, members);
+    const s = reduceLobby(lobbyId, [...msgs, first, noop, next]);
+    assert.equal(s.currentConfig?.configId, next.msgId);
+    assert.deepEqual(checkConfig(s, B.pub, { activeGameIds: [] }), { ok: true, seat: 1 });
+  }
+  assert.ok(lostTies > 0, 'the tie-break alone would have kept the old game current');
+});
+
+test('fingerprints carry 32 bits', () => {
+  assert.equal(fingerprintOf('0123456789abcdef'.repeat(4)), '0123-4567');
 });

@@ -3,7 +3,7 @@
     <template v-slot:activator="{ props }">
       <v-btn v-bind="props" variant="outlined" class="role-btn">
         <v-icon start>
-          mdi-account
+          $account
         </v-icon>
         <span class="role-btn-text">{{ avalon.user.name }}</span>
       </v-btn>
@@ -17,7 +17,7 @@
       <v-card-text>
         <div class="d-flex flex-column align-center justify-center">
           <p class='text-subtitle-1'>Your Stats</p>
-          <StatsDisplay :stats='avalon.user.stats' :globalStats='avalon.globalStats' />
+          <StatsDisplay :stats='avalon.user.stats' />
         </div>
       </v-card-text>
     </v-card>
@@ -58,14 +58,16 @@ export default defineComponent({
   },
   props: [ 'avalon' ],
   mounted() {
-      this.onShowRole = () => { this.sheet = true; };
-      this.onGameEnded = () => { this.sheet = false; };
-      EventBus.on('show-role', this.onShowRole);
-      EventBus.on('GAME_ENDED', this.onGameEnded);
+      const onShowRole = () => { this.sheet = true; };
+      const onGameEnded = () => { this.sheet = false; };
+      this.onShowRole = onShowRole;
+      this.onGameEnded = onGameEnded;
+      EventBus.on('show-role', onShowRole);
+      EventBus.on('GAME_ENDED', onGameEnded);
   },
   beforeUnmount() {
-      EventBus.off('show-role', this.onShowRole);
-      EventBus.off('GAME_ENDED', this.onGameEnded);
+      if (this.onShowRole) EventBus.off('show-role', this.onShowRole);
+      if (this.onGameEnded) EventBus.off('GAME_ENDED', this.onGameEnded);
   },
   data() {
       return {

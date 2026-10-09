@@ -20,13 +20,15 @@ const S = Array.from({ length: 6 }, (_, i) => testSigner(500 + i));
 const NAMES = ['ALICE', 'BOB', 'CAROL', 'DAVE', 'ERIN', 'FRANK'];
 let clock = 1;
 
-function lobby(): { create: StoredMsg; roster1: StoredMsg; members: Member[]; lobbyId: Hex32 } {
+/** A lobby of S[0..4]; `create` is a list: the create and the members' join requests (roster members are bound to them). */
+function lobby(): { create: StoredMsg[]; roster1: StoredMsg; members: Member[]; lobbyId: Hex32 } {
   const create = makeMsg(S[0], 'lobby.create', { t: clock++ }, { code: 'ABCD', name: NAMES[0], nonce: b64uEncode(new Uint8Array(16)) });
   const lobbyId = create.msgId;
-  const members: Member[] = S.slice(0, 5).map((s, i) => ({ pub: s.pub, name: NAMES[i], joinId: i === 0 ? lobbyId : create.msgId }));
+  const joins = S.slice(1, 5).map((s, i) => makeMsg(s, 'lobby.join', { lobby: lobbyId, t: clock++ }, { name: NAMES[i + 1] }));
+  const members: Member[] = S.slice(0, 5).map((s, i) => ({ pub: s.pub, name: NAMES[i], joinId: i === 0 ? lobbyId : joins[i - 1].msgId }));
   const roster1 = makeMsg(S[0], 'lobby.roster', { lobby: lobbyId, prev: lobbyId, t: clock++ },
     { seq: 1, admin: S[0].pub, members, rejected: [], closed: false });
-  return { create, roster1, members, lobbyId };
+  return { create: [create, ...joins], roster1, members, lobbyId };
 }
 
 function config(by: Signer, lobbyId: Hex32, prev: Hex32, gameId: string, roles: string[]): StoredMsg {
@@ -45,7 +47,7 @@ test('a join request between config and keys does not stall the start', () => {
   const j = makeMsg(S[5], 'lobby.join', { lobby: L.lobbyId, t: clock++ }, { name: NAMES[5] });
   const reject = makeMsg(S[0], 'lobby.roster', { lobby: L.lobbyId, prev: L.roster1.msgId, t: clock++ },
     { seq: 2, admin: S[0].pub, members: L.members, rejected: [{ joinId: j.msgId, reason: 'game-active' }], closed: false });
-  const st = reduceLobby(L.lobbyId, [L.create, L.roster1, cfg, j, reject]);
+  const st = reduceLobby(L.lobbyId, [...L.create, L.roster1, cfg, j, reject]);
   assert.equal(st.head.seq, 2);
   assert.equal(st.currentConfig?.configId, cfg.msgId);
   for (let i = 0; i < 5; i++) assert.deepEqual(checkConfig(st, S[i].pub, { activeGameIds: [] }), { ok: true, seat: i });
@@ -56,7 +58,7 @@ test('admin config equivocation: seats refuse to key, the game is INVALID(admin)
   const L = lobby();
   const c1 = config(S[0], L.lobbyId, L.roster1.msgId, GAME, ['MERLIN']);
   const c2 = config(S[0], L.lobbyId, L.roster1.msgId, GAME, ['PERCIVAL']);
-  const msgs = [L.create, L.roster1, c1, c2];
+  const msgs = [...L.create, L.roster1, c1, c2];
   const st = reduceLobby(L.lobbyId, msgs);
   for (let i = 0; i < 5; i++) {
     const r = checkConfig(st, S[i].pub, { activeGameIds: [] });
@@ -81,7 +83,7 @@ test('a takeover roster during a running game: the started game stays the curren
   const takeover = makeMsg(S[1], 'lobby.roster', { lobby: L.lobbyId, prev: L.roster1.msgId, t: clock++ },
     { seq: 2, admin: S[1].pub, members: L.members, rejected: [], closed: false });
   const cfg2 = config(S[1], L.lobbyId, takeover.msgId, b64uEncode(new Uint8Array(16).fill(3)), []);
-  const st = reduceLobby(L.lobbyId, [L.create, L.roster1, cfg, takeover, cfg2]);
+  const st = reduceLobby(L.lobbyId, [...L.create, L.roster1, cfg, takeover, cfg2]);
   assert.equal(st.head.admin, S[1].pub);
   assert.equal(st.currentConfig?.configId, cfg2.msgId);
   const games = [{ configId: cfg.msgId, keyComplete: true, terminal: false }, { configId: cfg2.msgId, keyComplete: false, terminal: false }];

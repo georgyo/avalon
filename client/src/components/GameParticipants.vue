@@ -13,7 +13,7 @@
       </v-window-item>
       <v-window-item value="roles">
           <RoleList
-           :roles='avalon.lobby.game.roles.map(r => avalon.config.roleMap[r])'
+           :roles='avalon.lobby.game.roles.map((r: string) => avalon.config.roleMap[r])'
            :allowSelect='false'></RoleList>
       </v-window-item>
     </v-window>

@@ -42,6 +42,9 @@ function run(name, cmd, args, opts = {}) {
     cwd: opts.cwd || repoRoot,
     env: { ...process.env, ...(opts.env || {}) },
     stdio: ['ignore', 'pipe', 'pipe'],
+    // Own process group: `yarn` runs the relay and vite as grandchildren, which a plain kill of the
+    // yarn process would leave running (holding :8001 / :5173 for the next run).
+    detached: true,
   });
   children.push({ name, child });
 
@@ -139,6 +142,14 @@ async function warmUp(timeoutMs = 60000) {
   throw new Error('vite dev server never served a usable entry module');
 }
 
+function killGroup(child, signal) {
+  try {
+    process.kill(-child.pid, signal);
+  } catch {
+    // already gone
+  }
+}
+
 async function shutdown(code) {
   if (shuttingDown) return;
   shuttingDown = true;
@@ -146,12 +157,12 @@ async function shutdown(code) {
   for (const { name, child } of children.reverse()) {
     if (child.exitCode === null) {
       console.log(`  stopping ${name}`);
-      child.kill('SIGTERM');
+      killGroup(child, 'SIGTERM');
     }
   }
   // Give them a moment to exit cleanly, then force.
   await new Promise((r) => setTimeout(r, 2000));
-  for (const { child } of children) if (child.exitCode === null) child.kill('SIGKILL');
+  for (const { child } of children) killGroup(child, 'SIGKILL');
   rmSync(gunDir, { recursive: true, force: true });
   process.exit(code);
 }
@@ -211,7 +222,7 @@ async function main() {
   await waitForPort(RELAY_PORT, 'relay');
   await checkRelay();
 
-  // 2. Vite dev server; client/vite.config.js proxies /gun (websocket) and
+  // 2. Vite dev server; client/vite.config.mjs proxies /gun (websocket) and
   //    /api to the relay on :8001.
   const viteEnv = {
     VITE_RELAY_TARGET: RELAY_URL,

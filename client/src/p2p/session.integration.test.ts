@@ -143,7 +143,22 @@ describe('five P2PSessions over GUN with an in-process relay', () => {
     const found = await players[1].session.findLobbies(code);
     assert.equal(found.length, 1);
     assert.equal(found[0].adminName, 'ALICE');
-    await Promise.all(players.slice(1).map((p) => p.session.joinLobby(p.name, code)));
+    // Three join through the admin's invite link (ticket: admitted automatically, §4.3), one by code
+    // alone: that request waits until the admin approves it.
+    const inv = players[0].session.invite();
+    assert.ok(inv !== null && inv.key !== null && inv.code === code);
+    const [byCode, ...byLink] = players.slice(1);
+    const joins = byLink.map((p) => p.session.joinLobby(p.name, code, inv.lobbyId.slice(0, 16), inv.key ?? undefined));
+    const codeJoin = byCode.session.joinLobby(byCode.name, code);
+    await Promise.all(joins);
+    await until(() => (players[0].lobby?.requests ?? []).some((r) => r.name === byCode.name), 20000, 'the admin sees the request');
+    assert.equal(byCode.lobby, null, 'not admitted before the approval');
+    assert.equal(players[2].lobby?.requests, undefined, 'only the admin sees requests');
+    const req = players[0].lobby?.requests?.find((r) => r.name === byCode.name);
+    assert.ok(req !== undefined);
+    assert.throws(() => players[2].session.approveJoin(req.joinId), /Not lobby admin/);
+    players[0].session.approveJoin(req.joinId);
+    await codeJoin;
     await until(() => players.every((p) => p.lobby !== null && Object.keys(p.lobby.users).length === 5), 20000, 'everyone in the lobby');
     for (const p of players) {
       assert.equal(p.session.profile?.lobby, code);
@@ -184,7 +199,10 @@ describe('five P2PSessions over GUN with an in-process relay', () => {
       await until(() => (players[0].lobby?.game.missions[0].proposals.length ?? 0) > 0, 60000, 'first proposal');
       await relay.stop();
       await until(() => players.every((p) => !p.session.connected), 10000, 'disconnect seen');
+      const marks = players.map((p) => p.statuses.length);
       await sleep(OUTAGE_MS);
+      // An offline device cannot judge anybody's absence: never STALLED during the outage (§7.8).
+      players.forEach((p, i) => assert.ok(!p.statuses.slice(marks[i]).includes('STALLED'), `${p.name}: ${p.statuses.slice(marks[i]).join(',')}`));
       await relay.restart({ emptyDisk: false });
       await until(() => players.every((p) => p.session.connected), 30000, 'watchdog reconnect');
       assert.ok(players.every((p) => p.session.reconnects > 0));

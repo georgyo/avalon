@@ -34,7 +34,7 @@ export interface GameConfig {
   rulesHash: Hex32;                         // rules.ts RULES_HASH
 }
 
-export type RejectReason = 'name-taken' | 'invalid-name' | 'full' | 'game-active';
+export type RejectReason = 'name-taken' | 'invalid-name' | 'full' | 'game-active' | 'declined';
 export type CancelReason = 'cancel' | 'leave' | 'abort' | 'lost';
 
 /** §6. */
@@ -49,7 +49,8 @@ export interface LogBundle {
 
 export interface Bodies {
   'lobby.create': { code: string; name: string; nonce: B64 /* 16 random bytes */ };
-  'lobby.join':   { name: string };
+  /** `ticket`: proof of the invite link (§4.3); a join without a valid ticket waits for the admin's approval. */
+  'lobby.join':   { name: string; ticket?: B64 };
   'lobby.leave':  Record<string, never>;
   'lobby.roster': { seq: number; admin: Pub; members: Member[];
                     rejected: { joinId: Hex32; reason: RejectReason }[];

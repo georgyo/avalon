@@ -401,10 +401,10 @@ export interface GameConfig {
 
 export interface Bodies {
   'lobby.create': { code: string; name: string; nonce: B64 /* 16 random bytes */ };
-  'lobby.join':   { name: string };
+  'lobby.join':   { name: string; ticket?: B64 };    // ticket: 16 bytes, §4.3
   'lobby.leave':  { };
   'lobby.roster': { seq: number; admin: Pub; members: Member[];
-                    rejected: { joinId: Hex32; reason: 'name-taken' | 'invalid-name' | 'full' | 'game-active' }[];
+                    rejected: { joinId: Hex32; reason: 'name-taken' | 'invalid-name' | 'full' | 'game-active' | 'declined' }[];
                     closed: boolean };
   'lobby.config': GameConfig;
   key:            { y: Pt; pok: SigmaProofE; seedCommit: Hex32 };
@@ -483,8 +483,12 @@ For every `(soul, key, value)` delivered by GUN:
 
 1. Require `typeof value === 'string'`, `value.startsWith('AV1.')`, length ≤ 64 KiB,
    and `key === hex(SHA256(utf8(value)))`.
-2. Split, strict-decode, `parseEnvelope`; recompute `msgId`; verify `sig`
-   against `author`.
+2. Split, strict-decode, `parseEnvelope`; then, **before** the signature
+   check, drop the envelope unless it can matter to this driver (a game
+   driver: `game` is its game and `author` is a seat of its config; a lobby
+   driver: a `lobby.create` of its code, or `lobby` is its lobby), so junk
+   anyone writes into a public soul costs no ECDSA work and is never stored;
+   recompute `msgId`; verify `sig` against `author`.
 3. Require that the soul matches the envelope (`lobby` code or `game` id and
    the setup/play/log category of `type`).
 4. Deduplicate by `msgId`; store `{msgId, soul, key, value}` in IndexedDB
@@ -604,7 +608,10 @@ pending in the author's view. Resolution, applied after the natural walk:
 3. **Premature reveal.** Every `reveal` carries `basis`: the msgIds of the
    messages that made the outcome terminal in the revealer's view (the
    deciding cancel; the faulty, equivocating or premature-reveal envelope(s)
-   of the deciding `INVALID`, i.e. its `Fault.evidence`; or every message of
+   of the deciding `INVALID`, i.e. its `Fault.evidence`, where an equivocation
+   or a config equivocation cites only its two lowest msgIds, which prove it,
+   so the basis stays far below the reveal's 256-entry limit however many
+   messages a cheater signs; or every message of
    the terminal step for a natural terminal). Its `prev` is the terminal
    digest (informational). A reveal whose `x` satisfies `x·G = y_j` is
    * **pending** (neither `INVALID` nor used, and it makes nothing terminal)
@@ -627,7 +634,11 @@ pending in the author's view. Resolution, applied after the natural walk:
    its own reveal, and the UI shows "NAME revealed their keys citing messages
    this device has not received - waiting [Cancel]" (a reveal with a bogus
    basis therefore halts the game instead of letting play continue with a
-   verifiably disclosed card).
+   verifiably disclosed card). Exception: the assassin's `as` is not
+   suspended. Cancels are ignored during the assassination (rule 6), so a
+   reveal citing a made-up msgId would otherwise veto the assassination with
+   no attribution; if its basis is real, an earlier terminal event decides the
+   game and the `as` is moot (rule 4), and if it is bogus, the `as` decides.
 4. **Earliest event wins.** Among the natural `INVALID` (step `i`), rule-2/2a/3
    `INVALID`s (including `INVALID(admin, "config equivocation")` at `key`,
    §4.6), the earliest valid cancel (step `k`; ties broken by lowest seat)
@@ -784,9 +795,13 @@ self-asserted timestamps, and nothing in public space is mutable.
   3-letter codes are not used). It is a rendezvous hint, not an identity:
   several lobbies may share a code over time.
 * `lobbyId`: msgId of the `lobby.create` envelope (unique).
-* Lobby fingerprint shown in the UI: the first 4 hex chars of `lobbyId`,
-  uppercase (e.g. `ABCD · 7F3A`), for verbal confirmation at the table.
-* Invite link: `https://<host>/?lobby=<CODE>&id=<first 16 hex of lobbyId>`.
+* Lobby fingerprint shown in the UI: the first 8 hex chars (32 bits) of
+  `lobbyId`, uppercase, as `XXXX-XXXX` (e.g. `ABCD · 7F3A-91C2`), for verbal
+  confirmation at the table. (A msgId hashes the unsigned envelope, so 16 bits
+  could be ground offline in under a second.) The chooser also shows the admin
+  key's fingerprint: the first 32 bits of SHA-256 of the admin's `x.y` pub.
+* Invite link: `https://<host>/?lobby=<CODE>&id=<first 16 hex of lobbyId>&k=<invite key>`
+  (`k` only in the admin's link, §4.3).
 
 ### 4.2 Create
 
@@ -807,17 +822,30 @@ self-asserted timestamps, and nothing in public space is mutable.
   keep only candidates whose `lobbyId` starts with it. Exactly one live
   candidate: join it. Several: show a chooser (admin name, member names,
   fingerprint, online state); never pick silently. None: "Lobby CODE not found".
-* Join: publish `lobby.join {name}` with `lobby = lobbyId`. The promise
+* **Invite key and tickets.** The admin's invite key is
+  `K = SHA-256(T_inv ‖ sign_admin(T_inv ‖ lobbyId))[0..16)` with
+  `T_inv = "avalon-p2p/v1/invite\0"` and the deterministic (RFC 6979) envelope
+  signer: only the admin can compute it, it survives reloads and it is never
+  published; it travels only as `k` (base64url) in the admin's invite link. A
+  joiner holding `k` adds `ticket = HMAC-SHA-256(K, "avalon-p2p/v1/ticket\0" ‖
+  lobbyId ‖ utf8(pub))[0..16)` to its `lobby.join`.
+* Join: publish `lobby.join {name, ticket?}` with `lobby = lobbyId`. The promise
   resolves when a roster on the head chain lists `{pub: self}`, and rejects
   with `Error('Name taken')`, `Error('Invalid name')`, `Error('Lobby full')` or
   `Error('Cannot join while game is in progress')` when a head roster lists the
   join id in `rejected`. While pending the UI shows "Waiting for ADMIN to admit
   you".
-* The admin's client processes join requests automatically, in the order it
-  ingests them: admit iff the name passes `validateName`, no current member has
-  the name, members < 10, no config is pending (its `key` step incomplete and
-  not canceled) and the lobby has no non-terminal game; otherwise reject with
-  the reason. Each decision is a new roster (`seq + 1`). While a config is
+* The admin's client processes join requests in the order it ingests them:
+  reject (with the reason) a request whose name fails `validateName`, that the
+  admin declined (`'declined'`), whose name a current member has, when members
+  = 10, or while a config is pending (its `key` step incomplete and not
+  canceled) or a game is non-terminal; otherwise admit it **automatically only
+  if it carries a valid ticket**, or once the admin approved it by hand
+  ("NAME asked to join [Admit] [Decline]"). A request by code alone therefore
+  never fills the lobby with Sybil keys (lobby codes are enumerable). Each
+  decision is a new roster (`seq + 1`) listing at most 32 rejections (oldest
+  first; the schema allows 256), so a burst of join requests is worked off in
+  bounded rosters instead of producing one that cannot be encoded. While a config is
   pending or a game is non-terminal, every join is rejected with
   `'game-active'` (the joiner's "Cannot join while game is in progress"
   comes from that roster). Such a roster only appends to `rejected` and keeps
@@ -838,7 +866,13 @@ repeatedly choosing, among the rosters `R` with `R.prev = node` and
    `node.members` wins, ties by lowest msgId.
 
 Rosters by anyone else are ignored. A roster's `members` is the full ordered
-membership after it. The incumbent always beats a takeover at the same parent,
+membership after it. A roster is also ignored unless **every member entry is
+bound**: either the creator's (`pub` = the `lobby.create` author, `name` = its
+name, `joinId = lobbyId`) or a `lobby.join` of this lobby whose msgId is
+`joinId`, whose author is `pub` and whose `body.name` is `name` (so an admin can
+neither rename, swap names between devices, nor seat a phantom pub; the UI
+identifies "me" by pub, never by a locally chosen name). A takeover roster
+(rule 2) must keep `node.members` unchanged (same entries, same order). The incumbent always beats a takeover at the same parent,
 so a returning admin cannot be locked out; joins on a losing branch are simply
 admitted again by the winning admin (join envelopes are independent).
 
@@ -869,11 +903,28 @@ admitted again by the winning admin (join envelopes are independent).
   It does not do this once a game has started (step `key` complete) on the
   takeover branch: that takeover then stands (the running game stays current
   anyway, §4.6.4), and the new admin can hand the lobby back by an ordinary
-  handoff roster.
+  handoff roster. A mere config on the takeover branch, or a non-terminal game
+  of either branch, does not stop the reclaim. To keep a member from hijacking a
+  live admin with a takeover and a config published in one burst: the ousted
+  admin never keys a config whose base chain contains an open takeover of its
+  own roster (it reclaims instead, and `key` needs every seat), and every other
+  seat keys such a config only once the takeover roster is at least 60 s old in
+  local receipt time (it re-checks then), giving a live admin time to reclaim. A
+  takeover is *open* until a config based on a roster at or after it has `key`
+  complete.
+* **Roster changes during a game.** A device seated in the lobby's current,
+  non-terminal game stays attached to the lobby (and the game) even if a roster
+  drops it (a takeover branch, a malicious kick): it leaves once the game is
+  terminal and its end is shown.
 
 ### 4.6 Starting a game
 
-1. The admin publishes `lobby.config` with `prev` = head roster msgId:
+1. The admin publishes `lobby.config` with `prev` = head roster msgId (if a
+   config already names the head roster as `prev`, e.g. the previous game of an
+   unchanged lobby, it first publishes a no-op roster `{seq: head.seq + 1,
+   admin: self, members: head.members, rejected: [], closed: false}` and uses
+   that as `prev`, so the new config is alone at the highest roster seq and
+   cannot lose the item-4 tie-break to an old, terminal game):
    `gameId` (16 random bytes), `seats` = exactly the head roster's members in
    the admin's chosen order (`config.sortList`), `selectedRoles`, `options`,
    `rulesHash`.
@@ -883,6 +934,9 @@ admitted again by the winning admin (join envelopes are independent).
      chain, and every roster between `prev` and the head has the same `admin`
      and `members` as `prev` (it only appends `rejected` entries, §4.3), so a
      join request arriving between config and keys cannot stall the start;
+   * no open takeover on the chain up to `prev` ousted this seat, and every open
+     takeover there was received at least 60 s ago (§4.5; a temporary refusal,
+     re-checked);
    * `{pub, name}` of the seats equal the head members (same set);
    * `5 ≤ n ≤ 10`, names valid and unique, pubs unique;
    * `selectedRoles` ⊆ selectable role names, unique, in ROLES order;
@@ -923,7 +977,8 @@ admitted again by the winning admin (join envelopes are independent).
    of later roster forks (roster fork choice does not apply to a running game;
    if several started games are non-terminal, the lowest `configId`).
    Otherwise it is the config with the highest roster seq whose `prev` is on
-   the head chain (ties by msgId). After the game is terminal, `lobby.game`
+   the head chain (ties by msgId; item 1 keeps an honest admin's new config
+   from ever tying with an earlier one). After the game is terminal, `lobby.game`
    keeps showing it until the next config.
 
 While a config is pending or a game is non-terminal the admin's client rejects
@@ -1248,6 +1303,10 @@ labels* be the deck multiset minus the known labels.
   for §5.13).
 * For each mission, if exactly one team member's ballot is unknown, its vote
   is `k_m − Σ known v`.
+* A game that ended during `MISSION_VOTE` (a cancel at `mv/m`): once every key
+  is revealed, the ballots already cast at `mv/m` (prev = the head digest, one
+  per team seat) are opened like any other, as the legacy server showed them;
+  a team member who had not voted has no vote.
 
 Anything still unknown is `'UNKNOWN'` (role) or absent (vote), and the seat is
 listed in `unrevealed`.
@@ -1448,6 +1507,11 @@ tables for `G`, `Y` and each `y_j` once per game; verifiers use
   the local head digest). It carries nothing role-dependent.
 * A member is **online** if a new `seq` arrived within the last 30 s of local
   receipt time (sender timestamps are never compared).
+* Only a value signed by the soul's own key counts: the stored SEA value must
+  have exactly the keys `:` and `~`. (SEA verifies a value carrying `*` against
+  that embedded pub instead, and skips the certificate check without `+`, so
+  any key pair could otherwise write another user's presence; the relay
+  refuses such values too, §8.)
 * While a game is non-terminal the client holds a screen Wake Lock
   (`navigator.wakeLock.request('screen')`, re-acquired on visibility) and, on
   becoming visible, reconnects and immediately runs pending automatic steps.
@@ -1498,7 +1562,8 @@ became pending locally.
 | human step whose actor is offline > 3 min | suggest Cancel |
 | assassination pending and assassin offline > 3 min | "[Abandon]" (local only: stop waiting, no message, no reveal; `games.status = 'abandoned'`) |
 | `mt/m` before a possible assassination (§3.7 rule 2a) pending > 60 s with own tally journaled | Cancel disabled ("Canceling now would forfeit"); "[Abandon]" as above |
-| a reveal pending for missing basis messages (§3.7 rule 3) | "NAME revealed their keys citing messages this device has not received - waiting" + Cancel |
+| a reveal pending for missing basis messages (§3.7 rule 3) | "NAME revealed their keys citing messages this device has not received - waiting" + Cancel (during the assassination the assassin still acts, §3.7 rule 3) |
+| this device offline (its relay socket is down) | no `STALLED`: it cannot judge anybody's absence; the connection banner explains the state |
 | terminal, reveals missing after 60 s | "NAME did not reveal - results incomplete" |
 | admin presence missing > 60 s | first non-admin member: "[Take over as admin]" |
 
@@ -1558,7 +1623,9 @@ dependency on `@avalon/common`.
      overwrite in (c) MUST NOT be stored.
   2. **With the filter** installed on the same instance: a correctly hashed
      `AV1.` value under a non-whitelisted soul (e.g. `avalon/v1/selftest#`)
-     MUST NOT be stored, and a valid lobby value MUST be.
+     MUST NOT be stored, a well-shaped lobby value MUST be, and a presence
+     value carrying `*` and a correctly hashed value that is no lobby envelope
+     MUST NOT be; the mesh must be hardened (no DAM but `?` and `!`).
   Any failure, or a probe timeout, is `process.exit(1)`. The throwaway server
   is closed afterwards. WP-E's acceptance runs exactly these cases against
   both the unbundled (`tsx`) and the esbuild-bundled relay.
@@ -1570,9 +1637,33 @@ dependency on `@avalon/common`.
     64 KiB; or
   * soul matches `^~[A-Za-z0-9_-]{43}\.[A-Za-z0-9_-]{43}$`, the only key is
     `avalon_v1_presence`, and the value is a SEA-signed string of at most 1 KiB;
+  * a public value must also have the shape `AV1.<b64url>.<86-char b64url
+    signature>`, decode to a JSON object whose `type` belongs to the soul
+    (lobby types in lobby souls, setup / play types in the game's setup / play
+    soul with `game` equal to the soul's game id, `log` in log souls) and, for a
+    `lobby.create`, whose `body.code` is the soul's code (no signature check:
+    clients verify);
+  * a presence value must have exactly the keys `:` and `~` (no `*` / `+`,
+    §7.6);
   * plus a per-connection limit of 50 puts/s (burst 200) and 256 KiB per
-    message.
-  Gets are not filtered.
+    message, per-soul quotas (lobby 4096 values / 16 MiB, game souls 4096 /
+    32 MiB, logs 200,000 / 1 GiB of new values per process lifetime), and per
+    client IP 32 connections, 200 puts/s (burst 1000) and 60 gets/s (burst 600);
+    loopback and private addresses are exempt unless `TRUST_PROXY=1` names the
+    client by its last `X-Forwarded-For` entry.
+  Gets are rate limited (20/s, burst 200, per connection; at most 1024 souls
+  per connection). Acknowledgements and replies (`@`) sent by clients are
+  dropped: any client could forge one for another client's put (a fake SEA
+  error) or get. The mesh accepts only the `?` and `!` DAM messages: GUN's
+  `mob` would dial any URL a client names (SSRF).
+* **Routing.** The relay runs with `axe: false`, which would forward every put
+  to every connection. Instead it forwards a put only to the connections that
+  asked for its soul (a `get`), and never forwards gets to clients, so a
+  passive listener learns no lobby code, game or presence it did not ask for.
+* **Static files.** Content-hashed `/assets/*` are served with
+  `Cache-Control: public, max-age=31536000, immutable`, everything else
+  (`index.html`) with `no-cache`; text assets are brotli- or gzip-compressed
+  on the fly (once per file) when the browser accepts it.
 * **Storage.** `GUN_DIR` on a persistent writable volume (the container's
   WORKDIR is in the read-only Nix store). The relay is a cache: clients
   republish (§7.4). Retention: an offline job MAY prune `avalon/v1/game/*`
@@ -1583,7 +1674,7 @@ dependency on `@avalon/common`.
   Engine standard does not support WebSockets: `server/app.yaml` is deleted.
   The Dockerfile WORKDIR is fixed to the installed path and `GUN_DIR=/data`
   is a volume. `default.nix` installs the shimmed bundle.
-* **Development.** `vite.config.js` proxies `/gun` (`ws: true`) and `/api` to
+* **Development.** `vite.config.mjs` proxies `/gun` (`ws: true`) and `/api` to
   `http://127.0.0.1:8001`; `yarn start` runs the relay with `tsx`.
 
 ---
@@ -1878,32 +1969,40 @@ export interface Signer { pub: Pub; sign(msg: Uint8Array): Uint8Array }   // det
 export function signerFromPair(pair: { pub: Pub; priv: string }): Signer;
 export function msgIdOf(env: Envelope): Hex32;
 export function encodeEnvelope(env: Envelope, signer: Signer): { value: string; key: Hex32; msgId: Hex32 };
-export function decodeEnvelope(value: string, key?: string): StoredMsg | { error: string };   // §3.3-3.4
+export function decodeEnvelope(value: string, key?: string, admit?: (env: Envelope) => boolean): StoredMsg | { error: string };   // §3.3-3.4; admit runs before the signature check
 export function soulOf(env: Envelope, lobbyCode: string): string;                             // §3.1
 
 // lobby.ts + lobbyDriver.ts (WP-B)
-export interface LobbyCandidate { lobbyId: Hex32; code: string; adminPub: Pub; adminName: string; members: string[]; fingerprint: string }
+export interface LobbyCandidate { lobbyId: Hex32; code: string; adminPub: Pub; adminName: string; members: string[]; fingerprint: string; adminFingerprint: string }
 export interface LobbyState {
   lobbyId: Hex32; code: string;
   head: { rosterId: Hex32; seq: number; admin: Pub; members: Member[]; closed: boolean };
-  joins: Map<Hex32, { pub: Pub; name: string; status: 'pending' | 'admitted' | 'rejected'; reason?: string }>;
+  joins: Map<Hex32, { pub: Pub; name: string; status: 'pending' | 'admitted' | 'rejected'; reason?: string; ticket: B64 | null }>;
   leaves: Set<Pub>;
   currentConfig: { configId: Hex32; config: GameConfig; author: Pub } | null;
 }
 export function candidates(code: string, msgs: Iterable<StoredMsg>): LobbyCandidate[];
 export function reduceLobby(lobbyId: Hex32, msgs: Iterable<StoredMsg>): LobbyState;
-export function checkConfig(state: LobbyState, me: Pub, local: { activeGameIds: string[]; knownGame?: { gameId: B64; configId: Hex32 } }):
-  { ok: true; seat: number } | { ok: false; reason: string };
+export function checkConfig(state: LobbyState, me: Pub, local: { activeGameIds: string[]; knownGame?: { gameId: B64; configId: Hex32 };
+                                                               keyComplete?: (configId: Hex32) => boolean;           // §4.5 open takeovers
+                                                               rosterAgeMs?: (rosterId: Hex32) => number | null | undefined }):
+  { ok: true; seat: number } | { ok: false; reason: string; retryAfterMs?: number };              // retryAfterMs: temporary (§4.5)
+export function inviteKeyOf(signer: Signer, lobbyId: Hex32): Uint8Array;                       // §4.3
+export function inviteTicket(inviteKey: Uint8Array, lobbyId: Hex32, pub: Pub): B64;
+export function awaitingApproval(state: LobbyState, inviteKey: Uint8Array): { joinId: Hex32; pub: Pub; name: string }[];
 export type LobbyAction =
   | { kind: 'roster'; body: Bodies['lobby.roster'] }        // admin decisions: admit, reject, remove leavers
   | { kind: 'none' };
-export function adminNextAction(state: LobbyState, me: Pub, gameActive: boolean): LobbyAction;
+export function adminNextAction(state: LobbyState, me: Pub, gameActive: boolean,
+  opts?: { inviteKey?: Uint8Array; approved?: ReadonlySet<Hex32>; declined?: ReadonlySet<Hex32>; keyComplete?: (configId: Hex32) => boolean }): LobbyAction;
 export class LobbyDriver {                                 // used by client/src/p2p/lobbyClient.ts and simulations
   constructor(o: { code: string; lobbyId: Hex32 | null; signer: Signer; transport: Transport; journal: Journal;
                    onState(s: LobbyState): void });
   start(): void; stop(): void;
   create(name: string): Promise<Hex32>;
-  join(name: string): Promise<void>;                       // resolves when admitted, rejects with Error(reason)
+  join(name: string, inviteKey?: Uint8Array): Promise<void>;  // resolves when admitted, rejects with Error(reason)
+  inviteKey(): B64 | null; awaitingApproval(): { joinId: Hex32; pub: Pub; name: string }[];
+  approve(joinId: Hex32): void; decline(joinId: Hex32): void;   // admin, §4.3
   leave(): Promise<void>; kick(pub: Pub): Promise<void>; takeOver(): Promise<void>;
   startGame(seats: { pub: Pub; name: string }[], selectedRoles: string[], options: { inGameLog: boolean }): Promise<Hex32>;
   setGameActive(active: boolean): void;
@@ -2021,7 +2120,7 @@ export function legacyAssignRoles(playerList: string[], roles: string[], rng: ()
 
 | File | Responsibility | Main exports |
 |---|---|---|
-| `gun.ts` | GUN instance (§7.1), clock drift (§7.2), relay-info polling | `createGun(relayUrl): GunHandle`, `relayInfo(): Promise<{bootId; now}>` |
+| `gun.ts` | GUN instance (§7.1), clock drift (§7.2), relay-info polling | `createGun(relayUrl, o?): GunHandle`, `relayInfo(relayUrl?, fetchFn?): Promise<RelayInfo & { rtt: number }>` (`RelayInfo = {bootId; now}`) |
 | `subscriptions.ts` | §7.3 manager, re-ask backstop | `class SubscriptionManager { watch(soul, cb): Unsub; reask(souls) }` |
 | `gunTransport.ts` | `Transport` over GUN, echo tracking | `class GunTransport implements Transport` |
 | `watchdog.ts` | reconnect, republish, bootId handling (§7.4) | `class Watchdog` |
@@ -2077,7 +2176,7 @@ handlers keep working.
 
 **`server/`** (WP-E): `server.ts` (Express static + `/api/relay-info` +
 `/healthz` + relay), `relay.ts` (`installRelayFilter(gun)`,
-`relaySelfTest(): Promise<void>`, §8), `gun-shim.ts`, `relay.test.ts`. Deleted:
+`relaySelfTest(o?: SelfTestOptions): Promise<void>`, §8; options for tests: `Gun`, `installFilter`, `tmpRoot`, timeouts), `static.ts` (§8 static files), `bundle.ts`, `smoke.ts`, `fixtures/`, `gun-shim.ts`, `relay.test.ts`. Deleted:
 `avalon-server.ts`, `admin.ts`, `firebaseKey.ts`, `test.ts`, `types.ts`,
 `app.yaml`.
 
@@ -2358,7 +2457,7 @@ before WP-F is merged. The `Transport` and `Journal` interfaces of §11.2 are de
   `client/src/firebase-config.ts` and `client/src/avalon-api-rest.ts`
   (deleted), `client/package.json` (drop `firebase`, `axios`; add script
   `test:unit` = `node --import tsx --test "src/p2p/**/*.test.ts"` for WP-D),
-  `client/vite.config.js` (`/gun` ws proxy, `/api` to the local relay, worker
+  `client/vite.config.mjs` (`/gun` ws proxy, `/api` to the local relay, worker
   format `es`, no `@avalon/common` in `optimizeDeps`),
   `tests/e2e-flow.mjs`, `tests/e2e-browser.mjs`, `tests/e2e-full-game.mjs`
   and the new `tests/e2e-reload.mjs`, `e2e-cancel.mjs`, `e2e-offline.mjs`,
@@ -2508,10 +2607,30 @@ where they differ from the text above.
 | §3.2 `lobby.leave` | `prev` is the joinId (the lobbyId for the creator) of the membership being ended, so a leave never applies to a later re-join. Journal slots are `roster/<seq>/<prev>`, `join/<msgId>`, `leave/<joinId>`. |
 | §3.9 journal | `Journal.putIfAbsent` (one IndexedDB readwrite transaction) replaces get-then-put; the driver serializes every publish behind one mutex and re-checks the journaled cancel right before each put. |
 | §4.6 configs | Only configs authored by the roster admin (`configAuthor`) in the same lobby count, for equivocation and for `checkConfig`; `BuildCtx`/`SeatDriver` carry `lobbyId` and `configAuthor`. "A started game stays current" is applied by `selectCurrentGame`, not by the lobby reducer. |
-| §11.2 `P2PSession` | No presence API and no `lobbyId` in `LobbyData`: the UI approximates "online" by STALLED seats and looks the lobbyId up with `findLobbies` for the fingerprint. A read-only tab (§3.9) does not load the lobby; it shows a notice with "Use here". |
+| §11.2 `P2PSession` | No presence API and no `lobbyId` in `LobbyData`: the UI approximates "online" by STALLED seats and gets the lobbyId (fingerprint, invite link with `k`) from `invite()`. `LobbyData.requests` lists, for the admin only, joins waiting for approval; `approveJoin` / `declineJoin`. The profile name is the roster's (or the current seat's) name for this pub. A read-only tab (§3.9) does not load the lobby; it shows a notice with "Use here". No lobby snapshot is emitted while the current game of a config this device is seated in has no view yet (after a reload, the first snapshot already shows the ended game). |
 | §7.5 workers | The pool starts all workers when the session opens and each worker builds the fixed-base tables of `G` and every generator at load (`warmUpTables`); without it the first shuffle a worker proves costs ~0.4 s more. |
 | §8 relay | `gun-shim.ts` imports `gun/gun.js` (importing `gun` evaluates SEA before `self` exists); the filter is inserted at the head of the `in` chain (a plain `gun.on('in')` listener runs after puts are applied); every relay instance sets `stats: false`; the self-test client needs `super: false, rfs: false`; ws `maxPayload` 1 MiB; the 256 KiB limit applies to each message's put payload. Docker/Nix use `GUN_DIR=/data/radata` and `TMPDIR=/data/tmp`. |
 | §12 performance | Measured with all players' browsers on one 4-core machine (each device gets a fraction of the CPU): 5-player setup about 5-7 s, 10-player 17-21 s (shuffle chain ~8 s, sight exchange CPU-bound); every automatic in-game step completes within 2 s of the human action that opens it. |
+
+### Third review round (security and robustness)
+
+| Finding | Disposition |
+|---|---|
+| Roster names not bound to the joiner's request (an admin swaps two devices' names; the UI identifies "me" by name) | **Fixed:** every roster member must be the creator or name its own `lobby.join` with the same name (§4.4); the client takes its display name from the roster/seat of its pub. |
+| A member takes over a live admin and keys its own config at once; no reclaim once any config exists or while a game runs | **Fixed:** reclaim is blocked only by a *started* game on the takeover branch; the ousted admin never keys a config based on its own open takeover; other seats wait 60 s (local receipt) before keying one (§4.5, §4.6.2). Takeover rosters must keep the members. |
+| A roster dropping a seated player disconnects it from the running game | **Fixed:** the device stays attached until the game is terminal (§4.5). |
+| Mass equivocation overflows the reveal basis (256), so nobody reveals and the forfeit becomes a void | **Fixed:** equivocation evidence is the two lowest msgIds (§3.7 rule 3). |
+| A reveal citing a made-up msgId vetoes the assassination (cancels are ignored there) | **Fixed:** the `as` is not suspended by pending reveals (§3.7 rule 3). |
+| One burst of 300 joins stops the admin's join processing (roster over the 256 limit) | **Fixed:** at most 32 rejections per roster, oldest first (§4.3). |
+| Sybil joins fill the lobby; codes are enumerable | **Fixed:** automatic admission only with the invite link's ticket; joins by code wait for the admin's approval (§4.3); relay get rate limits (§8). |
+| Presence forgeable through SEA's `*` path | **Fixed** at the relay (exact keys `:`, `~`) and in the client (§7.6). |
+| `mob` DAM makes the relay dial any URL (SSRF) | **Fixed:** only `?` and `!` DAMs are heard (§8). |
+| `axe: false` broadcasts every put to every connection | **Fixed:** puts go only to connections that asked for the soul; gets are not forwarded (§8). |
+| Unauthenticated junk costs every player an ECDSA check | **Fixed:** author/game pre-filter before the signature check (§3.4); relay shape checks, per-soul quotas, per-IP limits (§8). |
+| 16-bit fingerprint can be ground offline | **Fixed:** 32-bit lobby fingerprint plus the admin key's fingerprint in the chooser (§4.1). |
+| Forged error acks make a client give up a put | **Fixed:** client acks/replies are dropped by the relay; error acks are retried by the client (never final). |
+| A second game on an unchanged roster loses the config tie-break to the old game about half the time | **Fixed:** the admin bases a config on a fresh no-op roster when a config already used the head roster (§4.6 item 1). |
+| Reload after the end re-announces the end; end dialog blocks the next setup; partial mission votes lost on a cancel; offline device blames others | **Fixed** (§11.2 note above, §5.12, §7.8). |
 
 ## Appendix B. Constants
 
