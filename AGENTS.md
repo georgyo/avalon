@@ -43,7 +43,8 @@ is only an untrusted GUN relay plus a static host. The normative specification i
   clients need `super: false` (and `radisk: false, rfs: false, multicast: false, stats: false`)
 - The relay must be a single instance with a persistent writable `GUN_DIR`
 - After changing dependencies, run `nix run .#update-deps` (regenerates `missing-hashes.json` and
-  the offline-cache hash in `default.nix`)
+  the offline-cache hash in `default.nix`). This is currently **pending**: `yarn.lock` changed during
+  the P2P integration and both are stale until someone with Nix runs it.
 
 ### Verifying Changes
 ```bash
@@ -58,8 +59,8 @@ yarn test:unit
 yarn build            # Client build
 yarn bundle:server    # Relay bundle
 
-# E2E (starts a throwaway relay + vite)
-yarn test:e2e
+# E2E (starts a throwaway relay + vite; PLAYERS=5,10 or 5..10 for the full-game sizes)
+PLAYERS=5,10 yarn test:e2e
 ```
 
 ## Landing the Plane (Session Completion)

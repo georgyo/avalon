@@ -11,7 +11,7 @@
  * `null` share/row anywhere but at exactly one position. Callers treat a
  * throwing builder like a failed proof of the message being checked.
  */
-import { CryptoError, G, GEN, mulPub, type Point } from './group.ts';
+import { CryptoError, G, GEN, mul, mulPub, type Point } from './group.ts';
 import type { Branch, Equation, ProofContext, Statement } from './sigma.ts';
 import type { Ct } from './elgamal.ts';
 
@@ -215,4 +215,19 @@ export function openStatement(ctx: ProofContext, y: Point, A: Point, Oa: Point):
   nonId(A, 'openStatement', 'A');
   nonId(Oa, 'openStatement', 'O_a');
   return { proofType: 'open', ctx, aux: EMPTY, branches: [{ nWitness: 1, eqs: [eq(y, [0, G]), eq(Oa, [0, A])] }] };
+}
+
+/**
+ * Builds the lazily computed fixed-base tables of G and of every global
+ * generator (§7.5: "provers precompute fixed-base tables ... once"), for both
+ * the constant-time and the public-data multiply. Without it the first proof a
+ * fresh crypto worker builds pays for every table it touches (about 0.4 s for
+ * a shuffle, which uses all H_i). Uses a fixed public scalar; idempotent.
+ */
+export function warmUpTables(): void {
+  const k = 0x5a17_0000_0000_0000_0000_0000_0000_0001n;
+  for (const P of [G, GEN.S, GEN.J, GEN.H0, ...GEN.H, NEG_J]) {
+    mul(P, k);
+    mulPub(P, k);
+  }
 }

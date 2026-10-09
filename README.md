@@ -55,6 +55,11 @@ nix run .#e2e         # Playwright e2e suite against a throwaway local stack
 nix run .#update-deps # After changing dependencies: regenerate missing-hashes.json + offline cache hash
 ```
 
+> **Pending:** `yarn.lock` changed when Firebase was removed and the P2P stack was integrated, but
+> `missing-hashes.json` and the `fetchYarnBerryDeps` hash in `default.nix` could not be regenerated
+> in the environment where that was done. Run `nix run .#update-deps` (and commit the result) before
+> the first `nix build` / `nix flake check`.
+
 ## Deployment
 
 The relay needs WebSockets, a persistent writable disk and **exactly one instance**
@@ -93,6 +98,25 @@ yarn test:browser   # E2E browser test (headed)
 # Relay smoke test: two node GUN clients through a running relay for 60 s
 yarn workspace @avalon/server smoke http://127.0.0.1:8001 60
 ```
+
+`yarn test:unit` takes about 10 minutes on 4 cores (every simulated game proves for real). Slow
+extras: `AVALON_SLOW_TESTS=1` (full crypto sweep, ~25 min) and `AVALON_SIM_FULL=1` (all 384
+role/size simulations, ~30 min).
+
+The e2e files can also run one at a time against any running stack, e.g. the production build
+served by the relay itself:
+
+```bash
+yarn build && yarn start                                    # relay + built client on :8001
+BASE_URL=http://127.0.0.1:8001/ PLAYERS=10 node tests/e2e-full-game.mjs
+BASE_URL=http://127.0.0.1:8001/ node tests/e2e-cancel.mjs    # also e2e-reload, e2e-offline, e2e-two-tabs, ...
+```
+
+E2E environment variables: `BASE_URL` (default `http://localhost:5173/`), `BROWSER`
+(`chromium`/`firefox`), `CHROMIUM_PATH` (else Playwright's own, or one found under
+`PLAYWRIGHT_BROWSERS_PATH` / `/opt/pw-browsers`), `HEADLESS=0`, `RNG_SEED` (replay a run),
+`EVIL_FAIL_RATE=0` (good wins three missions, so the game reaches the assassination),
+`ENFORCE_PERF=1` (fail when a full game's setup exceeds `SETUP_BUDGET_MS`, default 15000).
 
 ## Linting
 

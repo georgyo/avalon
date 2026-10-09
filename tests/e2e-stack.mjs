@@ -197,6 +197,11 @@ async function main() {
   console.log('==> tests to run:');
   for (const r of runs) console.log(`      ${r.label}`);
 
+  // A leftover relay or vite from an earlier run would answer the readiness probes below.
+  for (const [port, label] of [[RELAY_PORT, 'relay'], [VITE_PORT, 'vite']]) {
+    if (await portOpen(port)) throw new Error(`port ${port} (${label}) is already in use; stop the process listening there`);
+  }
+
   // 1. The relay, on a throwaway radisk directory. It only listens once its
   //    boot self-test (SEA + filter) passed.
   console.log(`\n==> starting relay (GUN_DIR=${gunDir})`);

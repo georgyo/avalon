@@ -45,7 +45,8 @@ async function testCancel() {
 
     console.log('\n=== Step 3: cancel ===');
     await canceller.page.click('button:has-text("Quit")');
-    await canceller.page.locator('button:has-text("Cancel Game")').click();
+    // the Quit dialog's button (the stall notice has its own "Cancel game" button, data-testid="stall-cancel")
+    await canceller.page.getByRole('button', { name: 'Cancel Game', exact: true }).click();
 
     for (const player of remaining) {
       await waitForText(player.page, 'Game Canceled', 60000);

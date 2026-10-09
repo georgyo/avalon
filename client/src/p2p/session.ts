@@ -263,6 +263,7 @@ export class P2PSession {
     s.verdicts.persist = (k, v) => {
       s.store.verdicts.put(k, v).catch(() => undefined);
     };
+    if (s.cryptoBackend instanceof WorkerPool) s.cryptoBackend.start();
     s.lock = await acquireDriverLock({ locks: o.locks, name: o.lockName });
     s.lock.onChange((held) => {
       if (held) void s.activate();

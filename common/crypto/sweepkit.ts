@@ -191,7 +191,7 @@ export function runLambdaShard(shard: number, shards: number): number {
         evilSuccess: false, tally: k % 8 === 0,
       });
     } catch (e) {
-      throw new Error(`n = ${n}, selected = [${selected.join(', ')}]: ${e instanceof Error ? e.message : String(e)}`);
+      throw new Error(`n = ${n}, selected = [${selected.join(', ')}]: ${e instanceof Error ? e.message : String(e)}`, { cause: e });
     }
     eqDone.add(R);
     done++;
@@ -208,7 +208,7 @@ export function runFullSweep(): void {
       sweepDeck(t, { recvProofSeats: all(n), senders: all(n), eqProof: true, ballotSeats: all(n), refuseSeats: good,
         evilSuccess: true, tally: true });
     } catch (e) {
-      throw new Error(`n = ${n}, selected = [${selected.join(', ')}]: ${e instanceof Error ? e.message : String(e)}`);
+      throw new Error(`n = ${n}, selected = [${selected.join(', ')}]: ${e instanceof Error ? e.message : String(e)}`, { cause: e });
     }
   }
 }

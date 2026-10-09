@@ -214,8 +214,9 @@ describe('five P2PSessions over GUN with an in-process relay', () => {
       assert.ok(out !== undefined && (out.state === 'GOOD_WIN' || out.state === 'EVIL_WIN'), 'natural outcome: ' + out?.state);
       assert.equal(out.cheaters.length, 0);
       // identical transcripts
-      const ids = players.map((p) => (p.session.currentDriver?.messages() ?? []).map((m) => m.msgId).sort().join());
-      assert.ok(ids.every((x) => x === ids[0]), 'same transcript everywhere');
+      // (eventually: the post-game log and the last reveals may still be in flight when the outcomes agree)
+      const ids = (): string[] => players.map((p) => (p.session.currentDriver?.messages() ?? []).map((m) => m.msgId).sort().join());
+      await until(() => ids().every((x) => x === ids()[0]), 30000, 'same transcript everywhere');
       await until(() => players.every((p) => p.status.kind === 'ENDED'), 10000, 'status ENDED');
       for (const p of players) {
         const stats = await p.session.userStats();

@@ -15,6 +15,18 @@
         <v-container v-if='!avalon.isLoggedIn' class="d-flex justify-center align-start pt-8">
           <UserLogin :avalon='avalon' />
         </v-container>
+        <v-container v-else-if='avalon.isReadOnly' class="d-flex justify-center align-start pt-8">
+          <v-card max-width="480" data-testid="read-only-card">
+            <v-card-title>Avalon is open in another tab</v-card-title>
+            <v-card-text>
+              Only one tab can play at a time.
+              <span v-if="avalon.user && avalon.user.lobby">
+                This device is in lobby <span class="font-weight-bold">{{ avalon.user.lobby }}</span>.
+              </span>
+              Use "Use here" above to continue in this tab; the other tab becomes read-only.
+            </v-card-text>
+          </v-card>
+        </v-container>
         <template v-else>
           <GameToolbar :avalon='avalon'></GameToolbar>
             <v-container>

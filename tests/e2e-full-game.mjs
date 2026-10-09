@@ -4,7 +4,9 @@
 //
 //   PLAYERS=10 node tests/e2e-full-game.mjs        BROWSER=chromium|firefox (default: firefox for 5
 //   players, chromium otherwise, docs/p2p-protocol.md §12), RNG_SEED=<n> to replay a run,
-//   ENFORCE_PERF=1 to fail when setup takes longer than SETUP_BUDGET_MS (default 15000, §12).
+//   ENFORCE_PERF=1 to fail when setup takes longer than SETUP_BUDGET_MS (default 15000, §12),
+//   EVIL_FAIL_RATE=<0..1> how often an evil team member plays FAIL (default 0.5; 0 makes good win three
+//   missions, so the game always reaches the assassination).
 //
 // This module also exports the helpers the other e2e tests use (e2e-reload, e2e-cancel, e2e-offline, ...).
 // It only runs the full game when executed directly.
@@ -40,6 +42,7 @@ function mulberry32(seed) {
   };
 }
 export const random = mulberry32(rngSeed);
+export const EVIL_FAIL_RATE = process.env.EVIL_FAIL_RATE ? Number(process.env.EVIL_FAIL_RATE) : 0.5;
 
 export function isErrorIgnorable(msg) {
   return (
@@ -443,8 +446,8 @@ export async function doMission(players, teamNames) {
       continue;   // not on the team, or already voted
     }
 
-    // Evil players randomly fail (50% chance), good always succeed
-    const voteFail = player.isEvil && random() < 0.5;
+    // Evil players randomly fail (EVIL_FAIL_RATE, default 50%), good always succeed
+    const voteFail = player.isEvil && random() < EVIL_FAIL_RATE;
     if (voteFail) {
       await player.page.locator('button:has-text("FAIL")').click();
       fails++;

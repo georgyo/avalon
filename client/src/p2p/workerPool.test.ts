@@ -41,6 +41,20 @@ describe('WorkerPool', () => {
     assert.ok(n >= 1 && n <= 4);
   });
 
+  it('start() creates every worker up front (they warm their tables at load)', () => {
+    let created = 0;
+    const pool = new WorkerPool({ size: 3, create: () => {
+      created++;
+      return new FakeWorker();
+    } });
+    assert.equal(created, 0);
+    pool.start();
+    assert.equal(created, 3);
+    pool.start();
+    assert.equal(created, 3);
+    pool.terminate();
+  });
+
   it('splits a verification batch across workers and keeps the result order', async () => {
     const workers: FakeWorker[] = [];
     const pool = new WorkerPool({ size: 3, create: () => {

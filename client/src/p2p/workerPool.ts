@@ -59,6 +59,14 @@ export class WorkerPool implements CryptoBackend {
     this.fallback = o.fallback ?? localCrypto();
   }
 
+  /**
+   * Starts every worker now instead of at the first job: each one builds its
+   * fixed-base tables at load (crypto.worker.ts), off the game's critical path.
+   */
+  start(): void {
+    for (let i = 0; i < this.size; i++) this.slot(i);
+  }
+
   private slot(i: number): Slot | null {
     if (this.disabled) return null;
     const existing = this.slots[i];

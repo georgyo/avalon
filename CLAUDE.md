@@ -22,6 +22,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `yarn test:unit` - Unit tests: `@avalon/common` (crypto, protocol, simulations), client P2P runtime (`client/src/p2p`), relay (`server/relay.test.ts`); all `node --import tsx --test`
 - `yarn test:e2e` - Brings up a throwaway relay (temporary `GUN_DIR`) + vite and runs every `tests/e2e-*.mjs`; `PLAYERS=5..10` runs `e2e-full-game.mjs` once per player count
 - `yarn test` / `yarn test:browser` / `yarn test:game` - Single e2e files against an already running stack
+- Any `tests/e2e-*.mjs` runs alone against a running stack: `BASE_URL=http://127.0.0.1:8001/ PLAYERS=10 node tests/e2e-full-game.mjs`
+  (after `yarn build && yarn start`); env `BROWSER`, `CHROMIUM_PATH`, `RNG_SEED`, `EVIL_FAIL_RATE=0` (reach the assassination), `ENFORCE_PERF=1`
+- Slow opt-in unit suites: `AVALON_SLOW_TESTS=1` (full crypto sweep), `AVALON_SIM_FULL=1` (all 384 role/size simulations)
 - `yarn workspace @avalon/server smoke <relay-url> [seconds]` - Two node GUN clients through a running relay
 
 ### Nix Build
@@ -30,6 +33,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `nix flake check` - Runs `checks.unit` (`yarn test:unit`)
 - `nix run .#e2e` - E2E suite with a Nix-pinned toolchain (Node + Playwright browsers)
 - `nix run .#update-deps` - After any dependency change: regenerates `missing-hashes.json` and the offline-cache hash in `default.nix`
+- **Pending:** `yarn.lock` changed during the P2P integration and `missing-hashes.json` / the `default.nix`
+  offline-cache hash are stale (they could not be regenerated without Nix). Run `nix run .#update-deps`
+  and commit the result before relying on `nix build` / `nix flake check`.
 
 ## Architecture
 

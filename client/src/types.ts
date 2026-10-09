@@ -1,16 +1,14 @@
 import type { Role } from '@avalon/common/avalonlib';
-import type { UserStats } from './p2p-fake';
+import type { UserStats } from '@avalon/common/protocol';
 
 export type { Role };
 
 // The view types are defined once, in common/protocol/views.ts (docs/p2p-protocol.md §11.2), and
-// re-exported here for the components. Until WP-B and WP-D are merged they come from the temporary
-// mirror in ./p2p-fake.ts. INTEGRATION: replace './p2p-fake' with '@avalon/common/protocol' in both
-// import lines of this file.
+// re-exported here for the components.
 export type {
   Proposal, Mission, RoleAssignment, GameOutcome, GameData, LobbyUser, LobbyData, RoleDoc,
   SetupProgress, UserStats, LobbyCandidate,
-} from './p2p-fake';
+} from '@avalon/common/protocol';
 
 export interface UserData {
   uid: string;                   // the device's SEA pub

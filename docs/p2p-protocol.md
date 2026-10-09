@@ -2494,6 +2494,25 @@ before WP-F is merged. The `Transport` and `Journal` interfaces of §11.2 are de
 
 ---
 
+### Implementation notes (integration)
+
+Decisions taken while implementing the work packages; the code follows these
+where they differ from the text above.
+
+| Area | Decision |
+|---|---|
+| §2.5 derivation | `.scalar()`/`.index()` consume whole 64-byte blocks (the rest of a partly read block is discarded); `.bytes(k)` reads the joined blocks byte-wise. Ballot randomness is `ballotRandomness(seed, stepId, prev, v)` = stream("ballot", stepId, prev, u8(v)). |
+| §2.3 identity rules | Statement builders throw on every identity the rules forbid, including computed values (`Y`, `T_m`) and any `PK_{Q,r} = O` (so also `U_Q = r·S`); a builder that throws makes the message invalid. `dealStatement`/`otEqStatement` take the author's index `self`. `proveSigma` refuses a witness that does not satisfy the real branch. |
+| §5.5 ot-eq | `ot-eq` does not bind `F` itself: an `ot.send` is accepted only when `ot-profile` and `ot-eq` both verify on the identical decoded `F` (a sigma `VerifyJob` may carry `more` statements, one proof each). Recommended for v2: `aux = SHA256(enc(F) ‖ enc(E rows))`. |
+| §5.9-5.11 degenerate values | Ballots whose `a` sum to `O` (`T_m = O`): INVALID("ballots cancel out") for the smallest zero-sum subset; joint key `Y = O`: INVALID for all; duplicate `y_j` or ballot `a`: INVALID for the later seat. |
+| §3.2 `lobby.leave` | `prev` is the joinId (the lobbyId for the creator) of the membership being ended, so a leave never applies to a later re-join. Journal slots are `roster/<seq>/<prev>`, `join/<msgId>`, `leave/<joinId>`. |
+| §3.9 journal | `Journal.putIfAbsent` (one IndexedDB readwrite transaction) replaces get-then-put; the driver serializes every publish behind one mutex and re-checks the journaled cancel right before each put. |
+| §4.6 configs | Only configs authored by the roster admin (`configAuthor`) in the same lobby count, for equivocation and for `checkConfig`; `BuildCtx`/`SeatDriver` carry `lobbyId` and `configAuthor`. "A started game stays current" is applied by `selectCurrentGame`, not by the lobby reducer. |
+| §11.2 `P2PSession` | No presence API and no `lobbyId` in `LobbyData`: the UI approximates "online" by STALLED seats and looks the lobbyId up with `findLobbies` for the fingerprint. A read-only tab (§3.9) does not load the lobby; it shows a notice with "Use here". |
+| §7.5 workers | The pool starts all workers when the session opens and each worker builds the fixed-base tables of `G` and every generator at load (`warmUpTables`); without it the first shuffle a worker proves costs ~0.4 s more. |
+| §8 relay | `gun-shim.ts` imports `gun/gun.js` (importing `gun` evaluates SEA before `self` exists); the filter is inserted at the head of the `in` chain (a plain `gun.on('in')` listener runs after puts are applied); every relay instance sets `stats: false`; the self-test client needs `super: false, rfs: false`; ws `maxPayload` 1 MiB; the 256 KiB limit applies to each message's put payload. Docker/Nix use `GUN_DIR=/data/radata` and `TMPDIR=/data/tmp`. |
+| §12 performance | Measured with all players' browsers on one 4-core machine (each device gets a fraction of the CPU): 5-player setup about 5-7 s, 10-player 17-21 s (shuffle chain ~8 s, sight exchange CPU-bound); every automatic in-game step completes within 2 s of the human action that opens it. |
+
 ## Appendix B. Constants
 
 **Domain-separation tags**

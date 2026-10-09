@@ -7,6 +7,7 @@ import {
   randomWeight128, randomWeight128From, smallLog, type Point, type Scalar,
 } from './group.ts';
 import { seededRandom } from './testkit.ts';
+import { warmUpTables } from './statements.ts';
 
 // RFC 9496 Appendix A.1: encodings of 0·B .. 15·B.
 const MULTIPLES = [
@@ -254,4 +255,13 @@ test('randomWeight128: nonzero, 128-bit; only the internal variant takes a byte 
   };
   assert.equal(randomWeight128From(zeroThenOne), 1n);
   assert.equal(calls, 2);
+});
+
+test('warmUpTables: builds the generator tables once; results are unchanged', () => {
+  const k = 0x1234_5678_9abc_def0n;
+  const before = [G, GEN.S, GEN.J, GEN.H0, ...GEN.H].map((P) => encPoint(mul(P, k)));
+  warmUpTables();
+  warmUpTables();
+  assert.deepEqual([G, GEN.S, GEN.J, GEN.H0, ...GEN.H].map((P) => encPoint(mul(P, k))), before);
+  assert.deepEqual([G, GEN.S, GEN.J, GEN.H0, ...GEN.H].map((P) => encPoint(mulPub(P, k))), before);
 });

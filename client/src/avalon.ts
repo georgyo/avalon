@@ -1,8 +1,7 @@
 import { markRaw } from 'vue'
 import { difference, keys, keyBy, values } from 'lodash-es'
 import * as avalonLib from '@avalon/common/avalonlib';
-// INTEGRATION (docs/p2p-protocol.md §13): import from './p2p/session' once WP-D is merged, and delete ./p2p-fake.ts.
-import { P2PSession, type SessionStatus, type LocalProfile } from './p2p-fake';
+import { P2PSession, type SessionStatus, type LocalProfile } from './p2p/session';
 import type {
   Role, GameData, GameOutcome, Mission, Proposal, LobbyData, LobbyUser, UserData, RoleDoc, LobbyCandidate, SetupProgress,
 } from './types';
@@ -490,6 +489,10 @@ export default class AvalonGame {
     if (!this._sessionOpened) {
       return false;
     }
+
+    // A read-only tab (another tab holds the driver lock, §3.9) never loads the lobby: it shows the
+    // read-only notice with "Use here" instead.
+    if (this.isReadOnly) return true;
 
     // either not logged in or if logged in, then we're not in lobby or we've loaded the lobby already
     return (this.user == null) || !this.user.lobby || this.isInLobby;
