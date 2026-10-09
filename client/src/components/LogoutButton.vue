@@ -7,10 +7,15 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue'
+import { useToast } from 'vue-toastification'
 
 export default defineComponent({
   name: 'LogoutButton',
   props: [ 'avalon' ],
+  setup() {
+    const toast = useToast()
+    return { toast }
+  },
   data() {
       return {
           loggingOut: false
@@ -18,8 +23,11 @@ export default defineComponent({
   },
   methods: {
       logoutButtonClicked() {
+          // forgets this device's anonymous key (refused while a game is running)
           this.loggingOut = true;
-          this.avalon.logout();
+          this.avalon.logout()
+            .catch((err: Error) => this.toast.error(err.message))
+            .finally(() => { this.loggingOut = false; });
       }
   }
 })

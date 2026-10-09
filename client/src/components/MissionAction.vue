@@ -45,9 +45,9 @@ export default defineComponent({
         // no loading state, we want to hide the results as fast as possible
         this.needsToVote = false;
         this.errorMessage = '';
-        this.avalon.doMission(vote).catch(() => {
+        this.avalon.doMission(vote).catch((err: Error) => {
           this.needsToVote = true;
-          this.errorMessage = 'Vote failed, please try again';
+          this.errorMessage = 'Vote failed, please try again (' + err.message + ')';
         });
       }
   },

@@ -4,14 +4,14 @@
   <v-col cols="12" sm="6">
     <p class="text-cyan-lighten-4">Players</p>
     <LobbyPlayerList v-bind:avalon='avalon' />
-    <p v-if='avalon.isAdmin && avalon.config.playerList.length > 2'
+    <p v-if='avalon.isAdmin && !avalon.isGameRunning && avalon.config.playerList.length > 2'
       class="text-cyan-lighten-4 text-caption">Drag names to specify seating order</p>
   </v-col>
    <v-col v-show='validTeamSize' cols="12" sm="6">
       <p class="text-cyan-lighten-4">Special Roles Available</p>
       <RoleList
         v-bind:roles='avalon.config.selectableRoles'
-        v-bind:allowSelect='avalon.isAdmin' />
+        v-bind:allowSelect='avalon.isAdmin && !avalon.isGameRunning' />
   </v-col>
   </v-row>
   <v-row align="center" justify="center">
@@ -24,7 +24,20 @@
      </div>
   </v-col>
   </v-row>
-  <div class="d-flex align-center justify-center pt-2">
+  <div v-if='avalon.isGameRunning || avalon.isEnding' class="d-flex flex-column align-center justify-center pt-2">
+    <StallNotice :avalon='avalon' />
+    <SetupProgressCard v-if='avalon.setupProgress' :avalon='avalon' />
+    <v-card v-else-if='avalon.isEnding' class="bg-blue-grey-lighten-4" data-testid="ending-notice">
+      <v-card-text class="text-center">
+        Game over - waiting for every device to reveal its keys
+        <span v-if='avalon.endingProgress'>({{ avalon.endingProgress.revealed }}/{{ avalon.endingProgress.total }})</span>
+      </v-card-text>
+    </v-card>
+    <v-card v-else class="bg-blue-grey-lighten-4">
+      <v-card-text class="text-center">A game is in progress.</v-card-text>
+    </v-card>
+  </div>
+  <div v-else class="d-flex align-center justify-center pt-2">
     <v-btn
      v-if='canStartGame'
      :loading='startingGame'
@@ -55,16 +68,25 @@
 <script lang="ts">
 import { defineComponent } from 'vue'
 import * as avalonLib from '@avalon/common/avalonlib'
+import { useToast } from 'vue-toastification'
 import LobbyPlayerList from './LobbyPlayerList.vue'
 import RoleList from './RoleList.vue'
+import SetupProgressCard from './SetupProgressCard.vue'
+import StallNotice from './StallNotice.vue'
 
 export default defineComponent({
   name: 'GameLobby',
   components: {
     LobbyPlayerList,
-    RoleList
+    RoleList,
+    SetupProgressCard,
+    StallNotice
   },
   props: [ 'avalon' ],
+  setup() {
+    const toast = useToast()
+    return { toast }
+  },
   data() {
     return {
       options: {
@@ -100,7 +122,7 @@ export default defineComponent({
   methods: {
     startGame: function() {
       this.startingGame = true;
-      this.avalon.startGame(this.options).catch(() => {}).finally(() => {
+      this.avalon.startGame(this.options).catch((err: Error) => this.toast.error(err.message)).finally(() => {
         this.startingGame = false;
       });
     }

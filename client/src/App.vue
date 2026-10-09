@@ -2,14 +2,16 @@
   <div id="app">
     <v-app class="bg-indigo-darken-2">
       <EventHandler :avalon='avalon'></EventHandler>
-      <v-container class="fill-height d-flex justify-center" v-if='!avalon.initialized'>
+      <v-container class="fill-height d-flex flex-column justify-center align-center" v-if='!avalon.initialized'>
         <v-progress-circular
                indeterminate
                :size="150"
                color="yellow"></v-progress-circular>
+        <p class="text-cyan-lighten-4 pt-4" v-if="loadingText">{{ loadingText }}</p>
       </v-container>
       <template v-else>
         <v-main class="bg-indigo-darken-2">
+        <ConnectionBanner :avalon='avalon' />
         <v-container v-if='!avalon.isLoggedIn' class="d-flex justify-center align-start pt-8">
           <UserLogin :avalon='avalon' />
         </v-container>
@@ -44,6 +46,7 @@ import LobbySelect from './components/LobbySelect.vue'
 import GameLobby from './components/GameLobby.vue'
 import GameBoard from './components/GameBoard.vue'
 import UserLogin from './components/UserLogin.vue'
+import ConnectionBanner from './components/ConnectionBanner.vue'
 
 export default defineComponent({
   name: 'app',
@@ -53,7 +56,9 @@ export default defineComponent({
     }
   },
   created: function() {
-    this.avalon.init();
+    this.avalon.init().catch((err: Error) => {
+      console.error('Avalon failed to start', err);
+    });
   },
   components: {
     LobbySelect,
@@ -61,7 +66,16 @@ export default defineComponent({
     GameToolbar,
     EventHandler,
     GameBoard,
-    UserLogin
+    UserLogin,
+    ConnectionBanner
+  },
+  computed: {
+    loadingText(): string {
+      const status = this.avalon.status;
+      if (status.kind == 'SYNCING') return `Syncing game data ${status.percent}%`;
+      if (status.kind == 'CONNECTING') return 'Connecting...';
+      return '';
+    },
   },
   methods: {
     eventCallback(event: string, data?: string) {

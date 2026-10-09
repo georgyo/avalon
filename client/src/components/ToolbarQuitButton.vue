@@ -30,9 +30,15 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue'
+import { useToast } from 'vue-toastification'
+
 export default defineComponent({
   name: 'ToolbarQuitButton',
   props: [ 'avalon' ],
+  setup() {
+    const toast = useToast()
+    return { toast }
+  },
   data() {
       return {
           quitting: false,
@@ -40,29 +46,37 @@ export default defineComponent({
       };
   },
   computed: {
-      actionDescription() {
-        if (this.avalon.isGameInProgress) {
-            return 'Cancel Game';
-        }
-        return 'Leave Lobby';
+      // During the assassination a cancel is ignored (§3.7 rule 6), and at the mission tally that can lead
+      // to it a contributor must not cancel (rule 2a): quitting then only leaves the lobby (§4.5).
+      onlyLeaves(): boolean {
+        return this.avalon.isGameRunning &&
+          (this.avalon.cancelWouldForfeit ||
+           (this.avalon.isGameInProgress && this.avalon.game.phase == 'ASSASSINATION'));
       },
-      gameInProgressText() {
-          if (this.avalon.isGameInProgress) {
-              return 'The current game will be canceled!'
-          } else {
-              return '';
-          }
+      cancels(): boolean {
+        return this.avalon.isGameRunning && this.avalon.isPlayer && !this.onlyLeaves;
+      },
+      actionDescription(): string {
+        return this.cancels ? 'Cancel Game' : 'Leave Lobby';
+      },
+      gameInProgressText(): string {
+        if (this.cancels) {
+          return 'The current game will be canceled and everyone\'s roles revealed!';
+        }
+        if (this.onlyLeaves) {
+          return 'The game can no longer be canceled; it will continue without you.';
+        }
+        return '';
       }
   },
   methods: {
       quitButtonClicked() {
           this.quitting = true;
           this.dialog = false;
-          if (this.avalon.isGameInProgress) {
-              this.avalon.cancelGame().finally(() => this.quitting = false);
-          } else {
-              this.avalon.leaveLobby();
-          }
+          const action: Promise<void> = this.cancels ? this.avalon.cancelGame() : this.avalon.leaveLobby();
+          action
+            .catch((err: Error) => this.toast.error(err.message))
+            .finally(() => { this.quitting = false; });
       }
   }
 })

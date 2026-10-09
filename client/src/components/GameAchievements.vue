@@ -20,7 +20,9 @@ export default defineComponent({
   props: ["avalon"],
   computed: {
     badges() {
-      if (this.avalon.lobby.game.outcome.state == 'CANCELED') return [];
+      const outcome = this.avalon.lobby.game.outcome;
+      // no achievements for canceled or forfeited (cheating) games
+      if (!outcome || outcome.state == 'CANCELED' || (outcome.cheaters && outcome.cheaters.length)) return [];
       const gameAnalysis = new GameAnalysis(
         this.avalon.lobby.game,
         this.avalon.config.roleMap

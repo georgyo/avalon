@@ -1,71 +1,23 @@
 import type { Role } from '@avalon/common/avalonlib';
+import type { UserStats } from './p2p-fake';
 
 export type { Role };
 
-export interface Proposal {
-  proposer: string;
-  team: string[];
-  votes: string[];
-  state: 'PENDING' | 'APPROVED' | 'REJECTED';
-}
-
-export interface Mission {
-  state: 'PENDING' | 'SUCCESS' | 'FAIL';
-  team: string[];
-  teamSize: number;
-  failsRequired: number;
-  numFails: number;
-  proposals: Proposal[];
-  evilOnTeam?: string[];
-}
-
-export interface RoleAssignment {
-  name: string;
-  role: string;
-  assassin?: boolean;
-}
-
-export interface GameOutcome {
-  state: 'GOOD_WIN' | 'EVIL_WIN' | 'CANCELED';
-  message: string;
-  assassinated?: string;
-  roles: RoleAssignment[];
-  votes: Record<string, boolean>[];
-}
-
-export interface GameData {
-  state: 'INIT' | 'ACTIVE' | 'ENDED';
-  phase: string;
-  players: string[];
-  roles: string[];
-  missions: Mission[];
-  outcome?: GameOutcome;
-  options?: Record<string, unknown>;
-}
-
-export interface LobbyUser {
-  name: string;
-  uid?: string;
-}
-
-export interface LobbyData {
-  name: string;
-  admin: { uid: string; name: string };
-  users: Record<string, LobbyUser>;
-  game: GameData;
-}
+// The view types are defined once, in common/protocol/views.ts (docs/p2p-protocol.md §11.2), and
+// re-exported here for the components. Until WP-B and WP-D are merged they come from the temporary
+// mirror in ./p2p-fake.ts. INTEGRATION: replace './p2p-fake' with '@avalon/common/protocol' in both
+// import lines of this file.
+export type {
+  Proposal, Mission, RoleAssignment, GameOutcome, GameData, LobbyUser, LobbyData, RoleDoc,
+  SetupProgress, UserStats, LobbyCandidate,
+} from './p2p-fake';
 
 export interface UserData {
-  uid: string;
-  name: string;
-  email?: string | null;
-  lobby?: string | null;
-  stats?: Record<string, unknown>;
-}
-
-export interface RoleDoc {
-  role: Role;
-  sees?: string[];
+  uid: string;                   // the device's SEA pub
+  name: string;                  // profile name ('' until a lobby was created or joined)
+  email: null;                   // email login was removed (anonymous device keys only)
+  lobby: string | null;          // lobby CODE
+  stats: UserStats | null;
 }
 
 export interface ProposerStats {

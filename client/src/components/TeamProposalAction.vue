@@ -22,10 +22,15 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue'
+import { useToast } from 'vue-toastification'
 
 export default defineComponent({
   name: 'TeamProposalAction',
   props: [ 'avalon', 'playerList' ],
+  setup() {
+    const toast = useToast()
+    return { toast }
+  },
   data() {
       return {
           isProposing: false
@@ -39,7 +44,8 @@ export default defineComponent({
   methods: {
       proposeTeam() {
         this.isProposing = true;
-        this.avalon.proposeTeam(this.playerList).catch(() => {
+        this.avalon.proposeTeam(this.playerList).catch((err: Error) => {
+          this.toast.error(err.message);
           this.isProposing = false;
         });
       }

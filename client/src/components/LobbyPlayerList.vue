@@ -32,7 +32,7 @@
             <v-list-item-title>{{element}}</v-list-item-title>
             <template v-slot:append>
               <v-btn icon variant="text"
-                v-if="(avalon.isAdmin && element != avalon.user.name && !avalon.isGameInProgress)"
+                v-if="(avalon.isAdmin && element != avalon.user.name && !avalon.isGameRunning)"
                 :loading="playersBeingKicked.includes(element)"
                 @click.stop="kickPlayerConfirm(element)"
                 color="black"
@@ -50,6 +50,7 @@
 <script lang="ts">
 import { defineComponent } from 'vue'
 import draggable from "vuedraggable";
+import { useToast } from 'vue-toastification'
 
 export default defineComponent({
   name: "LobbyPlayerList",
@@ -57,9 +58,13 @@ export default defineComponent({
     draggable
   },
   props: ["avalon"],
+  setup() {
+    const toast = useToast()
+    return { toast }
+  },
   computed: {
     canDrag(): boolean {
-      return this.avalon.isAdmin && !this.avalon.isGameInProgress;
+      return this.avalon.isAdmin && !this.avalon.isGameRunning;
     }
   },
   data() {
@@ -81,7 +86,7 @@ export default defineComponent({
     kickPlayer(player: string) {
       this.kickPlayerDialog = false;
       this.playersBeingKicked.push(player);
-      this.avalon.kickPlayer(player).finally(() =>
+      this.avalon.kickPlayer(player).catch((err: Error) => this.toast.error(err.message)).finally(() =>
           this.playersBeingKicked.splice(
             this.playersBeingKicked.indexOf(player), 1
           )
