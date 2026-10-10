@@ -1,8 +1,9 @@
 /**
  * `Transport` over GUN (docs/p2p-protocol.md §3.1, §7.3, §7.4, §11.2).
  *
- * * publish: `gun.get(soul).get(key).put(value)`; the promise resolves on the
- *   relay's acknowledgement (its storage wrote the value: the "relay echo").
+ * * publish: `gun.get(soul).get(key).put(value)`, sent to every open relay
+ *   (the own relay and the public relays of §7.1); the promise resolves on the
+ *   first acknowledgement (a relay's storage wrote the value: the "relay echo").
  *   Unacknowledged puts are retried with backoff and again on every `hi`
  *   (GUN never pushes puts made while disconnected). An error acknowledgement
  *   is retried too: any peer can forge one (the relay routes `@` replies), and
@@ -15,13 +16,15 @@
  *   (§7.3: never `.off()`).
  */
 import type { Hex32, Transport } from '@avalon/common/protocol';
-import { createGun, type GunAck, type GunHandle, type SeaPair } from './gun.ts';
+import { createGun, sanitizePeers, type GunAck, type GunHandle, type PeerStatus, type SeaPair } from './gun.ts';
 import { Listeners, realTimers, type TimerHandle, type Timers } from './env.ts';
 import { SubscriptionManager, type Unsub } from './subscriptions.ts';
 
 export interface GunTransportOptions {
   relayUrl: string;
-  /** Creates the GUN handle (default: createGun(relayUrl)). */
+  /** Public relays dialed too (§7.1); more can be added with addPeers(). */
+  extraPeers?: readonly string[];
+  /** Creates the GUN handle (default: createGun(relayUrl)); the transport adds the public relays to it. */
   createHandle?: (relayUrl: string) => GunHandle;
   timers?: Timers;
   /** Pacing of puts (default 40/s, burst 100: below the relay's 50/s, burst 200). */
@@ -57,6 +60,7 @@ export class GunTransport implements Transport {
   private subs: SubscriptionManager;
   private readonly makeHandle: (relayUrl: string) => GunHandle;
   private readonly relayUrl: string;
+  private extraPeers: string[] = [];
   private readonly timers: Timers;
   private readonly rate: { perSecond: number; burst: number };
   private readonly ackTimeoutMs: number;
@@ -88,9 +92,34 @@ export class GunTransport implements Transport {
     this.ackTimeoutMs = o.ackTimeoutMs ?? 10000;
     this.tokens = this.rate.burst;
     this.lastRefill = this.timers.now();
-    this.handleValue = this.makeHandle(this.relayUrl);
+    this.extraPeers = sanitizePeers(o.extraPeers ?? []);
+    this.handleValue = this.newHandle();
     this.subs = new SubscriptionManager(this.handleValue, () => this.timers.now());
     this.attach();
+  }
+
+  private newHandle(): GunHandle {
+    const h = this.makeHandle(this.relayUrl);
+    if (this.extraPeers.length > 0) h.addPeers(this.extraPeers);
+    return h;
+  }
+
+  /** Public relays to dial in addition to the own relay (§7.1); kept across rebuild(). */
+  addPeers(urls: readonly string[]): void {
+    const merged = sanitizePeers([...this.extraPeers, ...urls]);
+    if (merged.length === this.extraPeers.length) return;
+    this.extraPeers = merged;
+    this.handleValue.addPeers(merged);
+  }
+
+  /** The relays dialed and whether their websocket is open (UI, diagnostics). */
+  peers(): PeerStatus[] {
+    return this.handleValue.peers();
+  }
+
+  /** Redials relays that dropped while another one is still open (watchdog, §7.4). */
+  redialMissing(): void {
+    if (!this.closed) this.handleValue.redialMissing();
   }
 
   get handle(): GunHandle {
@@ -284,7 +313,7 @@ export class GunTransport implements Transport {
     if (this.closed) return;
     const old = this.handleValue;
     for (const u of this.handleUnsubs.splice(0)) u();
-    this.handleValue = this.makeHandle(this.relayUrl);
+    this.handleValue = this.newHandle();
     this.subs = new SubscriptionManager(this.handleValue, () => this.timers.now());
     this.attach();
     old.close();

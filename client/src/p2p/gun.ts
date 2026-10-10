@@ -70,14 +70,54 @@ const WS_OPEN = 1;
 
 // ---------------------------------------------------------------- relay info and clock (§7.2)
 
-export interface RelayInfo { bootId: string; now: number }
+export interface RelayInfo {
+  bootId: string;
+  now: number;
+  /** Public relays the relay advertises (§7.1); validated, possibly empty. */
+  peers: string[];
+}
 
 export type FetchLike = (url: string, init?: { cache?: 'no-store' }) => Promise<{ ok: boolean; json(): Promise<unknown> }>;
 
-function isRelayInfo(v: unknown): v is RelayInfo {
+function isRelayInfo(v: unknown): v is Omit<RelayInfo, 'peers'> & { peers?: unknown } {
   if (typeof v !== 'object' || v === null) return false;
   const r = v as Record<string, unknown>;
   return typeof r.bootId === 'string' && typeof r.now === 'number' && Number.isFinite(r.now);
+}
+
+/** At most this many public relays are dialed. */
+export const MAX_PUBLIC_PEERS = 8;
+
+/** Loopback hosts may use plain http/ws (development and tests). */
+const LOOPBACK = new Set(['localhost', '127.0.0.1', '[::1]']);
+
+/**
+ * A relay URL this client may dial (same rule as server/peers.ts): https/wss,
+ * http/ws only on loopback, no credentials, query or fragment.
+ */
+export function isPeerUrl(url: unknown): url is string {
+  if (typeof url !== 'string' || url.length > 200) return false;
+  let u: URL;
+  try {
+    u = new URL(url);
+  } catch {
+    return false;
+  }
+  const secure = u.protocol === 'https:' || u.protocol === 'wss:';
+  const plain = u.protocol === 'http:' || u.protocol === 'ws:';
+  if (!secure && !(plain && LOOPBACK.has(u.hostname))) return false;
+  return u.username === '' && u.password === '' && u.search === '' && u.hash === '';
+}
+
+/** The valid, distinct relay URLs of an untrusted list, at most MAX_PUBLIC_PEERS. */
+export function sanitizePeers(list: unknown): string[] {
+  if (!Array.isArray(list)) return [];
+  const out: string[] = [];
+  for (const url of list) {
+    if (isPeerUrl(url) && !out.includes(url)) out.push(url);
+    if (out.length === MAX_PUBLIC_PEERS) break;
+  }
+  return out;
 }
 
 /** Base URL ("https://host") without a trailing slash. */
@@ -98,7 +138,7 @@ export async function relayInfo(relayUrl?: string, fetchFn?: FetchLike): Promise
   const body = await res.json();
   const rtt = Date.now() - t0;
   if (!isRelayInfo(body)) throw new Error('relay-info: malformed response');
-  return { bootId: body.bootId, now: body.now, rtt };
+  return { bootId: body.bootId, now: body.now, peers: sanitizePeers(body.peers), rtt };
 }
 
 /**
@@ -127,17 +167,35 @@ export class Clock {
 
 // ---------------------------------------------------------------- the GUN handle
 
+export interface PeerStatus {
+  url: string;
+  /** This app's own relay (`<relay>/gun`), as opposed to a public relay. */
+  own: boolean;
+  open: boolean;
+}
+
 export interface GunHandle {
   readonly gun: GunInstance;
   readonly root: GunRoot;
-  /** The websocket peer URL (`<relay>/gun`). */
+  /** The websocket peer URL of the own relay (`<relay>/gun`). */
   readonly peerUrl: string;
+  /** True while at least one relay (own or public) has an open websocket. */
   connected(): boolean;
+  /** Adds public relays to dial in addition to the own relay (§7.1). */
+  addPeers(urls: readonly string[]): void;
+  /** Every relay this handle dials, with its state. */
+  peers(): PeerStatus[];
+  /**
+   * Redials the relays whose websocket is closed while another one is open,
+   * each with its own backoff (own relay: 2, 4, 8, then 15 s; public relays:
+   * 30 s doubling up to 10 min). Cheap to call often.
+   */
+  redialMissing(): void;
   onHi(cb: () => void): () => void;
   onBye(cb: () => void): () => void;
   /** Every incoming wire/local message (before SEA), for reply tracking. */
   onIn(cb: (msg: GunMessage) => void): () => void;
-  /** Re-adds the relay peer (GUN drops it after one failed retry) and dials it (§7.4). */
+  /** Re-adds every relay peer without an open websocket (GUN drops a peer after one failed retry) and dials it (§7.4). */
   reconnect(): void;
   /** Sends a raw message to every peer. */
   say(msg: GunMessage): void;
@@ -150,6 +208,10 @@ export interface GunHandle {
 }
 
 export interface CreateGunOptions {
+  /** Public relays to dial too (§7.1). */
+  extraPeers?: readonly string[];
+  /** Clock for the redial backoff (tests). */
+  now?: () => number;
   /** Extra GUN options (tests). */
   gunOptions?: Record<string, unknown>;
   /** Alternative factory (tests). */
@@ -163,17 +225,32 @@ function randomId(): string {
   return 'av' + Math.random().toString(36).slice(2, 10) + msgCounter.toString(36);
 }
 
+/** Redial backoff of the own relay while a public relay is open: 2, 4, 8, then 15 s (§7.4). */
+const OWN_REDIAL_MS = [2000, 4000, 8000, 15000];
+/** Redial backoff of a public relay: 30 s doubling up to 10 min. */
+const PUBLIC_REDIAL_FIRST_MS = 30000;
+const PUBLIC_REDIAL_MAX_MS = 10 * 60 * 1000;
+
+interface DialState { own: boolean; attempt: number; nextAt: number }
+
 /**
- * Creates a GUN instance connected to `<relayUrl>/gun` (§7.1). The node-only
- * options keep a node client from becoming a super peer (lib/server.js makes
- * every node instance one, and super peers never dial out); in a browser they
- * are the defaults.
+ * Creates a GUN instance connected to `<relayUrl>/gun` and to the public relays
+ * of `extraPeers` (§7.1). Every put and get goes to every open relay; a client
+ * connected to several relays also forwards what one sends it to the others,
+ * which keeps them in sync. The node-only options keep a node client from
+ * becoming a super peer (lib/server.js makes every node instance one, and super
+ * peers never dial out); in a browser they are the defaults.
  */
 export function createGun(relayUrl: string, o: CreateGunOptions = {}): GunHandle {
   const peerUrl = normalizeBase(relayUrl) + '/gun';
   const factory = o.factory ?? GunCtor;
+  const now = o.now ?? Date.now;
+  const dial = new Map<string, DialState>([[peerUrl, { own: true, attempt: 0, nextAt: 0 }]]);
+  for (const url of sanitizePeers(o.extraPeers ?? [])) {
+    if (!dial.has(url)) dial.set(url, { own: false, attempt: 0, nextAt: 0 });
+  }
   const gun = factory({
-    peers: [peerUrl],
+    peers: [...dial.keys()],
     localStorage: false,
     radisk: false,
     super: false,
@@ -194,6 +271,9 @@ export function createGun(relayUrl: string, o: CreateGunOptions = {}): GunHandle
 
   root.on('hi', function (this: OntoLink, peer: unknown) {
     this.to.next(peer);
+    const url = typeof peer === 'object' && peer !== null ? (peer as GunPeer).url : undefined;
+    const st = url === undefined ? undefined : dial.get(url);
+    if (st !== undefined) st.attempt = 0;
     if (!closed) hi.emit();
   });
   root.on('bye', function (this: OntoLink, peer: unknown) {
@@ -211,25 +291,69 @@ export function createGun(relayUrl: string, o: CreateGunOptions = {}): GunHandle
     mesh.say(msg);
   };
 
+  const isOpen = (url: string): boolean => root.opt.peers[url]?.wire?.readyState === WS_OPEN;
+
+  /** Prepares a relay without an open or opening websocket for dialing; false if it needs none. */
+  const rearm = (url: string): boolean => {
+    const peer = root.opt.peers[url];
+    // A peer whose socket is still opening is left alone.
+    const wire = peer?.wire;
+    if (wire !== undefined && wire !== null && wire.readyState !== undefined && wire.readyState <= WS_OPEN) return false;
+    // A closed wire left on the peer would make gun queue messages instead of dialing.
+    if (peer !== undefined && wire !== undefined && wire !== null) peer.wire = null;
+    gun.opt({ peers: [url] });
+    return true;
+  };
+
+  /** Any outgoing message dials the peers without a wire (gun.js mesh.say → mesh.wire). */
+  const dialArmed = (armed: boolean): void => {
+    if (armed) say({ dam: 'hi' });
+  };
+
   const handle: GunHandle = {
     gun,
     root,
     peerUrl,
     connected: () => !closed && Object.values(root.opt.peers).some((p) => p?.wire?.readyState === WS_OPEN),
+    addPeers: (urls) => {
+      if (closed) return;
+      let armed = false;
+      for (const url of sanitizePeers(urls)) {
+        if (dial.has(url) || dial.size > MAX_PUBLIC_PEERS) continue;
+        dial.set(url, { own: false, attempt: 0, nextAt: 0 });
+        armed = rearm(url) || armed;
+      }
+      dialArmed(armed);
+    },
+    peers: () => [...dial].map(([url, st]) => ({ url, own: st.own, open: !closed && isOpen(url) })),
+    redialMissing: () => {
+      if (closed || !handle.connected()) return;
+      const t = now();
+      let armed = false;
+      for (const [url, st] of dial) {
+        if (isOpen(url) || t < st.nextAt) continue;
+        const wait = st.own
+          ? OWN_REDIAL_MS[Math.min(st.attempt, OWN_REDIAL_MS.length - 1)]
+          : Math.min(PUBLIC_REDIAL_FIRST_MS * 2 ** Math.min(st.attempt, 10), PUBLIC_REDIAL_MAX_MS);
+        // The first redial waits a full step: GUN itself retries a dropped socket once.
+        if (st.nextAt === 0) {
+          st.nextAt = t + wait;
+          continue;
+        }
+        st.attempt++;
+        st.nextAt = t + wait;
+        armed = rearm(url) || armed;
+      }
+      dialArmed(armed);
+    },
     onHi: (cb) => hi.add(cb),
     onBye: (cb) => bye.add(cb),
     onIn: (cb) => inbound.add(cb),
     reconnect: () => {
       if (closed) return;
-      const peer = root.opt.peers[peerUrl];
-      // A peer whose socket is still opening is left alone.
-      const wire = peer?.wire;
-      if (wire !== undefined && wire !== null && wire.readyState !== undefined && wire.readyState <= WS_OPEN) return;
-      // A closed wire left on the peer would make gun queue messages instead of dialing.
-      if (peer !== undefined && wire !== undefined && wire !== null) peer.wire = null;
-      gun.opt({ peers: [peerUrl] });
-      // Any outgoing message dials a peer without a wire (gun.js mesh.say → mesh.wire).
-      say({ dam: 'hi' });
+      let armed = false;
+      for (const url of dial.keys()) armed = rearm(url) || armed;
+      dialArmed(armed);
     },
     say,
     reask: (soul) => {

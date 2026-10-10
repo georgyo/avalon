@@ -46,8 +46,18 @@ interface RelayRoot {
   graph: Record<string, Record<string, unknown> | undefined>;
 }
 
+export interface TestRelayOptions {
+  /** Install the relay's input filter (default true). false: a plain GUN relay, like a public community relay. */
+  filter?: boolean;
+  /** Public relays advertised in /api/relay-info (§7.1). */
+  peers?: string[];
+}
+
 export class TestRelay {
   port = 0;
+  /** Public relays advertised in /api/relay-info; may change between requests. */
+  peers: string[];
+  private readonly withFilter: boolean;
   bootId = '';
   filter: RelayFilter | null = null;
   /** Static files served by the relay's HTTP server (browser tests: same origin as /gun and /api). */
@@ -57,8 +67,10 @@ export class TestRelay {
   private dir: string;
   private readonly dirs: string[] = [];
 
-  private constructor() {
+  private constructor(o: TestRelayOptions) {
     this.dir = this.newDir();
+    this.withFilter = o.filter !== false;
+    this.peers = o.peers ?? [];
   }
 
   private newDir(): string {
@@ -75,8 +87,8 @@ export class TestRelay {
     return this.server !== null;
   }
 
-  static async start(): Promise<TestRelay> {
-    const r = new TestRelay();
+  static async start(o: TestRelayOptions = {}): Promise<TestRelay> {
+    const r = new TestRelay(o);
     await r.listen(0);
     return r;
   }
@@ -86,7 +98,7 @@ export class TestRelay {
     const server = createServer((req, res) => {
       if (req.url !== undefined && req.url.startsWith('/api/relay-info')) {
         res.setHeader('content-type', 'application/json');
-        res.end(JSON.stringify({ bootId: this.bootId, now: Date.now() }));
+        res.end(JSON.stringify({ bootId: this.bootId, now: Date.now(), peers: this.peers }));
         return;
       }
       const f = this.files.get((req.url ?? '/').split('?')[0]);
@@ -109,7 +121,7 @@ export class TestRelay {
     this.port = (server.address() as AddressInfo).port;
     const relay = await loadRelayModule();
     const gun = relay.createRelay(server, join(this.dir, 'radata'));
-    this.filter = relay.installRelayFilter(gun);
+    this.filter = this.withFilter ? relay.installRelayFilter(gun) : null;
     this.root = (gun as unknown as { _: RelayRoot })._;
     this.server = server;
   }

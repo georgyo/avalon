@@ -4,14 +4,17 @@
 // themselves.
 //
 //   GET  /               the SPA (server/dist, built by `yarn build`)
-//   GET  /api/relay-info { bootId, now }: clock sync and relay-restart detection (§7.2, §7.4)
+//   GET  /api/relay-info { bootId, now, peers }: clock sync, relay-restart detection and the
+//                        public relays clients also dial (§7.1, §7.2, §7.4)
 //   GET  /healthz        liveness
 //   WS   /gun            the GUN relay (SEA + input filter)
 //
 // Environment: PORT (default 8001), HOST (bind address, default all),
 // GUN_DIR (radisk directory, default ./radata; must be writable and persistent),
 // STATIC_DIR (default <this file's directory>/dist), TRUST_PROXY=1 (behind a
-// reverse proxy: per-IP relay limits use the last X-Forwarded-For entry).
+// reverse proxy: per-IP relay limits use the last X-Forwarded-For entry),
+// GUN_PUBLIC_PEERS (public relays advertised to clients, comma separated; unset
+// gives the default list of server/peers.ts, '' or 'none' disables them).
 
 import './gun-shim'; // must run before gun/sea in the esbuild bundle
 import Gun from 'gun';
@@ -22,6 +25,7 @@ import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { parsePublicPeers } from './peers';
 import { createRelay, installRelayFilter, relaySelfTest, type GunFactory } from './relay';
 import { serveStatic } from './static';
 
@@ -30,6 +34,7 @@ const PORT = Number(process.env.PORT ?? 8001);
 const HOST = process.env.HOST || undefined;
 const GUN_DIR = process.env.GUN_DIR ?? './radata';
 const STATIC_DIR = process.env.STATIC_DIR ?? path.join(here, 'dist');
+const PUBLIC_PEERS = parsePublicPeers(process.env.GUN_PUBLIC_PEERS);
 
 /** Random per process start: a new value tells clients to republish (§7.4). */
 const bootId = randomBytes(16).toString('base64url');
@@ -52,7 +57,7 @@ app.get('/healthz', (_req, res) => {
 });
 
 app.get('/api/relay-info', (_req, res) => {
-  res.set('Cache-Control', 'no-store').json({ bootId, now: Date.now() });
+  res.set('Cache-Control', 'no-store').json({ bootId, now: Date.now(), peers: PUBLIC_PEERS });
 });
 
 app.use('/api', (_req, res) => {
@@ -69,6 +74,7 @@ installRelayFilter(gun, { trustProxy: process.env.TRUST_PROXY === '1' });
 httpServer.listen(PORT, HOST, () => {
   const { port } = httpServer.address() as AddressInfo;
   console.log(`Avalon relay listening on port ${port}`);
+  console.log(PUBLIC_PEERS.length ? `Public relays advertised to clients: ${PUBLIC_PEERS.join(', ')}` : 'No public relays advertised');
 });
 
 function shutdown(signal: string): void {

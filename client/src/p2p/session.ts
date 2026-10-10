@@ -18,7 +18,7 @@ import {
   type LobbyCandidate, type LobbyData, type LobbyState, type LobbyUser, type Pub, type RoleDoc, type SeatView,
   type SetupProgress, type StoredMsg, type Transport, type UserStats, type Verdict, type VerifyJob, type ProveTask,
 } from '@avalon/common/protocol';
-import { Clock, relayInfo, type FetchLike, type GunHandle } from './gun.ts';
+import { Clock, relayInfo, sanitizePeers, type FetchLike, type GunHandle, type PeerStatus } from './gun.ts';
 import { every, errorMessage, Listeners, realTimers, type EventSource, type Timers, type VisibilitySource } from './env.ts';
 import { GunTransport } from './gunTransport.ts';
 import { loadIdentity, loadOrCreateIdentity, resetIdentity as clearIdentity, type Identity } from './identity.ts';
@@ -41,6 +41,14 @@ export interface LocalProfile { uid: Pub; name: string | null; lobby: string | n
 export interface SessionOptions {
   /** Base URL of the relay (default: the page origin); GUN connects to `<relayUrl>/gun`. */
   relayUrl?: string;
+  /**
+   * Public relays to dial from the start (§7.1; default: the list the relay
+   * advertised last time, cached in localStorage). The relay's current list
+   * from /api/relay-info is added when it arrives.
+   */
+  publicPeers?: readonly string[];
+  /** Cache the advertised public relays in localStorage (default true when available). */
+  cachePeers?: boolean;
   /** Storage backend (default: IndexedDB). */
   kv?: KV;
   /** Web Locks (default navigator.locks; null: no other tabs). */
@@ -226,13 +234,22 @@ export class P2PSession {
     this.relayUrl = o.relayUrl ?? (typeof location !== 'undefined' ? location.origin : 'http://127.0.0.1:8001');
     this.clock = new Clock(o.gunClock !== false);
     this.cryptoBackend = o.crypto ?? new WorkerPool();
-    this.transport = new GunTransport({ relayUrl: this.relayUrl, createHandle: o.createHandle, timers: this.timers });
+    this.transport = new GunTransport({
+      relayUrl: this.relayUrl,
+      extraPeers: o.publicPeers ?? (o.cachePeers === false ? [] : loadCachedPeers()),
+      createHandle: o.createHandle,
+      timers: this.timers,
+    });
     const win = o.window === undefined ? (typeof window !== 'undefined' ? window : null) : o.window;
     const doc = o.document === undefined ? (typeof document !== 'undefined' ? document : null) : o.document;
     this.watchdog = new Watchdog({
       target: this.transport,
       relayInfo: () => relayInfo(this.relayUrl, o.fetch),
-      onClock: (info) => this.clock.sync(info),
+      onClock: (info) => {
+        this.clock.sync(info);
+        this.transport.addPeers(info.peers);
+        if (o.cachePeers !== false) saveCachedPeers(info.peers);
+      },
       onHi: () => this.onHi(),
       onNewBoot: () => this.onNewBoot(),
       onConnectedChange: (up) => {
@@ -319,6 +336,11 @@ export class P2PSession {
     const s = this.lobbyState;
     const m = s === null ? undefined : memberOf(s, id.pub);
     return m?.name ?? this.profileRec.name;
+  }
+
+  /** The relays this session dials (own and public, §7.1) and whether each is open. */
+  relays(): PeerStatus[] {
+    return this.transport.peers();
   }
 
   get status(): SessionStatus {
@@ -1377,3 +1399,33 @@ export class P2PSession {
   }
 }
 
+// ---------------------------------------------------------------- public relay cache (§7.1)
+
+const PEERS_CACHE_KEY = 'avalon/v1/public-peers';
+
+function storage(): Storage | null {
+  try {
+    return typeof localStorage === 'undefined' ? null : localStorage;
+  } catch {
+    return null; // blocked storage (privacy settings)
+  }
+}
+
+/** The public relays the relay advertised last time (empty if unknown). */
+export function loadCachedPeers(): string[] {
+  try {
+    const raw = storage()?.getItem(PEERS_CACHE_KEY);
+    return raw ? sanitizePeers(JSON.parse(raw)) : [];
+  } catch {
+    return [];
+  }
+}
+
+/** Remembers the advertised list, so the next load can fail over before /api/relay-info answers. */
+export function saveCachedPeers(peers: readonly string[]): void {
+  try {
+    storage()?.setItem(PEERS_CACHE_KEY, JSON.stringify(sanitizePeers(peers)));
+  } catch {
+    // quota or blocked storage: the list is fetched again next time
+  }
+}

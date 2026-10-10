@@ -30,7 +30,7 @@ is only an untrusted GUN relay plus a static host. The normative specification i
 - `client/src/p2p/` - P2P runtime (`P2PSession`, GUN transport, IndexedDB journal, worker pool)
 - `client/src/avalon.ts` - The `AvalonGame` API the Vue components use
 - `client/src/components/Game*.vue` - Game UI components
-- `server/server.ts` - Express static host, `/api/relay-info`, `/healthz`, GUN relay on `/gun`
+- `server/server.ts` - Express static host, `/api/relay-info` (incl. the public relays clients also dial, `server/peers.ts`, env `GUN_PUBLIC_PEERS`), `/healthz`, GUN relay on `/gun`
 - `server/relay.ts` - Relay input filter and boot self-test
 
 ### Common Pitfalls

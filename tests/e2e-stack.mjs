@@ -4,7 +4,11 @@
 //        ^            ^
 //        | /gun (ws)  | /api
 //        |            |
-//   vite dev :5173 <---- Playwright
+//   vite dev :5173 <---- Playwright ----> public relay stand-in :8765 (/gun, ws)
+//
+// The own relay advertises the stand-in (GUN_PUBLIC_PEERS, §7.1), so the
+// browsers play over two relays, as they do in production with the community
+// relays. PUBLIC_RELAY=0 runs with the own relay only.
 //
 // There is no backend state besides the relay's temporary radisk directory
 // (deleted on exit) and no emulator: the game runs peer-to-peer between the
@@ -31,8 +35,12 @@ const repoRoot = join(__dirname, '..');
 const RELAY_PORT = 8001;
 const VITE_PORT = 5173;
 const RELAY_URL = `http://127.0.0.1:${RELAY_PORT}`;
+const PUBLIC_RELAY_PORT = 8765;
+const PUBLIC_RELAY = process.env.PUBLIC_RELAY !== '0';
+const PUBLIC_RELAY_URL = `http://127.0.0.1:${PUBLIC_RELAY_PORT}/gun`;
 
 const gunDir = mkdtempSync(join(tmpdir(), 'avalon-e2e-gun-'));
+const publicGunDir = mkdtempSync(join(tmpdir(), 'avalon-e2e-public-gun-'));
 
 const children = [];
 let shuttingDown = false;
@@ -164,6 +172,7 @@ async function shutdown(code) {
   await new Promise((r) => setTimeout(r, 2000));
   for (const { child } of children) killGroup(child, 'SIGKILL');
   rmSync(gunDir, { recursive: true, force: true });
+  rmSync(publicGunDir, { recursive: true, force: true });
   process.exit(code);
 }
 
@@ -209,15 +218,22 @@ async function main() {
   for (const r of runs) console.log(`      ${r.label}`);
 
   // A leftover relay or vite from an earlier run would answer the readiness probes below.
-  for (const [port, label] of [[RELAY_PORT, 'relay'], [VITE_PORT, 'vite']]) {
+  const ports = [[RELAY_PORT, 'relay'], [VITE_PORT, 'vite']];
+  if (PUBLIC_RELAY) ports.push([PUBLIC_RELAY_PORT, 'public relay']);
+  for (const [port, label] of ports) {
     if (await portOpen(port)) throw new Error(`port ${port} (${label}) is already in use; stop the process listening there`);
   }
 
   // 1. The relay, on a throwaway radisk directory. It only listens once its
   //    boot self-test (SEA + filter) passed.
+  if (PUBLIC_RELAY) {
+    console.log(`\n==> starting the public relay stand-in on :${PUBLIC_RELAY_PORT}`);
+    run('public-relay', process.execPath, [join(__dirname, 'public-relay.mjs'), String(PUBLIC_RELAY_PORT), publicGunDir]);
+    await waitForPort(PUBLIC_RELAY_PORT, 'public relay');
+  }
   console.log(`\n==> starting relay (GUN_DIR=${gunDir})`);
   run('relay', 'yarn', ['workspace', '@avalon/server', 'start'], {
-    env: { PORT: String(RELAY_PORT), HOST: '127.0.0.1', GUN_DIR: gunDir },
+    env: { PORT: String(RELAY_PORT), HOST: '127.0.0.1', GUN_DIR: gunDir, GUN_PUBLIC_PEERS: PUBLIC_RELAY ? PUBLIC_RELAY_URL : 'none' },
   });
   await waitForPort(RELAY_PORT, 'relay');
   await checkRelay();
@@ -256,7 +272,7 @@ async function main() {
     const code = await new Promise((resolve) => {
       const t = spawn(process.execPath, [file], {
         cwd: repoRoot,
-        env: { ...process.env, RELAY_URL, ...env },
+        env: { ...process.env, RELAY_URL, PUBLIC_RELAY_URL: PUBLIC_RELAY ? PUBLIC_RELAY_URL : '', ...env },
         stdio: 'inherit',
       });
       t.on('exit', (c) => resolve(c ?? 1));

@@ -7,6 +7,9 @@
  * * tracks `hi`/`bye`; when no wire has been open for 2 s it reconnects with
  *   backoff 1, 2, 4, 8, then every 15 s, forever; `online`, `pageshow` and
  *   `visibilitychange` (to visible) reconnect at once;
+ * * while some relay is open, redials the relays that are not (the own relay
+ *   while only public relays are reachable, and public relays, §7.1), each with
+ *   its own backoff;
  * * on every `hi` (and at start) calls `onHi` (the owner re-puts the journal of
  *   the active lobby and game and re-asks the souls) and fetches
  *   `/api/relay-info`;
@@ -23,6 +26,8 @@ export interface WatchdogTarget {
   onHi(cb: () => void): () => void;
   onBye(cb: () => void): () => void;
   reconnect(): void;
+  /** Redials relays that dropped while another one is open (own backoff per relay). */
+  redialMissing?(): void;
 }
 
 export interface WatchdogOptions {
@@ -163,6 +168,12 @@ export class Watchdog {
     if (up) {
       this.downSinceValue = null;
       this.attempt = 0;
+      // Connected through some relay: keep dialing the others (own relay down, public relays, §7.1).
+      try {
+        this.o.target.redialMissing?.();
+      } catch (e) {
+        console.warn('redial failed', e);
+      }
       return;
     }
     if (this.downSinceValue === null) {

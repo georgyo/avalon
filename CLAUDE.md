@@ -20,7 +20,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Testing
 - `yarn test:unit` - Unit tests: `@avalon/common` (crypto, protocol, simulations), client P2P runtime (`client/src/p2p`), relay (`server/relay.test.ts`); all `node --import tsx --test`
-- `yarn test:e2e` - Brings up a throwaway relay (temporary `GUN_DIR`) + vite and runs every `tests/e2e-*.mjs`; `PLAYERS=5..10` runs `e2e-full-game.mjs` once per player count
+- `yarn test:e2e` - Brings up a throwaway relay (temporary `GUN_DIR`), a public-relay stand-in (`tests/public-relay.mjs` on :8765, advertised via `GUN_PUBLIC_PEERS`; `PUBLIC_RELAY=0` disables it) + vite and runs every `tests/e2e-*.mjs`; `PLAYERS=5..10` runs `e2e-full-game.mjs` once per player count
 - `yarn test` / `yarn test:browser` / `yarn test:game` - Single e2e files against an already running stack
 - Any `tests/e2e-*.mjs` runs alone against a running stack: `BASE_URL=http://127.0.0.1:8001/ PLAYERS=10 node tests/e2e-full-game.mjs`
   (after `yarn build && yarn start`); env `BROWSER`, `CHROMIUM_PATH`, `RNG_SEED`, `EVIL_FAIL_RATE=0` (reach the assassination), `ENFORCE_PERF=1`
@@ -57,7 +57,7 @@ a verifiable shuffle so no party, including the relay, learns secret game state.
 - Identities are anonymous per-device SEA key pairs
 
 ### Server (`/server/`) - `@avalon/server`
-- `server.ts` - Express: static SPA (`dist/`), `GET /api/relay-info` (`{bootId, now}`), `GET /healthz`,
+- `server.ts` - Express: static SPA (`dist/`), `GET /api/relay-info` (`{bootId, now, peers}`), `GET /healthz`,
   and the GUN relay on `/gun` (same HTTP server)
 - `relay.ts` - `installRelayFilter(gun)` (soul/key/value whitelist, size limits, 50 puts/s per
   connection) and `relaySelfTest()` (throwaway loopback relay proving SEA and the filter work;
@@ -65,7 +65,9 @@ a verifiable shuffle so no party, including the relay, learns secret game state.
 - `gun-shim.ts` - must be the first import: lets SEA use Node's WebCrypto inside the esbuild bundle
 - `bundle.ts` - esbuild options for the single-file bundle; `smoke.ts` - two-client smoke test
 - No game logic and no dependency on `@avalon/common`
+- `peers.ts` - public GUN relays advertised to clients (`GUN_PUBLIC_PEERS`, default list, URL validation)
 - Deployment: WebSockets, a persistent writable `GUN_DIR`, exactly one instance
+- Clients also dial the advertised public relays (`client/src/p2p/gun.ts`), so games survive an outage of this relay
 
 ## Workspace Structure
 

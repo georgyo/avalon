@@ -34,7 +34,9 @@ yarn start
 yarn workspace @avalon/client dev
 ```
 
-Relay environment variables: `PORT` (default 8001), `HOST` (bind address), `GUN_DIR` (radisk directory, default `./radata` relative to the working directory, i.e. `server/radata` under `yarn start`; must be writable and persistent), `STATIC_DIR` (default: `dist/` next to the server file), `TRUST_PROXY=1` (behind a reverse proxy: the relay's per-IP limits use the last `X-Forwarded-For` entry; without it, loopback and private client addresses are exempt from them).
+Relay environment variables: `PORT` (default 8001), `HOST` (bind address), `GUN_DIR` (radisk directory, default `./radata` relative to the working directory, i.e. `server/radata` under `yarn start`; must be writable and persistent), `STATIC_DIR` (default: `dist/` next to the server file), `TRUST_PROXY=1` (behind a reverse proxy: the relay's per-IP limits use the last `X-Forwarded-For` entry; without it, loopback and private client addresses are exempt from them), `GUN_PUBLIC_PEERS` (public community GUN relays the clients also dial, comma separated; unset gives the default list in `server/peers.ts`, `none` turns public relays off).
+
+Clients connect to this relay **and** to the public relays it advertises in `/api/relay-info`, so a game keeps going while this relay is down. Public relays are untrusted like this one (every message is signed and content-addressed) but their operators see the public game data and the players' IP addresses; see `docs/p2p-protocol.md` §7.1.
 
 The relay serves the SPA's content-hashed `/assets/*` with a one-year immutable cache and `index.html` with `no-cache`, brotli- or gzip-compressed when the browser accepts it.
 

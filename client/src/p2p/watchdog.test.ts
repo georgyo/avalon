@@ -42,7 +42,7 @@ function setup(o: { boot?: () => string } = {}) {
   let boot = 'boot-1';
   const wd = new Watchdog({
     target, timers, window: win, document: doc, random: () => 0.5,
-    relayInfo: async () => ({ bootId: o.boot?.() ?? boot, now: 1000, rtt: 10 }),
+    relayInfo: async () => ({ bootId: o.boot?.() ?? boot, now: 1000, peers: [], rtt: 10 }),
     onClock: () => {
       calls.clock++;
     },

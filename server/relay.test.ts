@@ -13,6 +13,7 @@ import './gun-shim';
 import Gun from 'gun';
 import 'gun/sea';
 import type { IGunInstance } from 'gun';
+import { DEFAULT_PUBLIC_PEERS, MAX_PUBLIC_PEERS, isPeerUrl, parsePublicPeers } from './peers';
 import assert from 'node:assert/strict';
 import { spawn, type ChildProcess } from 'node:child_process';
 import { createHash, randomBytes } from 'node:crypto';
@@ -392,6 +393,26 @@ describe('relay filter (in-process relay with gun/sea)', () => {
     }
   });
 
+  it('charges invalid puts (junk forwarded from a public relay) to the ingress limit, not the put limit', async () => {
+    const relay = await startRelay(path.join(scratch, 'f3b'));
+    const a = await connect(relay.url);
+    try {
+      // 300 malformed values: more than the put burst, all dropped as invalid.
+      for (let i = 0; i < 300; i++) a.say(hashed(LOBBY, 'junk-' + randomBytes(8).toString('hex')));
+      await until(() => relay.filter.stats.dropped === 300, 10000, '300 junk verdicts');
+      assert.equal(relay.filter.stats.reasons['rate limit'] ?? 0, 0);
+      // The connection's valid puts still have their whole burst.
+      for (let i = 0; i < 10; i++) a.say(hashed(LOBBY, av1(8)));
+      await until(() => relay.filter.stats.accepted === 10, 10000, '10 valid puts accepted');
+      // Beyond the ingress burst nothing is even hashed.
+      for (let i = 0; i < RELAY_LIMITS.ingressBurst; i++) a.say(hashed(LOBBY, 'junk-' + i));
+      await until(() => (relay.filter.stats.reasons['ingress rate limit'] ?? 0) > 0, 10000, 'ingress drops');
+    } finally {
+      a.close();
+      await relay.close();
+    }
+  });
+
   it('closes a connection that sends a frame over the hard frame limit', async () => {
     const relay = await startRelay(path.join(scratch, 'f4'));
     const c = await connect(relay.url);
@@ -620,7 +641,7 @@ describe('relaySelfTest', () => {
 // server.ts and the bundle
 // ---------------------------------------------------------------------------
 
-async function checkRunningServer(p: Proc, cwd: string, gunData: string): Promise<void> {
+async function checkRunningServer(p: Proc, cwd: string, gunData: string, expectedPeers: string[] = [...DEFAULT_PUBLIC_PEERS]): Promise<void> {
   const port = await listeningPort(p);
   assert.match(p.out(), /Relay self-test passed/);
   const base = `http://127.0.0.1:${port}`;
@@ -635,8 +656,9 @@ async function checkRunningServer(p: Proc, cwd: string, gunData: string): Promis
   assert.match(info.bootId as string, /^[A-Za-z0-9_-]{22}$/);
   assert.equal(typeof info.now, 'number');
   assert.ok(Math.abs((info.now as number) - before) < 5000);
-  const again = await fetch(`${base}/api/relay-info`).then((r) => r.json() as Promise<{ bootId: unknown }>);
+  const again = await fetch(`${base}/api/relay-info`).then((r) => r.json() as Promise<{ bootId: unknown; peers: unknown }>);
   assert.equal(again.bootId, info.bootId);
+  assert.deepEqual(again.peers, expectedPeers);
 
   assert.equal((await fetch(`${base}/api/login`, { method: 'POST' })).status, 404);
 
@@ -650,6 +672,29 @@ async function checkRunningServer(p: Proc, cwd: string, gunData: string): Promis
   assert.deepEqual(readdirSync(cwd).filter((f) => f !== path.basename(gunData) && f !== 'server.js').sort(), []);
   assert.deepEqual(statsFiles(path.dirname(cwd)), []);
 }
+
+describe('public relays advertised to clients (GUN_PUBLIC_PEERS)', () => {
+  it('defaults, replaces, disables and validates the list', () => {
+    const warnings: string[] = [];
+    const warn = (m: string): void => {
+      warnings.push(m);
+    };
+    assert.deepEqual(parsePublicPeers(undefined, warn), [...DEFAULT_PUBLIC_PEERS]);
+    assert.deepEqual(parsePublicPeers('', warn), []);
+    assert.deepEqual(parsePublicPeers(' none ', warn), []);
+    assert.deepEqual(
+      parsePublicPeers('https://a.example/gun, wss://b.example/gun https://a.example/gun', warn),
+      ['https://a.example/gun', 'wss://b.example/gun'],
+    );
+    assert.deepEqual(parsePublicPeers('http://127.0.0.1:8765/gun', warn), ['http://127.0.0.1:8765/gun']);
+    assert.equal(warnings.length, 0);
+    assert.deepEqual(parsePublicPeers('http://insecure.example/gun,https://u:p@a.example/gun,https://a.example/gun?x', warn), []);
+    assert.equal(warnings.length, 3);
+    const many = Array.from({ length: 12 }, (_, i) => `https://r${i}.example/gun`).join(',');
+    assert.equal(parsePublicPeers(many, warn).length, MAX_PUBLIC_PEERS);
+    for (const url of DEFAULT_PUBLIC_PEERS) assert.equal(isPeerUrl(url), true);
+  });
+});
 
 describe('server entry point', () => {
   it('server.ts (tsx): self-test, /healthz, /api/relay-info, two-client smoke, no stats file', async () => {
@@ -685,9 +730,9 @@ describe('server entry point', () => {
     const outfile = path.join(dir, 'server.js');
     await build(bundleOptions(outfile));
     const gunData = path.join(dir, 'gundata');
-    const p = startProc([outfile], { cwd: dir, env: { PORT: '0', GUN_DIR: gunData, HOST: '127.0.0.1' } });
+    const p = startProc([outfile], { cwd: dir, env: { PORT: '0', GUN_DIR: gunData, HOST: '127.0.0.1', GUN_PUBLIC_PEERS: 'https://relay-a.example/gun,not-a-url' } });
     try {
-      await checkRunningServer(p, dir, gunData);
+      await checkRunningServer(p, dir, gunData, ['https://relay-a.example/gun']);
     } finally {
       assert.equal(await stop(p), 0, p.out());
     }

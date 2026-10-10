@@ -1423,8 +1423,30 @@ messages.
 ```ts
 import Gun from 'gun';
 import 'gun/sea';
-const gun = Gun({ peers: [location.origin + '/gun'], localStorage: false, radisk: false });
+const gun = Gun({ peers: [location.origin + '/gun', ...publicPeers], localStorage: false, radisk: false });
 ```
+
+* **Public relays.** Besides its own relay the client dials the public
+  community GUN relays the own relay advertises in `/api/relay-info`
+  (`peers`, §8), at most 8, each a `https`/`wss` URL (`http`/`ws` only on
+  loopback) without credentials, query or fragment; the client re-validates
+  the list. The last advertised list is cached in `localStorage`
+  (`avalon/v1/public-peers`) and dialed from the start of the next load; the
+  current list is added when `/api/relay-info` answers. Every put and get goes
+  to every open relay, and a client connected to several relays forwards what
+  one sends it to the others, which keeps the relays in sync without any
+  relay-to-relay link. A game therefore continues while the own relay is down
+  as long as the players share a reachable public relay. Public relays are as
+  untrusted as the own relay (§1.2, §10): they can drop, delay or replay data
+  but cannot forge or alter a message (envelopes are signed and
+  content-addressed, presence is SEA-signed and re-checked by watchers, §3.4,
+  §7.6). Unlike the own relay they run no input filter (§8): junk they accept
+  reaches clients, which discard it before verification (§3.4), and clients
+  forward it to the own relay, whose filter charges invalid puts to a separate
+  ingress budget so they cannot starve the client's valid puts. An `ok`
+  acknowledgement from any relay counts as the relay echo; a forged one only
+  delays a re-put, since the put was already sent to every open relay and is
+  re-put on every `hi` and every new `bootId` (§7.4).
 
 * GUN's browser `localStorage` adapter is off: it keeps the whole graph in one
   5 MB key, re-serializes it on every write and, once full, makes the app's own
@@ -1442,7 +1464,7 @@ const gun = Gun({ peers: [location.origin + '/gun'], localStorage: false, radisk
 HAM defers any update whose state is in the future (`if (state > now)
 setTimeout(...)`, also on the relay), so a phone whose clock is fast would see
 its messages delayed by the skew. At startup and every 10 minutes the client
-fetches `GET /api/relay-info` → `{ bootId: string, now: number }` and sets
+fetches `GET /api/relay-info` → `{ bootId: string, now: number, peers: string[] }` and sets
 `Gun.state.drift = now + rtt/2 − Date.now()`. Envelope `t` values use the
 corrected clock. No protocol decision uses any clock.
 
@@ -1474,9 +1496,13 @@ GUN's websocket adapter retries once after about 2 s and then never again
 disconnected are never pushed on reconnect.
 
 * Track root `hi`/`bye`. If no wire is open for 2 s, call
-  `gun.opt({ peers: [RELAY_URL] })` with backoff 1, 2, 4, 8, then every 15 s,
-  forever. Also trigger on `online`, `pageshow` and `visibilitychange` to
-  visible.
+  `gun.opt({ peers: [url] })` for every relay without an open wire (own and
+  public, §7.1) with backoff 1, 2, 4, 8, then every 15 s, forever. Also
+  trigger on `online`, `pageshow` and `visibilitychange` to visible.
+* While some wire is open, redial each relay whose wire is not, with its own
+  backoff: the own relay after 2, 4, 8, then every 15 s (so a client that fell
+  back to public relays returns to it), a public relay after 30 s doubling up
+  to 10 minutes. The UI shows "connected" while any relay is open.
 * On every `hi` and at startup, re-put every journal entry (§3.9) of the active
   lobby and game (idempotent: content-addressed), then re-ask the souls
   (§7.3).
@@ -1581,8 +1607,11 @@ Session status values (exposed by `P2PSession.status`): `CONNECTING`,
 dependency on `@avalon/common`.
 
 * **Entry** (`server/server.ts`): Express serving `server/dist` (the built
-  SPA), `GET /api/relay-info` → `{ bootId, now }` (`bootId` random per process
-  start), `GET /healthz`, and the GUN relay on the same HTTP server:
+  SPA), `GET /api/relay-info` → `{ bootId, now, peers }` (`bootId` random per
+  process start; `peers` the public relays clients also dial, §7.1, from
+  `GUN_PUBLIC_PEERS`: unset gives the default list of `server/peers.ts`, a
+  comma-separated list replaces it, `''` or `none` disables public relays),
+  `GET /healthz`, and the GUN relay on the same HTTP server:
 
   ```ts
   import './gun-shim';                    // must run before gun/sea in the esbuild bundle
@@ -1769,6 +1798,10 @@ Without an honest majority, fairness against aborts is impossible:
 * Denial of service by the relay or the network (dropping, delaying,
   partitioning). Liveness only; secrecy and agreement are unaffected.
 * Metadata visible to the relay: IP addresses, timing, who is in which lobby.
+  With public relays (§7.1) this includes their operators, who see the same
+  public game data (lobby codes, names, ciphertexts, proofs, public moves) and
+  the players' IP addresses. Deployments that do not want this set
+  `GUN_PUBLIC_PEERS=none`.
 * **The static host serving malicious client code.** Players trust the
   JavaScript they run; a compromised host could ship code that exfiltrates
   secrets. Mitigations (self-hosting, reproducible builds, pinned releases) are
@@ -2669,3 +2702,14 @@ where they differ from the text above.
 
 **Limits:** 5 ≤ n ≤ 10; names `/^[A-Z]{1,20}$/`, not a role name; value
 ≤ 64 KiB; relay message ≤ 256 KiB, 50 puts/s (burst 200) per connection.
+
+---
+
+## Appendix C. Public relays (change after the third review round)
+
+| Change | Where | Reason |
+|---|---|---|
+| Clients dial the public relays advertised in `/api/relay-info` (`peers`) besides the own relay, cache the list, redial each relay with its own backoff | §7.1, §7.2, §7.4, §8 | Availability: a game continues while the own relay is down |
+| The relay validates a put before charging the per-connection put limit; invalid puts use a separate ingress budget (500/s, burst 2000) that only bounds hashing work | §8, `server/relay.ts` | A client connected to a public relay forwards the junk that relay accepts; it must not starve the client's own valid puts |
+| Public relay operators see the public game data and IP addresses | §10.4 | Inherent; `GUN_PUBLIC_PEERS=none` turns public relays off |
+| Tests: `client/src/p2p/publicRelay.test.ts` (delivery across relays, own relay outage, redial), `server/relay.test.ts` (ingress, `GUN_PUBLIC_PEERS`), `tests/e2e-public-relay.mjs` (a full game finished with the own relay unreachable); every e2e run uses a public relay stand-in (`tests/public-relay.mjs`) | §12 | |

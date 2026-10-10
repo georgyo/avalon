@@ -45,7 +45,15 @@ export interface RelayLimits {
   presenceBytes: number;
   /** Maximum size of the put payload of one GUN message (souls + keys + values). */
   messageBytes: number;
-  /** Sustained puts per second per connection. */
+  /**
+   * Puts per second per connection before validation (and their burst). This
+   * only bounds the hashing work; invalid puts (junk forwarded from a public
+   * relay by a client connected to both, §8) are charged here and never
+   * against `putsPerSecond`, so they cannot starve the client's own valid puts.
+   */
+  ingressPerSecond: number;
+  ingressBurst: number;
+  /** Sustained valid puts per second per connection. */
   putsPerSecond: number;
   /** Token-bucket burst size per connection. */
   burst: number;
@@ -71,6 +79,8 @@ export const RELAY_LIMITS: Readonly<RelayLimits> = Object.freeze({
   getBurstPerIp: 600,
   presenceBytes: 1024,
   messageBytes: 256 * 1024,
+  ingressPerSecond: 500,
+  ingressBurst: 2000,
   putsPerSecond: 50,
   burst: 200,
   frameBytes: 1024 * 1024,
@@ -425,6 +435,7 @@ export function installRelayFilter(gun: IGunInstance, options: RelayFilterOption
   const ipOf = options.ipOf ?? ((peer: PeerInternals) => defaultIpOf(peer, options.trustProxy === true));
   const root = rootOf(gun);
   const putBuckets = new WeakMap<object, TokenBucket>();
+  const ingressBuckets = new WeakMap<object, TokenBucket>();
   const getBuckets = new WeakMap<object, TokenBucket>();
   const ipPutBuckets = new Map<string, TokenBucket>();
   const ipGetBuckets = new Map<string, TokenBucket>();
@@ -520,14 +531,20 @@ export function installRelayFilter(gun: IGunInstance, options: RelayFilterOption
       this.to.next(msg);
       return;
     }
-    if (!bucketOf(putBuckets, peer, limits.putsPerSecond, limits.burst).take(now())
-        || (ip !== null && !bucketOf(ipPutBuckets, ip, limits.putsPerSecondPerIp, limits.putBurstPerIp).take(now()))) {
-      drop('rate limit');
+    if (!bucketOf(ingressBuckets, peer, limits.ingressPerSecond, limits.ingressBurst).take(now())) {
+      drop('ingress rate limit');
       return;
     }
+    // Validate before charging the put limits: a client connected to a public
+    // relay too forwards whatever that relay sends it, junk included (§8).
     const verdict = checkPut(m.put, limits);
     if (!verdict.ok) {
       drop(verdict.reason);
+      return;
+    }
+    if (!bucketOf(putBuckets, peer, limits.putsPerSecond, limits.burst).take(now())
+        || (ip !== null && !bucketOf(ipPutBuckets, ip, limits.putsPerSecondPerIp, limits.putBurstPerIp).take(now()))) {
+      drop('rate limit');
       return;
     }
     // Per-soul quotas, for values the relay does not hold yet.

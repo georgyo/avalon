@@ -121,36 +121,54 @@ export class PlayerContext {
   async init(context = null, o = {}) {
     this.context = context || (await this.browser.newContext());
     if (o.routeWs) {
-      this.net = { down: false, live: new Set() };
+      // `down`: null, or a predicate on the websocket URL (which relays are unreachable).
+      this.net = { down: null, live: new Set() };
       await this.context.routeWebSocket(/\/gun$/, (ws) => {
-        if (this.net.down) {
+        if (this.net.down && this.net.down(ws.url())) {
           ws.close({ code: 1001, reason: 'outage' }).catch(() => {});
           return;
         }
         const server = ws.connectToServer();
-        const entry = { ws, server };
+        const entry = { ws, server, url: ws.url() };
         this.net.live.add(entry);
         ws.onClose(() => this.net.live.delete(entry));
         server.onClose(() => this.net.live.delete(entry));
+      });
+      // The own relay's /api/relay-info is unreachable while it is down too.
+      await this.context.route('**/api/relay-info', (route) => {
+        if (this.net.down && this.net.down(route.request().url().replace(/\/api\/relay-info.*$/, '/gun').replace(/^http/, 'ws'))) {
+          route.abort('connectionrefused').catch(() => {});
+        } else {
+          route.continue().catch(() => {});
+        }
       });
     }
     this.page = await this.context.newPage();
     this.attach(this.page);
   }
 
-  /** A real network outage for this device's GUN socket (requires init(..., { routeWs: true })). */
-  async netDown() {
+  /** URLs of this device's open relay websockets (requires init(..., { routeWs: true })). */
+  openRelays() {
+    return this.net ? [...this.net.live].map((e) => e.url) : [];
+  }
+
+  /**
+   * A real network outage for this device's GUN sockets (requires init(..., { routeWs: true })):
+   * every relay, or only those whose websocket URL satisfies `match`.
+   */
+  async netDown(match = () => true) {
     if (!this.net) throw new Error('netDown() needs init({ routeWs: true })');
-    this.net.down = true;
-    for (const { ws, server } of [...this.net.live]) {
-      await ws.close({ code: 1001, reason: 'outage' }).catch(() => {});
-      await server.close({ code: 1001, reason: 'outage' }).catch(() => {});
+    this.net.down = match;
+    for (const entry of [...this.net.live]) {
+      if (!match(entry.url)) continue;
+      await entry.ws.close({ code: 1001, reason: 'outage' }).catch(() => {});
+      await entry.server.close({ code: 1001, reason: 'outage' }).catch(() => {});
+      this.net.live.delete(entry);
     }
-    this.net.live.clear();
   }
 
   netUp() {
-    if (this.net) this.net.down = false;
+    if (this.net) this.net.down = null;
   }
 
   attach(page) {
