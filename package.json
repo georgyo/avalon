@@ -4,20 +4,16 @@
   "workspaces": [
     "common",
     "client",
-    "server",
-    "firebase/functions"
+    "server"
   ],
-  "bin": {
-    "avalon-admin": "./server/admin.ts",
-    "avalon-server": "./server/server.ts"
-  },
   "scripts": {
-    "build:common": "yarn workspace @avalon/common build",
-    "build": "yarn build:common && yarn workspace @avalon/client build",
-    "bundle:server": "yarn build:common && esbuild server/server.ts --bundle --platform=node --target=node24 --outfile=dist-server/server.js --format=esm --define:__BUNDLED__=true --banner:js=\"import{createRequire}from'module';import{fileURLToPath as _f}from'url';import{dirname as _d}from'path';const require=createRequire(import.meta.url);const __filename=_f(import.meta.url);const __dirname=_d(__filename);\"",
+    "build": "yarn workspace @avalon/client build",
+    "bundle:server": "yarn workspace @avalon/server bundle",
     "start": "yarn workspace @avalon/server start",
-    "admin": "yarn workspace @avalon/server tsx admin.ts",
+    "lint": "eslint .",
+    "typecheck": "yarn workspace @avalon/common typecheck && yarn workspace @avalon/client typecheck && yarn workspace @avalon/server typecheck",
     "test": "node tests/e2e-flow.mjs",
+    "test:unit": "yarn workspace @avalon/common test && yarn workspace @avalon/client test:unit && yarn workspace @avalon/server test",
     "test:browser": "node tests/e2e-browser.mjs",
     "test:game": "node tests/e2e-full-game.mjs",
     "test:e2e": "node tests/e2e-stack.mjs"
@@ -38,15 +34,6 @@
     "vue-eslint-parser": "^10.4.1"
   },
   "resolutions": {
-    "basic-ftp": "^6.2.1",
-    "brace-expansion@^1.1.7": "^2.0.0",
-    "fast-xml-parser": "^5.11.2",
-    "flatted": "^3.4.4",
-    "hono": "^4.13.12",
-    "@hono/node-server": "^2.1.3",
-    "node-forge": "^1.4.0",
-    "picomatch@^2.0.4": "^2.3.2",
-    "picomatch@^2.2.1": "^2.3.2",
-    "yaml": "^2.9.1"
+    "flatted": "^3.4.4"
   }
 }

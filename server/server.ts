@@ -1,117 +1,88 @@
-import path from 'path';
-import { fileURLToPath } from 'url';
+// Avalon server: an untrusted GUN relay plus a static host for the built SPA
+// (docs/p2p-protocol.md §8). It has no game logic and holds no secret: every
+// protocol message is a signed, content-addressed envelope that clients verify
+// themselves.
+//
+//   GET  /               the SPA (server/dist, built by `yarn build`)
+//   GET  /api/relay-info { bootId, now, peers }: clock sync, relay-restart detection and the
+//                        public relays clients also dial (§7.1, §7.2, §7.4)
+//   GET  /healthz        liveness
+//   WS   /gun            the GUN relay (SEA + input filter)
+//
+// Environment: PORT (default 8001), HOST (bind address, default all),
+// GUN_DIR (radisk directory, default ./radata; must be writable and persistent),
+// STATIC_DIR (default <this file's directory>/dist), TRUST_PROXY=1 (behind a
+// reverse proxy: per-IP relay limits use the last X-Forwarded-For entry),
+// GUN_PUBLIC_PEERS (public relays advertised to clients, comma separated; unset
+// gives the default list of server/peers.ts, '' or 'none' disables them).
+
+import './gun-shim'; // must run before gun/sea in the esbuild bundle
+import Gun from 'gun';
+import 'gun/sea';
 import express from 'express';
-import type { Request, Response, NextFunction } from 'express';
-import { rateLimit } from 'express-rate-limit';
-import { getAuth } from 'firebase-admin/auth';
-import './firebaseKey'; // must be imported before avalon-server to initialize Firebase
-import * as avalon from './avalon-server';
-import { AvalonError } from './types';
+import { randomBytes } from 'node:crypto';
+import { createServer } from 'node:http';
+import type { AddressInfo } from 'node:net';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { parsePublicPeers } from './peers';
+import { createRelay, installRelayFilter, relaySelfTest, type GunFactory } from './relay';
+import { serveStatic } from './static';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const here = path.dirname(fileURLToPath(import.meta.url));
+const PORT = Number(process.env.PORT ?? 8001);
+const HOST = process.env.HOST || undefined;
+const GUN_DIR = process.env.GUN_DIR ?? './radata';
+const STATIC_DIR = process.env.STATIC_DIR ?? path.join(here, 'dist');
+const PUBLIC_PEERS = parsePublicPeers(process.env.GUN_PUBLIC_PEERS);
 
-interface AuthenticatedRequest extends Request {
-  uid?: string;
-  email?: string;
+/** Random per process start: a new value tells clients to republish (§7.4). */
+const bootId = randomBytes(16).toString('base64url');
+
+// Throwaway loopback relay built from this very code: SEA and the filter must
+// both work before the public relay accepts a single connection.
+try {
+  await relaySelfTest({ Gun: Gun as unknown as GunFactory });
+  console.log('Relay self-test passed');
+} catch (err) {
+  console.error('FATAL:', err instanceof Error ? err.message : err);
+  process.exit(1);
 }
 
 const app = express();
-// On App Engine, X-Forwarded-For arrives as "client-ip, load-balancer-ip", so two
-// hops must be trusted for req.ip to resolve to the client rather than the balancer.
-app.set('trust proxy', 2);
-app.use(express.json());
-app.use(express.static(path.join(__dirname, 'dist')));
+app.disable('x-powered-by');
 
-const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  // Generous per-IP budget: in-person groups share one NAT IP, and a single
-  // 10-player game can make ~200 action requests in a window.
-  limit: 1000,
-  standardHeaders: true,
-  legacyHeaders: false,
+app.get('/healthz', (_req, res) => {
+  res.set('Cache-Control', 'no-store').type('text/plain').send('ok');
 });
 
-const router = express.Router();
-router.use(apiLimiter);
-
-router.use(async function(req: AuthenticatedRequest, res: Response, next: NextFunction) {
-  const idToken = req.get('X-Avalon-Auth');
-  if (!idToken) {
-    res.status(401).json({ message: `No auth info in request: ${req.method} ${req.path}` });
-    return;
-  }
-
-  try {
-    const decodedToken = await getAuth().verifyIdToken(idToken);
-    req.uid = decodedToken.uid;
-    req.email = decodedToken.email;
-    // Redact secret mission/proposal votes so game outcomes can't be inferred from logs
-    console.log('Request', req.method, req.path, req.uid,
-      JSON.stringify(req.body, (key, value) => key === 'vote' ? '<redacted>' : value));
-    next();
-  } catch {
-    res.status(401).json({ message: 'Invalid or expired auth token' });
-  }
+app.get('/api/relay-info', (_req, res) => {
+  res.set('Cache-Control', 'no-store').json({ bootId, now: Date.now(), peers: PUBLIC_PEERS });
 });
 
-router.post('/login', (req: AuthenticatedRequest, res: Response) => {
-  // Use the verified email from the auth token, never the client-supplied body
-  // (anonymous users have no token email and are stored with email: null)
-  return avalon.loginUser({ email: req.email ?? null }, req.uid!).then(_r => res.end());
+app.use('/api', (_req, res) => {
+  res.status(404).json({ message: 'Not found' });
 });
 
-router.post('/createLobby', (req: AuthenticatedRequest, res: Response) => {
-  return avalon.createLobby(req.body, req.uid!).then(r => res.json(r));
+// Hashed /assets/* immutable for a year, index.html revalidated; text assets compressed (br/gzip).
+app.use(serveStatic(STATIC_DIR));
+
+const httpServer = createServer(app);
+const gun = createRelay(httpServer, GUN_DIR, Gun as unknown as GunFactory);
+installRelayFilter(gun, { trustProxy: process.env.TRUST_PROXY === '1' });
+
+httpServer.listen(PORT, HOST, () => {
+  const { port } = httpServer.address() as AddressInfo;
+  console.log(`Avalon relay listening on port ${port}`);
+  console.log(PUBLIC_PEERS.length ? `Public relays advertised to clients: ${PUBLIC_PEERS.join(', ')}` : 'No public relays advertised');
 });
 
-router.post('/joinLobby', (req: AuthenticatedRequest, res: Response) => {
-  return avalon.joinLobby(req.body, req.uid!).then(r => res.json(r));
-});
-
-router.post('/leaveLobby', (req: AuthenticatedRequest, res: Response) => {
-  return avalon.leaveLobby(req.body, req.uid!).then(() => res.end());
-});
-
-router.post('/kickPlayer', (req: AuthenticatedRequest, res: Response) => {
-  return avalon.kickPlayer(req.body, req.uid!).then(() => res.end());
-});
-
-router.post('/startGame', (req: AuthenticatedRequest, res: Response) => {
-  return avalon.startGame(req.body, req.uid!).then(() => res.end());
-});
-
-router.post('/cancelGame', (req: AuthenticatedRequest, res: Response) => {
-  return avalon.cancelGame(req.body, req.uid!).then(() => res.end());
-});
-
-router.post('/proposeTeam', (req: AuthenticatedRequest, res: Response) => {
-  return avalon.proposeTeam(req.body, req.uid!).then(() => res.end());
-});
-
-router.post('/voteTeam', (req: AuthenticatedRequest, res: Response) => {
-  return avalon.voteTeam(req.body, req.uid!).then(() => res.end());
-});
-
-router.post('/doMission', (req: AuthenticatedRequest, res: Response) => {
-  return avalon.doMission(req.body, req.uid!).then(() => res.end());
-});
-
-router.post('/assassinate', (req: AuthenticatedRequest, res: Response) => {
-  return avalon.assassinate(req.body, req.uid!).then(() => res.end());
-});
-
-router.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
-  if (err instanceof AvalonError) {
-    res.status(err.statusCode).json({ message: err.message });
-  } else {
-    console.error('Unhandled error:', err);
-    res.status(500).json({ message: 'Internal server error' });
-  }
-});
-
-app.use('/api', router);
-
-const PORT = process.env.PORT || 8001;
-app.listen(PORT, () => {
-  console.log(`Server listening on port ${PORT}...`);
-});
+function shutdown(signal: string): void {
+  console.log(`${signal}: shutting down`);
+  httpServer.close();
+  httpServer.closeAllConnections();
+  // Give radisk (250 ms write batching) time to flush.
+  setTimeout(() => process.exit(0), 500).unref();
+}
+process.once('SIGTERM', () => shutdown('SIGTERM'));
+process.once('SIGINT', () => shutdown('SIGINT'));

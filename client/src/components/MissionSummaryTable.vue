@@ -4,11 +4,11 @@
       <td class='player-name'>
         <span class='font-weight-medium'>{{ player }}</span>
       </td>
-      <td v-if='roles' class='role'>
-        {{ roles.find(r => r.name == player).role }}
+      <td v-if='roles' class='role' :class='{ "role-unknown": roleOf(player) == "UNKNOWN" }'>
+        {{ roleOf(player) == 'UNKNOWN' ? '?' : roleOf(player) }}
       </td>
       <template v-for='mission in missions'>
-        <td v-for='proposal in mission.proposals.filter(p => p.team.length > 0)'
+        <td v-for='proposal in mission.proposals.filter((p: { team: string[] }) => p.team.length > 0)'
          :key='player + "_proposal" + missions.indexOf(mission) + "_" + mission.proposals.indexOf(proposal)'>
         <font-awesome-layers>
           <font-awesome-icon v-if='proposal.proposer == player'
@@ -25,7 +25,10 @@
       </td>
       <td v-if='missionVotes' :key='player + "_mission" + missions.indexOf(mission)' class='mission-result'>
         <template v-if='mission.team.includes(player)'>
-          <v-icon size="small" v-if='missionVotes[missions.indexOf(mission)][player]'
+          <span v-if='missionVote(mission, player) === undefined && mission.state == "PENDING"' class='vote-unknown'
+            title='No vote (the game ended during this mission)'>–</span>
+          <span v-else-if='missionVote(mission, player) === undefined' class='vote-unknown' title='Vote unknown (not revealed)'>?</span>
+          <v-icon size="small" v-else-if='missionVote(mission, player)'
             color='green' icon="fa:fas fa-check-circle" />
           <v-icon size="small" v-else color="red" icon="fa:fas fa-times-circle" />
         </template>
@@ -41,8 +44,17 @@ import { defineComponent } from 'vue'
 export default defineComponent({
   name: 'MissionSummaryTable',
   props: [ 'players', 'missions', 'roles', 'missionVotes' ],
-  data() {
-      return {
+  methods: {
+      // a role is 'UNKNOWN' (or missing) when the player never revealed (§5.12)
+      roleOf(player: string): string {
+          const assignment = (this.roles as { name: string; role: string }[]).find(r => r.name == player);
+          return assignment ? assignment.role : 'UNKNOWN';
+      },
+      // undefined when the vote is unknown: votes[m][name] is absent then (§5.13)
+      missionVote(mission: object, player: string): boolean | undefined {
+          const votes = this.missionVotes as Record<string, boolean>[];
+          const idx = (this.missions as object[]).indexOf(mission);
+          return votes[idx] ? votes[idx][player] : undefined;
       }
   }
 })
@@ -100,6 +112,11 @@ export default defineComponent({
 
   td.mission-result {
     border-right: 2px solid;
+  }
+
+  td.role-unknown, .vote-unknown {
+    font-style: italic;
+    color: #616161;
   }
 
   .endGameTitle {

@@ -21,10 +21,15 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue'
+import { useToast } from 'vue-toastification'
 
 export default defineComponent({
   name: 'AssassinationAction',
   props: [ 'avalon', 'playerList' ],
+  setup() {
+    const toast = useToast()
+    return { toast }
+  },
   data() {
       return {
           isAssassinating: false
@@ -33,7 +38,8 @@ export default defineComponent({
   methods: {
       assassinate() {
         this.isAssassinating = true;
-        this.avalon.assassinate(this.playerList[0]).catch(() => {
+        this.avalon.assassinate(this.playerList[0]).catch((err: Error) => {
+          this.toast.error(err.message);
           this.isAssassinating = false;
         });
       }

@@ -15,36 +15,51 @@ bd sync               # Sync with git
 ## Repo-Specific Context
 
 ### Project Overview
-This is a multiplayer Avalon card game. The codebase is a Yarn 4 monorepo with four workspace packages: `common/`, `client/`, `server/`, and `firebase/functions/`.
+This is a multiplayer Avalon card game played **peer-to-peer**: browsers exchange signed,
+content-addressed messages through GUN and run the same deterministic state machine; the server
+is only an untrusted GUN relay plus a static host. The normative specification is
+`docs/p2p-protocol.md`. The codebase is a Yarn 4 monorepo with three workspace packages:
+`common/`, `client/` and `server/`.
 
 ### Key Files to Know
-- `common/avalonlib.js` - Core game logic (roles, rules, player counts)
-- `server/avalon-server.ts` - Server-side game state machine (largest file)
-- `server/server.ts` - Express app entry point and route definitions
-- `server/types.ts` - TypeScript interfaces for game state, requests, errors
-- `client/src/types.ts` - TypeScript type definitions for game state
-- `client/src/avalon-api-rest.ts` - Client API wrapper (all server calls go through here)
+- `docs/p2p-protocol.md` - The protocol specification (the contract between packages)
+- `common/avalonlib.ts` - Roles and rules tables
+- `common/crypto/` - ristretto255 primitives, sigma proofs, shuffle, OT
+- `common/protocol/` - Envelopes, rules, lobby reducer, game state machine, projections, `SeatDriver`
+- `common/testing/` - In-memory transport and seeded simulations
+- `client/src/p2p/` - P2P runtime (`P2PSession`, GUN transport, IndexedDB journal, worker pool)
+- `client/src/avalon.ts` - The `AvalonGame` API the Vue components use
 - `client/src/components/Game*.vue` - Game UI components
+- `server/server.ts` - Express static host, `/api/relay-info` (incl. the public relays clients also dial, `server/peers.ts`, env `GUN_PUBLIC_PEERS`), `/healthz`, GUN relay on `/gun`
+- `server/relay.ts` - Relay input filter and boot self-test
 
 ### Common Pitfalls
 - Use `yarn` commands, not `npm` - this is a Yarn 4 workspace
-- Client dev server proxies `/api` to `https://avalon.onl` - change `client/vite.config.js` for local dev
-- The `common/` package is TypeScript-only - run `yarn build:common` after editing (automatic in `yarn build`)
-- Firebase functions use their own `node_modules` - run `cd firebase/functions && npm install` separately
-- Server lint is `eslint *.js` (only top-level JS files), client lint covers `src/`
+- `@avalon/common` is source-only TypeScript (no build step); relative imports use `.ts` extensions
+- Protocol code (`common/crypto`, `common/protocol`) must be deterministic: no `Date`,
+  `Math.random`, `Intl` or floating point (enforced by ESLint; `driver.ts` gets `now()` injected)
+- `server/gun-shim.ts` must be imported before `gun/sea` in every server entry point
+- In node, `import 'gun'` makes every GUN instance a super peer that never dials out: node test
+  clients need `super: false` (and `radisk: false, rfs: false, multicast: false, stats: false`)
+- The relay must be a single instance with a persistent writable `GUN_DIR`
+- After changing dependencies, run `nix run .#update-deps` (regenerates `missing-hashes.json` and
+  the offline-cache hash in `default.nix`) and commit both.
 
 ### Verifying Changes
 ```bash
 # Lint (run from root)
-yarn workspace @avalon/client lint
+yarn lint
 yarn workspace @avalon/server lint
+
+# Unit tests (common, client P2P runtime, relay)
+yarn test:unit
 
 # Build
 yarn build            # Client build
-yarn bundle:server    # Server bundle
+yarn bundle:server    # Relay bundle
 
-# Test (requires a running server)
-yarn test             # E2E flow test
+# E2E (starts a throwaway relay + vite; PLAYERS=5,10 or 5..10 for the full-game sizes)
+PLAYERS=5,10 yarn test:e2e
 ```
 
 ## Landing the Plane (Session Completion)
@@ -156,6 +171,6 @@ bd automatically syncs via Dolt:
 - ❌ Do NOT use external issue trackers
 - ❌ Do NOT duplicate tracking systems
 
-For more details, see README.md and docs/QUICKSTART.md.
+For more details, see README.md and docs/p2p-protocol.md.
 
 <!-- END BEADS INTEGRATION -->

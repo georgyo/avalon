@@ -21,6 +21,17 @@ FROM scratch
 
 COPY --from=build --link /tmp/nix-run /nix
 
-WORKDIR /nix/app/libexec/avalon/server
-CMD ["/nix/app/bin/avalon-server"]
+# The installed package (server.js + the SPA in dist/). Read-only Nix store:
+# nothing is written here.
+WORKDIR /nix/app/lib/avalon
 
+# The relay's radisk store lives on a persistent, writable volume. The boot
+# self-test needs a scratch directory too (a scratch image has no /tmp).
+# Run exactly one instance per volume (docs/p2p-protocol.md §8).
+ENV GUN_DIR=/data/radata \
+    TMPDIR=/data/tmp \
+    PORT=8001
+VOLUME /data
+EXPOSE 8001
+
+CMD ["/nix/app/bin/avalon-server"]

@@ -33,13 +33,17 @@ jobs:
         with:
           server-url: https://niks3.fu.io
 
+      # `nix flake check` runs checks.unit (`yarn test:unit`: crypto, protocol,
+      # simulations, client P2P runtime and relay tests) and checks.lint (`yarn
+      # lint` and `yarn typecheck`: tsc for common and server, vue-tsc for the
+      # client including its .vue files); `nix build` lints and type-checks too,
+      # then runs the bundled relay's boot self-test as its install check.
       - run: nix flake check
       - run: nix build .#
 
-  # End-to-end tests. These run entirely against a throwaway local stack
-  # (Firebase auth + firestore emulators, the API server, and the vite dev
-  # server) -- see tests/e2e-stack.mjs. Nothing here touches the live
-  # avalon.onl API or the production Firebase project.
+  # End-to-end tests. These run entirely against a throwaway local stack (the
+  # GUN relay on a temporary GUN_DIR and the vite dev server proxying /gun and
+  # /api to it) -- see tests/e2e-stack.mjs. Nothing here touches avalon.onl.
   e2e:
     runs-on: ubuntu-latest
 
@@ -54,18 +58,13 @@ jobs:
         with:
           server-url: https://niks3.fu.io
 
-      # `nix run .#e2e` pins the whole toolchain (Node, the JDK the Firestore
-      # emulator needs, and the Playwright browsers) so there's no setup-node /
-      # setup-java / playwright-install dance. The Firestore emulator jar is
-      # still downloaded on first use; keep it between runs.
-      - name: Cache Firebase emulators
-        uses: actions/cache@v6
-        with:
-          path: ~/.cache/firebase/emulators
-          key: firebase-emulators-${{ runner.os }}
-
+      # `nix run .#e2e` pins the whole toolchain (Node and the Playwright
+      # browsers) so there's no setup-node / playwright-install dance.
+      # PLAYERS=5..10 runs the full game once per player count.
       - name: Run e2e suite
         run: nix run .#e2e
+        env:
+          PLAYERS: "5..10"
 
       - name: Upload screenshots on failure
         if: failure()

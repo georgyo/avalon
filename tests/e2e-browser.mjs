@@ -1,17 +1,12 @@
-import { firefox } from 'playwright';
-import { mkdirSync } from 'fs';
-import { dirname, join } from 'path';
-import { fileURLToPath } from 'url';
+// Smoke test: the app shell renders without critical JavaScript errors (no Firebase, no emulator).
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const screenshotDir = join(__dirname, 'screenshots');
-mkdirSync(screenshotDir, { recursive: true });
+import { BASE_URL, launchBrowser, isErrorIgnorable, screenshotDirFor } from './e2e-full-game.mjs';
+import { join } from 'path';
 
 async function testBrowser() {
-  const browser = await firefox.launch({ headless: true });
+  const browser = await launchBrowser(process.env.BROWSER || 'firefox');
   const page = await browser.newPage();
 
-  // Collect console errors
   const errors = [];
   page.on('console', msg => {
     if (msg.type() === 'error') {
@@ -21,27 +16,24 @@ async function testBrowser() {
   page.on('pageerror', err => {
     errors.push(err.message);
   });
+  // nothing may talk to Firebase / Google backends any more
+  const backendRequests = [];
+  page.on('request', req => {
+    if (/firebase|firestore|identitytoolkit|securetoken/i.test(req.url())) backendRequests.push(req.url());
+  });
 
   try {
-    await page.goto('http://localhost:5173/', { waitUntil: 'networkidle', timeout: 30000 });
+    await page.goto(BASE_URL, { waitUntil: 'networkidle', timeout: 30000 });
+    await page.waitForFunction(() => (document.body.textContent || '').includes('The Resistance Online'), null, { timeout: 30000 });
+    await page.waitForTimeout(2000);
 
-    // Wait a bit for any async errors
-    await page.waitForTimeout(3000);
+    await page.screenshot({ path: join(screenshotDirFor('browser'), 'browser-test.png'), fullPage: true });
 
-    // Take a screenshot for verification
-    await page.screenshot({ path: join(screenshotDir, 'browser-test.png'), fullPage: true });
-
-    // Check if the page loaded correctly
     const title = await page.title();
     console.log('Page title:', title);
-
-    // Check for the app div
     const appExists = await page.$('#app');
     console.log('App div exists:', !!appExists);
-
-    // Check for any visible content
     const bodyText = (await page.textContent('body')) ?? '';
-    console.log('Body has content:', bodyText.length > 0);
     console.log('Body snippet:', bodyText.substring(0, 200));
 
     if (!appExists || !bodyText.includes('The Resistance Online')) {
@@ -49,31 +41,26 @@ async function testBrowser() {
       process.exitCode = 1;
     }
 
-    // Filter out non-critical errors (like Firebase/network errors which are expected)
-    const criticalErrors = errors.filter(e =>
-      !e.includes('Firebase') &&
-      !e.includes('firestore') &&
-      !e.includes('api.mailcheck') &&
-      !e.includes('net::ERR') &&
-      !e.includes('favicon') &&
-      !e.includes('Failed to fetch') &&
-      !e.includes('404')
-    );
+    if (backendRequests.length > 0) {
+      console.error('FAIL: the page still talks to Firebase:', backendRequests.slice(0, 3).join(', '));
+      process.exitCode = 1;
+    }
 
+    const criticalErrors = errors.filter(e => !isErrorIgnorable(e) && !e.includes('404'));
     if (criticalErrors.length > 0) {
       console.log('CRITICAL ERRORS found:');
       criticalErrors.forEach(e => console.log('  -', e));
-      process.exit(1);
+      process.exitCode = 1;
     } else {
       console.log('No critical JavaScript errors detected');
       if (errors.length > 0) {
-        console.log('Non-critical errors (expected - network/Firebase):');
+        console.log('Non-critical errors (expected - network):');
         errors.forEach(e => console.log('  -', e.substring(0, 100)));
       }
     }
   } catch (err) {
     console.error('Test failed:', err.message);
-    process.exit(1);
+    process.exitCode = 1;
   } finally {
     await browser.close();
   }

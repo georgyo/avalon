@@ -1,20 +1,30 @@
 // Brings up a throwaway local Avalon stack and runs the e2e suite against it.
 //
-//   Firebase emulators (auth :9099, firestore :9080)
-//        ^                      ^
-//        |                      |
-//   API server :8001 <---- /api proxy ---- vite dev :5173 <---- Playwright
+//   relay :8001 (GUN relay + /api/relay-info, temporary GUN_DIR)
+//        ^            ^
+//        | /gun (ws)  | /api
+//        |            |
+//   vite dev :5173 <---- Playwright ----> public relay stand-in :8765 (/gun, ws)
 //
-// Nothing here talks to the live project: the client is built with
-// VITE_USE_EMULATORS so the Firebase JS SDK is redirected at the emulators,
-// and vite proxies /api at the locally running server instead of avalon.onl.
+// The own relay advertises the stand-in (GUN_PUBLIC_PEERS, §7.1), so the
+// browsers play over two relays, as they do in production with the community
+// relays. PUBLIC_RELAY=0 runs with the own relay only.
+//
+// There is no backend state besides the relay's temporary radisk directory
+// (deleted on exit) and no emulator: the game runs peer-to-peer between the
+// browser pages; the relay only stores and forwards signed messages.
 //
 // Usage:  node tests/e2e-stack.mjs [test-file ...]
 // Defaults to running every tests/e2e-*.mjs file except this one.
+//
+// PLAYERS=5..10 (or a list such as PLAYERS=5,7,10) runs e2e-full-game.mjs once
+// per player count, passing PLAYERS=<n> to each run. A single number is passed
+// through unchanged.
 
 import { spawn } from 'child_process';
 import { createConnection } from 'net';
-import { readdirSync } from 'fs';
+import { mkdtempSync, readdirSync, rmSync } from 'fs';
+import { tmpdir } from 'os';
 import { dirname, join, basename } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -22,17 +32,15 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const repoRoot = join(__dirname, '..');
 
-const PROJECT = 'georgyo-avalon';
-const AUTH_PORT = 9099;
-const FIRESTORE_PORT = 9080;
-const SERVER_PORT = 8001;
+const RELAY_PORT = 8001;
 const VITE_PORT = 5173;
+const RELAY_URL = `http://127.0.0.1:${RELAY_PORT}`;
+const PUBLIC_RELAY_PORT = 8765;
+const PUBLIC_RELAY = process.env.PUBLIC_RELAY !== '0';
+const PUBLIC_RELAY_URL = `http://127.0.0.1:${PUBLIC_RELAY_PORT}/gun`;
 
-const emulatorEnv = {
-  GCLOUD_PROJECT: PROJECT,
-  FIREBASE_AUTH_EMULATOR_HOST: `127.0.0.1:${AUTH_PORT}`,
-  FIRESTORE_EMULATOR_HOST: `127.0.0.1:${FIRESTORE_PORT}`,
-};
+const gunDir = mkdtempSync(join(tmpdir(), 'avalon-e2e-gun-'));
+const publicGunDir = mkdtempSync(join(tmpdir(), 'avalon-e2e-public-gun-'));
 
 const children = [];
 let shuttingDown = false;
@@ -42,6 +50,9 @@ function run(name, cmd, args, opts = {}) {
     cwd: opts.cwd || repoRoot,
     env: { ...process.env, ...(opts.env || {}) },
     stdio: ['ignore', 'pipe', 'pipe'],
+    // Own process group: `yarn` runs the relay and vite as grandchildren, which a plain kill of the
+    // yarn process would leave running (holding :8001 / :5173 for the next run).
+    detached: true,
   });
   children.push({ name, child });
 
@@ -77,8 +88,8 @@ function connects(host, port) {
 }
 
 // Vite binds "localhost", which on a dual-stack host resolves to ::1, while the
-// emulators and the API server bind 127.0.0.1. Probe both families and remember
-// which one answered so later HTTP requests use a reachable address.
+// relay binds 127.0.0.1. Probe both families and remember which one answered
+// so later HTTP requests use a reachable address.
 const reachableHost = {};
 async function portOpen(port) {
   for (const host of ['127.0.0.1', '::1']) {
@@ -103,6 +114,13 @@ async function waitForPort(port, label, timeoutMs = 180000) {
   }
   console.log('');
   throw new Error(`${label} did not come up on port ${port} within ${timeoutMs}ms`);
+}
+
+// The relay only listens after its boot self-test passed; confirm it answers.
+async function checkRelay() {
+  const res = await fetch(`${RELAY_URL}/api/relay-info`);
+  const info = res.ok ? await res.json() : null;
+  if (!info || typeof info.bootId !== 'string') throw new Error('relay did not answer /api/relay-info');
 }
 
 // Fetch the app shell and its entry module until both come back cleanly, so the
@@ -132,6 +150,14 @@ async function warmUp(timeoutMs = 60000) {
   throw new Error('vite dev server never served a usable entry module');
 }
 
+function killGroup(child, signal) {
+  try {
+    process.kill(-child.pid, signal);
+  } catch {
+    // already gone
+  }
+}
+
 async function shutdown(code) {
   if (shuttingDown) return;
   shuttingDown = true;
@@ -139,17 +165,44 @@ async function shutdown(code) {
   for (const { name, child } of children.reverse()) {
     if (child.exitCode === null) {
       console.log(`  stopping ${name}`);
-      child.kill('SIGTERM');
+      killGroup(child, 'SIGTERM');
     }
   }
   // Give them a moment to exit cleanly, then force.
   await new Promise((r) => setTimeout(r, 2000));
-  for (const { child } of children) if (child.exitCode === null) child.kill('SIGKILL');
+  for (const { child } of children) killGroup(child, 'SIGKILL');
+  rmSync(gunDir, { recursive: true, force: true });
+  rmSync(publicGunDir, { recursive: true, force: true });
   process.exit(code);
 }
 
 process.on('SIGINT', () => shutdown(130));
 process.on('SIGTERM', () => shutdown(143));
+
+// "5..10" -> [5..10]; "5,7,10" -> [5, 7, 10]; anything else -> null (passed through).
+function playerCounts(spec) {
+  if (!spec) return null;
+  const range = /^(\d+)\.\.(\d+)$/.exec(spec);
+  if (range) {
+    const [lo, hi] = [Number(range[1]), Number(range[2])];
+    return Array.from({ length: Math.max(0, hi - lo + 1) }, (_, i) => lo + i);
+  }
+  if (/^\d+(,\d+)+$/.test(spec)) return spec.split(',').map(Number);
+  return null;
+}
+
+function expandRuns(testFiles) {
+  const counts = playerCounts(process.env.PLAYERS);
+  const runs = [];
+  for (const file of testFiles) {
+    if (counts && basename(file) === 'e2e-full-game.mjs') {
+      for (const n of counts) runs.push({ file, label: `${basename(file)} PLAYERS=${n}`, env: { PLAYERS: String(n) } });
+    } else {
+      runs.push({ file, label: basename(file), env: {} });
+    }
+  }
+  return runs;
+}
 
 async function main() {
   const requested = process.argv.slice(2);
@@ -159,44 +212,37 @@ async function main() {
         .filter((f) => f.startsWith('e2e-') && f.endsWith('.mjs') && f !== basename(__filename))
         .sort()
         .map((f) => join(__dirname, f));
+  const runs = expandRuns(testFiles);
 
   console.log('==> tests to run:');
-  for (const f of testFiles) console.log(`      ${basename(f)}`);
+  for (const r of runs) console.log(`      ${r.label}`);
 
-  // 0. @avalon/common resolves to dist/, so it has to be compiled before the
-  //    server or the client can import it.
-  console.log('\n==> building @avalon/common');
-  await new Promise((resolve, reject) => {
-    const b = spawn('yarn', ['build:common'], { cwd: repoRoot, env: process.env, stdio: 'inherit' });
-    b.on('exit', (c) => (c === 0 ? resolve() : reject(new Error(`yarn build:common failed (exit ${c})`))));
+  // A leftover relay or vite from an earlier run would answer the readiness probes below.
+  const ports = [[RELAY_PORT, 'relay'], [VITE_PORT, 'vite']];
+  if (PUBLIC_RELAY) ports.push([PUBLIC_RELAY_PORT, 'public relay']);
+  for (const [port, label] of ports) {
+    if (await portOpen(port)) throw new Error(`port ${port} (${label}) is already in use; stop the process listening there`);
+  }
+
+  // 1. The relay, on a throwaway radisk directory. It only listens once its
+  //    boot self-test (SEA + filter) passed.
+  if (PUBLIC_RELAY) {
+    console.log(`\n==> starting the public relay stand-in on :${PUBLIC_RELAY_PORT}`);
+    run('public-relay', process.execPath, [join(__dirname, 'public-relay.mjs'), String(PUBLIC_RELAY_PORT), publicGunDir]);
+    await waitForPort(PUBLIC_RELAY_PORT, 'public relay');
+  }
+  console.log(`\n==> starting relay (GUN_DIR=${gunDir})`);
+  run('relay', 'yarn', ['workspace', '@avalon/server', 'start'], {
+    env: { PORT: String(RELAY_PORT), HOST: '127.0.0.1', GUN_DIR: gunDir, GUN_PUBLIC_PEERS: PUBLIC_RELAY ? PUBLIC_RELAY_URL : 'none' },
   });
+  await waitForPort(RELAY_PORT, 'relay');
+  await checkRelay();
 
-  // 1. Firebase emulators (auth + firestore). Needs a JDK on PATH.
-  console.log('\n==> starting Firebase emulators');
-  run('emulators', 'yarn', [
-    'workspace', 'functions', 'exec',
-    'firebase', 'emulators:start',
-    '--only', 'auth,firestore',
-    '--project', PROJECT,
-  ], { cwd: join(repoRoot, 'firebase') });
-
-  await waitForPort(FIRESTORE_PORT, 'firestore emulator');
-  await waitForPort(AUTH_PORT, 'auth emulator');
-
-  // 2. API server, pointed at the emulators (no service account needed).
-  console.log('\n==> starting API server');
-  run('server', 'yarn', ['workspace', '@avalon/server', 'start'], {
-    env: { ...emulatorEnv, PORT: String(SERVER_PORT) },
-  });
-  await waitForPort(SERVER_PORT, 'api server');
-
-  // 3. Vite dev server, proxying /api at the local server and building the
-  //    client with the emulator hooks switched on.
+  // 2. Vite dev server; client/vite.config.mjs proxies /gun (websocket) and
+  //    /api to the relay on :8001.
   const viteEnv = {
-    VITE_API_TARGET: `http://127.0.0.1:${SERVER_PORT}`,
-    VITE_USE_EMULATORS: 'true',
-    VITE_AUTH_EMULATOR_URL: `http://127.0.0.1:${AUTH_PORT}`,
-    VITE_FIRESTORE_EMULATOR_HOST: `127.0.0.1:${FIRESTORE_PORT}`,
+    VITE_RELAY_TARGET: RELAY_URL,
+    VITE_API_TARGET: RELAY_URL,
   };
 
   // Pre-bundle deps up front. Otherwise the dev server starts optimizing on the
@@ -219,29 +265,28 @@ async function main() {
   await waitForPort(VITE_PORT, 'vite dev server');
   await warmUp();
 
-  // 4. Run each test against the stack.
+  // 3. Run each test against the stack.
   let failed = 0;
-  for (const file of testFiles) {
-    const name = basename(file);
-    console.log(`\n${'='.repeat(60)}\n==> ${name}\n${'='.repeat(60)}`);
+  for (const { file, label, env } of runs) {
+    console.log(`\n${'='.repeat(60)}\n==> ${label}\n${'='.repeat(60)}`);
     const code = await new Promise((resolve) => {
       const t = spawn(process.execPath, [file], {
         cwd: repoRoot,
-        env: { ...process.env, ...emulatorEnv },
+        env: { ...process.env, RELAY_URL, PUBLIC_RELAY_URL: PUBLIC_RELAY ? PUBLIC_RELAY_URL : '', ...env },
         stdio: 'inherit',
       });
       t.on('exit', (c) => resolve(c ?? 1));
     });
     if (code === 0) {
-      console.log(`\n==> ${name}: PASS`);
+      console.log(`\n==> ${label}: PASS`);
     } else {
-      console.error(`\n==> ${name}: FAIL (exit ${code})`);
+      console.error(`\n==> ${label}: FAIL (exit ${code})`);
       failed++;
     }
   }
 
   console.log(`\n${'='.repeat(60)}`);
-  console.log(failed === 0 ? `All ${testFiles.length} e2e test(s) passed` : `${failed} of ${testFiles.length} e2e test(s) failed`);
+  console.log(failed === 0 ? `All ${runs.length} e2e run(s) passed` : `${failed} of ${runs.length} e2e run(s) failed`);
   await shutdown(failed === 0 ? 0 : 1);
 }
 

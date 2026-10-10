@@ -8,4 +8,11 @@ node_modules
 Dockerfile
 .dockerignore
 
-server/firebase-key.json
+# Build outputs and local data (the Nix build produces its own)
+result
+dist-server
+server/dist
+radata
+**/radata
+test-results
+tests/screenshots

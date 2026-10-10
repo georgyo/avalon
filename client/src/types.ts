@@ -1,71 +1,21 @@
 import type { Role } from '@avalon/common/avalonlib';
+import type { UserStats } from '@avalon/common/protocol';
 
 export type { Role };
 
-export interface Proposal {
-  proposer: string;
-  team: string[];
-  votes: string[];
-  state: 'PENDING' | 'APPROVED' | 'REJECTED';
-}
-
-export interface Mission {
-  state: 'PENDING' | 'SUCCESS' | 'FAIL';
-  team: string[];
-  teamSize: number;
-  failsRequired: number;
-  numFails: number;
-  proposals: Proposal[];
-  evilOnTeam?: string[];
-}
-
-export interface RoleAssignment {
-  name: string;
-  role: string;
-  assassin?: boolean;
-}
-
-export interface GameOutcome {
-  state: 'GOOD_WIN' | 'EVIL_WIN' | 'CANCELED';
-  message: string;
-  assassinated?: string;
-  roles: RoleAssignment[];
-  votes: Record<string, boolean>[];
-}
-
-export interface GameData {
-  state: 'INIT' | 'ACTIVE' | 'ENDED';
-  phase: string;
-  players: string[];
-  roles: string[];
-  missions: Mission[];
-  outcome?: GameOutcome;
-  options?: Record<string, unknown>;
-}
-
-export interface LobbyUser {
-  name: string;
-  uid?: string;
-}
-
-export interface LobbyData {
-  name: string;
-  admin: { uid: string; name: string };
-  users: Record<string, LobbyUser>;
-  game: GameData;
-}
+// The view types are defined once, in common/protocol/views.ts (docs/p2p-protocol.md §11.2), and
+// re-exported here for the components.
+export type {
+  Proposal, Mission, RoleAssignment, GameOutcome, GameData, LobbyUser, LobbyData, RoleDoc,
+  SetupProgress, UserStats, LobbyCandidate,
+} from '@avalon/common/protocol';
 
 export interface UserData {
-  uid: string;
-  name: string;
-  email?: string | null;
-  lobby?: string | null;
-  stats?: Record<string, unknown>;
-}
-
-export interface RoleDoc {
-  role: Role;
-  sees?: string[];
+  uid: string;                   // the device's SEA pub
+  name: string;                  // profile name ('' until a lobby was created or joined)
+  email: null;                   // email login was removed (anonymous device keys only)
+  lobby: string | null;          // lobby CODE
+  stats: UserStats | null;
 }
 
 export interface ProposerStats {

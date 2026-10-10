@@ -1,5 +1,5 @@
 {
-  description = "Avalon game server Flake";
+  description = "Avalon: peer-to-peer game client and GUN relay";
 
   inputs = {
 
@@ -27,12 +27,12 @@
           # `nix run .#update-deps` — run from the repo root after changing
           # dependencies (yarn.lock). Regenerates missing-hashes.json and
           # rewrites the fetchYarnBerryDeps hash in default.nix in place.
-          # `nix run .#e2e` — bring up the throwaway local stack (Firebase
-          # emulators + API server + vite dev) and run the Playwright e2e suite
-          # against it. Unlike `nix build`, this app runs with network access, so
-          # `yarn install` and the Firestore emulator JAR download work normally;
-          # what Nix pins is the toolchain: Node, the JDK the Firestore emulator
-          # needs, and the Playwright browsers.
+          # `nix run .#e2e` — bring up the throwaway local stack (the GUN relay
+          # on a temporary GUN_DIR + vite dev with the /gun and /api proxies)
+          # and run the Playwright e2e suite against it. Unlike `nix build`,
+          # this app runs with network access, so `yarn install` works
+          # normally; what Nix pins is the toolchain: Node and the Playwright
+          # browsers. No emulator and no JDK are involved.
           #
           # The Playwright browsers come from nixpkgs' playwright-driver (already
           # patched to find their libraries in the Nix store), so no `apt`/root
@@ -44,7 +44,6 @@
             runtimeInputs = [
               pkgs.nodejs_24
               pkgs.yarn-berry_4
-              pkgs.jdk_headless
             ];
             text = ''
               driverVer='${pkgs.playwright-driver.version}'
@@ -66,7 +65,8 @@
 
           update-deps = pkgs.writeShellApplication {
             name = "update-deps";
-            runtimeInputs = [ pkgs.yarn-berry_4.yarn-berry-fetcher ];
+            # nix-prefetch-git: yarn-berry-fetcher shells out to it for git dependencies (gun).
+            runtimeInputs = [ pkgs.yarn-berry_4.yarn-berry-fetcher pkgs.nix-prefetch-git ];
             text = ''
               if [ ! -f yarn.lock ] || [ ! -f default.nix ]; then
                 echo "error: run this from the repository root (need yarn.lock and default.nix)" >&2
@@ -92,21 +92,68 @@
         {
           packages = rec {
             default = pkgs.avalon-online;
+            # One instance per volume: the relay's radisk store is /data/radata
+            # (docs/p2p-protocol.md §8). The boot self-test uses /data/tmp.
             container = pkgs.dockerTools.buildLayeredImage {
               name = "avalon";
               tag = "${rev}";
               config = {
                 Cmd = [ "${pkgs.avalon-online}/bin/avalon-server" ];
+                WorkingDir = "${pkgs.avalon-online}/lib/avalon";
+                Env = [
+                  "GUN_DIR=/data/radata"
+                  "TMPDIR=/data/tmp"
+                  "PORT=8001"
+                ];
+                Volumes = { "/data" = { }; };
                 ExposePorts = { "8001/tcp" = { }; };
-
               };
             };
           };
 
+          # `nix flake check`: the unit tests (`yarn test:unit`: common crypto,
+          # protocol and simulations, client P2P runtime, relay) in the sandbox,
+          # from the same offline Yarn cache as the package. The relay tests
+          # only use loopback networking.
+          checks.unit = pkgs.avalon-online.overrideAttrs (_old: {
+            name = "avalon-unit-tests";
+            buildPhase = ''
+              runHook preBuild
+              export HOME="$TMPDIR"
+              yarn test:unit
+              runHook postBuild
+            '';
+            doInstallCheck = false;
+            installPhase = ''
+              runHook preInstall
+              touch $out
+              runHook postInstall
+            '';
+          });
+
+          # `nix flake check` also runs checks.lint: ESLint over the whole repository and the type
+          # checks of every workspace (common: tsc; client: vue-tsc, .vue SFCs included; server: tsc).
+          checks.lint = pkgs.avalon-online.overrideAttrs (_old: {
+            name = "avalon-lint";
+            buildPhase = ''
+              runHook preBuild
+              export HOME="$TMPDIR"
+              yarn lint
+              yarn typecheck
+              runHook postBuild
+            '';
+            doInstallCheck = false;
+            installPhase = ''
+              runHook preInstall
+              touch $out
+              runHook postInstall
+            '';
+          });
+
           apps.e2e = {
             type = "app";
             program = "${e2e}/bin/avalon-e2e";
-            meta.description = "Run the Playwright e2e suite against a throwaway local stack with a Nix-pinned toolchain";
+            meta.description = "Run the Playwright e2e suite against a throwaway local stack (relay + vite) with a Nix-pinned toolchain";
           };
 
           apps.update-deps = {

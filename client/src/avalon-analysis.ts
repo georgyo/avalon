@@ -1,13 +1,26 @@
-import { keyBy, invert, mapValues, tail, initial, difference, isEqual, sortBy } from 'lodash-es'
-import type { Role, GameData, Mission, RoleAssignment, ProposerStats } from './types';
+import { keyBy, invert, mapValues, difference, isEqual, sortBy } from 'lodash-es'
+import type { Role, GameData, GameOutcome, Mission, RoleAssignment, ProposerStats } from './types';
 
 interface Badge {
   title: string;
   body: string;
 }
 
+type BadgeFn = (this: GameAnalysis) => Badge | false | undefined;
+
+// Badges that only use public data (proposals, votes on proposals, mission results). The others need
+// every player's role, which can be 'UNKNOWN' when a player never revealed (docs/p2p-protocol.md §5.12).
+const ROLE_FREE_BADGES = new Set([
+  'cleanSweep', 'trustYou', 'trustingBunch', 'universalAcclaim', 'reversalOfFortune', 'sameTeam',
+  'playerDoesntGoOnMissions', 'unanimousRejection', 'hammerTime', 'loyalToAFault', 'contrarian',
+  'rejectionStreak', 'bigTeamBetrayal', 'proposerCurse', 'lastStand', 'allAboard', 'flipFlopper',
+]);
+
 export default class GameAnalysis {
   game: GameData;
+  outcome: GameOutcome;
+  /** Every player's role is known (no 'UNKNOWN' entries, every player listed). */
+  rolesComplete: boolean;
   rolesByName: Record<string, RoleAssignment>;
   namesByRole: Record<string, string>;
   evilPlayers: string[];
@@ -15,11 +28,16 @@ export default class GameAnalysis {
   missions: (Mission & { evilOnTeam: string[] })[];
 
   constructor(game: GameData, roleMap: Record<string, Role>) {
+    if (!game.outcome) throw new Error('GameAnalysis needs an ended game');
     this.game = game;
-    this.rolesByName = keyBy(game.outcome!.roles, 'name');
+    this.outcome = game.outcome;
+    // unknown roles (never revealed) are left out: they are neither good nor evil here
+    const knownRoles = game.outcome.roles.filter(r => roleMap[r.role] != null);
+    this.rolesComplete = game.players.every(p => knownRoles.some(r => r.name == p));
+    this.rolesByName = keyBy(knownRoles, 'name');
     this.namesByRole = invert(mapValues(this.rolesByName, r => r.role)); // this is lossy for non-unique roles!
-    this.evilPlayers = game.outcome!.roles.filter(r => roleMap[r.role].team == 'evil').map(r => r.name);
-    this.goodPlayers = game.outcome!.roles.filter(r => roleMap[r.role].team == 'good').map(r => r.name);
+    this.evilPlayers = knownRoles.filter(r => roleMap[r.role].team == 'evil').map(r => r.name);
+    this.goodPlayers = knownRoles.filter(r => roleMap[r.role].team == 'good').map(r => r.name);
     this.missions = game.missions.map(m => {
       return { ...m, evilOnTeam: m.team.filter((n: string) => this.evilPlayers.includes(n)) };
     });
@@ -70,7 +88,7 @@ export default class GameAnalysis {
     return false;
   }
 
-  badges: Record<string, () => Badge | false | undefined> = {
+  badges: Record<string, BadgeFn> = {
     merlinSendsEvilTeam() {
       if (!this.namesByRole['MERLIN']) return false;
 
@@ -148,7 +166,7 @@ export default class GameAnalysis {
       }
     },
     noEvilPlayersOnMissions() {
-      if (tail(this.missions).every(m => m.evilOnTeam.length == 0)) {
+      if (this.missions.slice(1).every(m => m.evilOnTeam.length == 0)) {
         return {
           title: 'Lockdown',
           body: 'No evil players went on any missions' +
@@ -165,7 +183,7 @@ export default class GameAnalysis {
             body: 'Evil team dominated the game'
           }
         } else {
-          if (this.game.outcome.state == 'EVIL_WIN') {
+          if (this.outcome.state == 'EVIL_WIN') {
             return {
               title: "Look, ma, no hands",
               body: 'Evil team won despite not failing any missions'
@@ -201,7 +219,7 @@ export default class GameAnalysis {
       }
     },
     playingTheLongCon() {
-      for(const [missionIdx, mission] of tail(this.missions).entries()) {
+      for(const [missionIdx, mission] of this.missions.slice(1).entries()) {
         if ((mission.evilOnTeam.length == 1) &&
             (mission.failsRequired < 2) &&
             (mission.numFails == 0)) {
@@ -214,7 +232,7 @@ export default class GameAnalysis {
     },
     universalAcclaim() {
       for(const [missionIdx, mission] of this.missions.entries()) {
-        for(const proposal of initial(mission.proposals)) {
+        for(const proposal of mission.proposals.slice(0, -1)) {
           if (proposal.votes.length == this.game.players.length) {
             return {
               title: 'Universal acclaim',
@@ -244,14 +262,14 @@ export default class GameAnalysis {
       }
     },
     assassinationAnalysis() {
-      if (this.game.outcome.assassinated) {
-        if (this.evilPlayers.includes(this.game.outcome.assassinated)) {
+      if (this.outcome.assassinated) {
+        if (this.evilPlayers.includes(this.outcome.assassinated)) {
           return {
             title: 'Stabbed in the back',
             body: 'Evil player got assassinated'
           }
         }
-        if (this.rolesByName[this.game.outcome.assassinated].role == 'PERCIVAL') {
+        if (this.rolesByName[this.outcome.assassinated]?.role == 'PERCIVAL') {
           return {
             title: 'Taking a bullet for you',
             body: 'Percival got assassinated'
@@ -266,7 +284,7 @@ export default class GameAnalysis {
           (this.missions[2].state == this.missions[3].state) &&
           (this.missions[3].state == this.missions[4].state)) {
         if ((this.missions[0].state == 'FAIL') &&
-            (this.game.outcome.state == 'GOOD_WIN')) {
+            (this.outcome.state == 'GOOD_WIN')) {
           return {
             title: 'Reversal of fortune',
             body: 'Good won the game despite losing first two missions'
@@ -304,7 +322,7 @@ export default class GameAnalysis {
       let players = this.game.players.slice(0);
       const completedMissions = this.missions.filter(m => m.state != 'PENDING');
       if (completedMissions.length == 0) return false;
-      for(const mission of initial(completedMissions)) {
+      for(const mission of completedMissions.slice(0, -1)) {
         players = difference(players, mission.team);
         if (players.length == 0) break;
       }
@@ -324,7 +342,7 @@ export default class GameAnalysis {
       }
     },
     almostLost() {
-      if (this.game.outcome.state != 'GOOD_WIN') return false;
+      if (this.outcome.state != 'GOOD_WIN') return false;
       let numFails = 0;
       for(const [missionIdx, mission] of this.missions.entries()) {
         if ((numFails == 2) && (mission.proposals.length < 5)) {
@@ -602,9 +620,9 @@ export default class GameAnalysis {
       }
     },
     perfectAssassin() {
-      if (this.game.outcome.state == 'EVIL_WIN' &&
-          this.game.outcome.assassinated &&
-          this.rolesByName[this.game.outcome.assassinated]?.role == 'MERLIN') {
+      if (this.outcome.state == 'EVIL_WIN' &&
+          this.outcome.assassinated &&
+          this.rolesByName[this.outcome.assassinated]?.role == 'MERLIN') {
         return {
           title: 'Bullseye',
           body: 'The assassin correctly identified and killed Merlin'
@@ -661,8 +679,9 @@ export default class GameAnalysis {
   }
 
   getBadges(): Badge[] {
-    return Object.values(this.badges).map(func => {
-      return func.bind(this)();
-    }).filter((badge): badge is Badge => !!badge);
+    return Object.entries(this.badges)
+      .filter(([name]) => this.rolesComplete || ROLE_FREE_BADGES.has(name))
+      .map(([, func]) => func.call(this))
+      .filter((badge): badge is Badge => !!badge);
   }
 }

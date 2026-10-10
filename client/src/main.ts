@@ -1,13 +1,17 @@
 import { createApp } from 'vue'
 import { createVuetify } from 'vuetify'
-// @ts-expect-error: Vuetify styles have no type declarations for side-effect import
 import 'vuetify/styles'
 import { fa } from 'vuetify/iconsets/fa-svg'
-import { aliases, mdi } from 'vuetify/iconsets/mdi'
+import { aliases, mdi } from 'vuetify/iconsets/mdi-svg'
 import App from './App.vue'
 import Toast from 'vue-toastification'
 import 'vue-toastification/dist/index.css'
-import '@mdi/font/css/materialdesignicons.css'
+// Self-hosted Roboto (the weights Vuetify uses): no third-party font request (§9).
+import '@fontsource/roboto/300.css'
+import '@fontsource/roboto/400.css'
+import '@fontsource/roboto/500.css'
+import '@fontsource/roboto/700.css'
+import { appIcons } from './icons'
 import { library } from '@fortawesome/fontawesome-svg-core'
 import { FontAwesomeIcon, FontAwesomeLayers, FontAwesomeLayersText } from '@fortawesome/vue-fontawesome'
 
@@ -28,7 +32,8 @@ library.add(faCrown, faSolidCircle, faCircle,
 const vuetify = createVuetify({
   icons: {
     defaultSet: 'mdi',
-    aliases,
+    // Vuetify's own aliases plus the app's icons ($star, $play, ...), all SVG paths from @mdi/js.
+    aliases: { ...aliases, ...appIcons },
     sets: {
       mdi,
       fa,

@@ -2,15 +2,6 @@
   <v-card class="welcome bg-cyan-lighten-5">
     <div class="d-flex flex-column align-center">
       <v-card-title class="welcome-title">
-
-       <v-alert
-        v-if="avalon.confirmingEmailError"
-        type="error"
-       >
-        {{ avalon.confirmingEmailError }} Please try logging in again.
-        </v-alert>
-
-
         <div class='welcome'>
             <span class="welcome-heading">Avalon: The Resistance <span class="font-weight-thin">Online</span></span>
             <p class='mt-4 pt-2'>
@@ -21,47 +12,32 @@
         </div>
       </v-card-title>
         <v-tabs v-model="tab" center-active grow>
-          <v-tab value="email" data-testid="email-tab">Email</v-tab>
-          <v-tab value="anonymous" data-testid="anonymous-tab">Anonymous</v-tab>
+          <v-tab value="anonymous" data-testid="anonymous-tab">Choose a name</v-tab>
         </v-tabs>
         <v-window v-model="tab">
-          <v-window-item value="email">
-          <div class="pa-4 login-form">
-          <template v-if='!emailSubmitted'>
-            <v-text-field
-             label="Email Address"
-             ref='userEmailField'
-             v-model='emailAddr'
-             type="email"
-             autocomplete="email"
-             @keyup='clearErrorMessage()'
-             @keyup.enter='submitEmailAddress()'
-             :error-messages='errorMessage'
-             autofocus />
-            <v-btn
-             @click='submitEmailAddress()' :loading="isSubmittingEmailAddr">
-              Login
-            </v-btn>
-          </template>
-          <template v-else>
-            <v-card class="bg-blue-grey-lighten-4">
-              <v-card-text class="text-center">
-                  <p>Check your email for the verification link</p>
-              </v-card-text>
-            </v-card>
-            <v-btn class='mt-4'
-             @click='resetForm()'>
-              Try Again
-            </v-btn>
-          </template>
-          </div>
-        </v-window-item>
       <v-window-item value="anonymous">
-        <div class="pa-4">
-        <v-btn
+        <div class="pa-4 login-form">
+          <v-text-field
+            label="Your Name"
+            data-testid="login-name"
+            :model-value="name"
+            @update:model-value="val => name = val.toUpperCase()"
+            :rules="nameRules"
+            :error-messages="errorMessage"
+            @keyup.enter="signInAnonymously()"
+            autofocus
+            class="login-name" />
+          <v-btn
+             data-testid="login-button"
+             :disabled="!nameValid"
+             :loading="signingIn"
              @click='signInAnonymously()'>
               Login
           </v-btn>
+          <p class="text-caption mt-4 login-note">
+            No account needed: this browser creates its own anonymous key. Your games and stats stay on
+            this device; clearing the site data starts you over.
+          </p>
         </div>
       </v-window-item>
         </v-window>
@@ -80,49 +56,47 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue'
+import { ROLES } from '@avalon/common/avalonlib'
 
 export default defineComponent({
   name: 'UserLogin',
   data() {
     return {
-      tab: 'email',
-      emailAddr: '',
+      tab: 'anonymous',
+      name: (this.avalon && this.avalon.preferredName) || '',
       errorMessage: '',
-      isSubmittingEmailAddr: false,
-      emailSubmitted: false
+      signingIn: false,
     };
   },
   props: {
-    avalon: Object
+    avalon: { type: Object, required: true }
+  },
+  computed: {
+    nameRules() {
+      const roleNames = ROLES.map(r => r.name);
+      return [
+        (v: string) => !!v || 'Name is required',
+        (v: string) => /^[A-Z]+$/.test(v) || 'Name must contain only letters (A-Z)',
+        (v: string) => v.length <= 20 || 'Name must be 20 characters or fewer',
+        (v: string) => !roleNames.includes(v) || 'Name cannot be a role name',
+      ];
+    },
+    nameValid(): boolean {
+      return this.nameRules.every(rule => rule(this.name) === true);
+    }
   },
   mounted() {
     document.title = 'Avalon (Not Logged In)'
   },
   methods: {
-    clearErrorMessage() {
-        this.errorMessage = '';
-    },
-    submitEmailAddress() {
-        this.isSubmittingEmailAddr = true;
-        this.clearErrorMessage();
-        this.avalon!.confirmingEmailError = '';
-        this.avalon!.submitEmailAddr(this.emailAddr).then(() => {
-            this.emailSubmitted = true;
-        }).catch((err: Error) => {
-            this.errorMessage = err.message;
-        }).finally(() => {
-            this.isSubmittingEmailAddr = false;
-        });
-    },
     signInAnonymously() {
-      this.clearErrorMessage();
-      this.avalon!.signInAnonymously()
-      .then()
-      .catch((err: Error) => this.errorMessage = err.message)
+      if (!this.nameValid || this.signingIn) return;
+      this.errorMessage = '';
+      this.signingIn = true;
+      this.avalon.signInAnonymously(this.name)
+        .catch((err: Error) => { this.errorMessage = err.message; })
+        .finally(() => { this.signingIn = false; });
     },
-    resetForm() {
-        this.emailSubmitted = false;
-    }
   }
 })
 </script>
@@ -152,6 +126,14 @@ export default defineComponent({
   width: 100%;
   max-width: 450px;
   min-width: 280px;
+}
+
+.login-name :deep(input) {
+  text-transform: uppercase;
+}
+
+.login-note {
+  max-width: 400px;
 }
 
 @media (min-width: 600px) {

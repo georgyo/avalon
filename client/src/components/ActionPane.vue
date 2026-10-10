@@ -1,5 +1,6 @@
 <template>
     <div>
+    <StallNotice :avalon='avalon'></StallNotice>
     <TeamProposalAction v-if='teamProposal' :avalon='avalon' :playerList='selectedPlayers'></TeamProposalAction>
     <TeamVoteAction v-if='teamVote' :avalon='avalon'></TeamVoteAction>
     <MissionAction v-if='missionAction' :avalon='avalon'></MissionAction>
@@ -13,6 +14,7 @@ import TeamProposalAction from './TeamProposalAction.vue'
 import TeamVoteAction from './TeamVoteAction.vue'
 import MissionAction from './MissionAction.vue'
 import AssassinationAction from './AssassinationAction.vue'
+import StallNotice from './StallNotice.vue'
 
 export default defineComponent({
   name: 'ActionPane',
@@ -20,7 +22,8 @@ export default defineComponent({
     TeamProposalAction,
     TeamVoteAction,
     MissionAction,
-    AssassinationAction
+    AssassinationAction,
+    StallNotice
   },
   props: [ 'avalon', 'selectedPlayers' ],
   computed: {

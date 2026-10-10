@@ -1,186 +1,90 @@
-import { firefox } from 'playwright';
-import { mkdirSync } from 'fs';
-import { dirname, join } from 'path';
-import { fileURLToPath } from 'url';
+// Single-device flow against the peer-to-peer stack: load, anonymous login ("choose a name"), create a
+// lobby (4-letter code and fingerprint, docs/p2p-protocol.md §4.1), a join attempt for a code nobody
+// uses, leave the lobby, log out (forget the device key).
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const screenshotDir = join(__dirname, 'screenshots');
-mkdirSync(screenshotDir, { recursive: true });
+import {
+  BASE_URL, PlayerContext, launchBrowser, screenshotDirFor, waitForText, createLobby, reportErrors,
+} from './e2e-full-game.mjs';
 
 async function testFlow() {
-  const browser = await firefox.launch({
-    headless: true,
-  });
-
-  const context = await browser.newContext();
-  const page = await context.newPage();
-  let stepNum = 0;
-
-  const jsErrors = [];
-  page.on('pageerror', err => {
-    jsErrors.push(err.message);
-    console.log('  [JS ERROR]', err.message);
-  });
-
-  // Log console messages for debugging
-  page.on('console', msg => {
-    if (msg.type() === 'error') {
-      console.log('  [console.error]', msg.text().substring(0, 200));
-    }
-  });
-
-  async function screenshot(name) {
-    stepNum++;
-    const path = join(screenshotDir, `flow-${stepNum}-${name}.png`);
-    await page.screenshot({ path, fullPage: true });
-    console.log(`  [screenshot] ${path}`);
-    return path;
-  }
-
-  // Abort Firestore requests to force offline mode (the real-time channel
-  // protocol can't be used in a headless test environment)
-  let firestoreRequestCount = 0;
-  await page.route('**/firestore.googleapis.com/**', async (route) => {
-    firestoreRequestCount++;
-    if (firestoreRequestCount <= 3) {
-      console.log('  [abort] firestore request #' + firestoreRequestCount);
-    }
-    await route.abort('connectionfailed');
-  });
+  const browser = await launchBrowser(process.env.BROWSER || 'firefox');
+  const player = new PlayerContext('TESTPLAYER', browser, screenshotDirFor('flow'));
+  await player.init();
+  const page = player.page;
 
   try {
-    // ========== Step 1: Load app ==========
     console.log('\n=== Step 1: Load the app ===');
-    await page.goto('http://localhost:5173/', { waitUntil: 'domcontentloaded', timeout: 30000 });
-    await page.waitForTimeout(3000);
-    await screenshot('load');
-
-    const loadText = await page.textContent('body');
-    if (!loadText.includes('The Resistance Online')) {
-      throw new Error('App did not load correctly');
+    await page.goto(BASE_URL, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await waitForText(page, 'The Resistance Online', 30000);
+    await player.screenshot('load');
+    if ((await page.locator('[data-testid="email-tab"]').count()) > 0) {
+      throw new Error('the email login tab must be gone (anonymous device keys only)');
     }
-    console.log('  PASS: App loaded');
+    console.log('  PASS: App loaded, no email login');
 
-    // ========== Step 2: Switch to Anonymous tab ==========
-    console.log('\n=== Step 2: Select Anonymous login tab ===');
+    console.log('\n=== Step 2: Choose a name and log in ===');
     await page.click('[data-testid="anonymous-tab"]');
-    await page.waitForTimeout(500);
-    await screenshot('anon-tab');
-    console.log('  PASS: Anonymous tab selected');
+    const loginBtn = page.locator('[data-testid="login-button"]');
+    if (!(await loginBtn.isDisabled())) throw new Error('Login must need a name');
+    await page.locator('[data-testid="login-name"] input').fill('MERLIN');
+    await page.waitForTimeout(200);
+    if (!(await loginBtn.isDisabled())) throw new Error('a role name must not be accepted as a name');
+    await page.locator('[data-testid="login-name"] input').fill('testplayer');
+    await loginBtn.click();
+    await waitForText(page, ['Create Lobby'], 20000);
+    const prefilled = await page.locator('input').first().inputValue();
+    if (prefilled !== 'TESTPLAYER') throw new Error(`lobby screen name should be prefilled, got "${prefilled}"`);
+    await player.screenshot('logged-in');
+    console.log('  PASS: Logged in with an anonymous device key');
 
-    // ========== Step 3: Click Login (anonymous) ==========
-    console.log('\n=== Step 3: Anonymous Login ===');
-    const loginBtns = page.locator('button:has-text("Login")');
-    await loginBtns.last().click();
-    console.log('  Waiting for auth...');
+    console.log('\n=== Step 3: Join a lobby that does not exist ===');
+    await page.click('button:has-text("Join Lobby")');
+    await page.locator('[data-testid="lobby-code"] input').fill('XQXQ');
+    await page.click('button:has-text("Join Lobby")');
+    await waitForText(page, 'Lobby XQXQ not found', 20000);
+    await page.click('button:has-text("Cancel")');
+    await waitForText(page, 'Create Lobby', 5000);
+    console.log('  PASS: unknown code reported');
 
-    await page.waitForFunction(() => {
-      const body = document.body.textContent || '';
-      return body.includes('Your Name') || body.includes('Create Lobby') || body.includes('Logout');
-    }, { timeout: 20000 });
+    console.log('\n=== Step 4: Create Lobby ===');
+    const code = await createLobby(player);
+    await page.waitForSelector('[data-testid="lobby-fingerprint"]', { timeout: 15000 });
+    const fingerprint = (await page.locator('[data-testid="lobby-fingerprint"]').textContent()).trim();
+    // 32 bits of the lobbyId, XXXX-XXXX (§4.1)
+    if (!/^· [0-9A-F]{4}-[0-9A-F]{4}$/.test(fingerprint)) throw new Error(`bad lobby fingerprint "${fingerprint}"`);
+    await waitForText(page, 'Need at least 5 players', 5000);
+    await player.screenshot('create-lobby');
+    console.log(`  PASS: Lobby ${code} ${fingerprint} created`);
 
-    await page.waitForTimeout(2000);
-    await screenshot('logged-in');
+    console.log('\n=== Step 5: Leave Lobby (Quit) ===');
+    await page.click('button:has-text("Quit")');
+    await page.locator('button:has-text("Leave Lobby")').click();
+    await waitForText(page, ['Your Name', 'Create Lobby'], 15000);
+    await player.screenshot('after-leave');
+    console.log('  PASS: Left lobby, back to main screen');
 
-    const bodyAfterLogin = await page.textContent('body');
-    if (!bodyAfterLogin.includes('Your Name') && !bodyAfterLogin.includes('Create Lobby')) {
-      throw new Error('Login failed - not on main screen');
-    }
-    console.log('  PASS: Logged in anonymously');
+    console.log('\n=== Step 6: Reload keeps the device identity ===');
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await waitForText(page, 'Create Lobby', 30000);
+    console.log('  PASS: still logged in after reload');
 
-    // ========== Step 4: Enter name ==========
-    console.log('\n=== Step 4: Enter name ===');
-    const nameInput = page.locator('input').first();
-    await nameInput.clear();
-    await nameInput.type('TESTPLAYER', { delay: 50 });
-    await page.waitForTimeout(500);
-    await screenshot('name-entered');
-    console.log('  PASS: Name set to TESTPLAYER');
+    console.log('\n=== Step 7: Logout ===');
+    await page.click('button:has-text("Logout")');
+    await waitForText(page, 'The Resistance Online', 15000);
+    await page.locator('[data-testid="login-button"]').waitFor({ state: 'visible', timeout: 15000 });
+    console.log('  PASS: logged out');
 
-    // ========== Step 5: Create Lobby ==========
-    console.log('\n=== Step 5: Create Lobby ===');
-    await page.click('button:has-text("Create Lobby")');
-    console.log('  Waiting for lobby...');
-
-    // Wait for either lobby view or error
-    try {
-      await page.waitForFunction(() => {
-        const body = document.body.textContent || '';
-        return body.includes('Quit') || body.includes('Players') || body.includes('Error') || body.includes('error');
-      }, { timeout: 15000 });
-    } catch {
-      // timeout
-    }
-
-    await page.waitForTimeout(2000);
-    await screenshot('create-lobby');
-    const lobbyText = await page.textContent('body');
-    console.log('  Body:', lobbyText.substring(0, 400));
-
-    if (lobbyText.includes('Quit')) {
-      console.log('  PASS: Lobby created!');
-
-      // ========== Step 6: Leave Lobby ==========
-      console.log('\n=== Step 6: Leave Lobby (Quit) ===');
-      await page.click('button:has-text("Quit")');
-      await page.waitForTimeout(1000);
-      await screenshot('quit-dialog');
-
-      // Check for confirmation dialog
-      const leaveBtn = page.locator('button:has-text("Leave Lobby")');
-      if (await leaveBtn.count() > 0) {
-        console.log('  Confirming leave...');
-        await leaveBtn.click();
-      } else {
-        // Maybe "Quit" directly leaves
-        console.log('  No confirmation dialog, checking state...');
-      }
-
-      await page.waitForTimeout(3000);
-      await screenshot('after-leave');
-      const afterText = await page.textContent('body');
-
-      if (afterText.includes('Your Name') || afterText.includes('Create Lobby')) {
-        console.log('  PASS: Left lobby, back to main screen');
-      } else {
-        console.log('  Post-leave state:', afterText.substring(0, 200));
-      }
-    } else {
-      // Lobby creation failed - check if it's a server error vs code error
-      console.log('  Lobby not created. Checking error...');
-      if (lobbyText.includes('AxiosError') || lobbyText.includes('Request failed')) {
-        console.log('  NOTE: API error from production server (not a client code issue)');
-      }
-    }
-
-    // ========== Final Results ==========
     console.log('\n=== Final Results ===');
-    if (jsErrors.length > 0) {
-      console.log('JavaScript runtime errors:');
-      jsErrors.forEach(e => console.log('  -', e));
-      const codeErrors = jsErrors.filter(e =>
-        !e.includes('Firebase') &&
-        !e.includes('firestore') &&
-        !e.includes('Firestore') &&
-        !e.includes('net::ERR') &&
-        !e.includes('Failed to fetch') &&
-        !e.includes('PERMISSION_DENIED') &&
-        !e.includes('Missing or insufficient permissions') &&
-        !e.includes('api.mailcheck') &&
-        !e.includes('client is offline') &&
-        !e.includes('AxiosError')
-      );
-      if (codeErrors.length > 0) {
-        console.log('FAIL: Code errors detected');
-        process.exit(1);
-      }
+    if (reportErrors([player])) {
+      console.log('FAIL: Code errors detected');
+      process.exitCode = 1;
+    } else {
+      console.log('PASS: All steps completed');
     }
-    console.log('PASS: All steps completed');
-
   } catch (err) {
-    await screenshot('error');
+    await player.screenshot('error').catch(() => {});
     console.error('\nFAIL:', err.message);
-    process.exit(1);
+    process.exitCode = 1;
   } finally {
     await browser.close();
   }

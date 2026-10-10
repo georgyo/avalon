@@ -45,16 +45,16 @@ export default defineComponent({
         // no loading state, we want to hide the results as fast as possible
         this.needsToVote = false;
         this.errorMessage = '';
-        this.avalon.doMission(vote).catch(() => {
+        this.avalon.doMission(vote).catch((err: Error) => {
           this.needsToVote = true;
-          this.errorMessage = 'Vote failed, please try again';
+          this.errorMessage = 'Vote failed, please try again (' + err.message + ')';
         });
       }
   },
   computed: {
     stillWaitingFor(): string[] {
-      return difference(this.avalon.game.currentProposal.team,
-                          this.avalon.game.currentMission.team).filter(
+      return (difference(this.avalon.game.currentProposal.team,
+                          this.avalon.game.currentMission.team) as string[]).filter(
                             (n: string) => n != this.avalon.user.name);
     },
     waitingForText(): string {

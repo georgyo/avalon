@@ -5,109 +5,85 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ### Development Commands
-- `yarn dev` - Start client development server (from client/ directory)
-- `yarn workspace @avalon/server serve` - Start server with nodemon (from root)
-- `yarn start` - Start production server (from root)
-- `yarn build:common` - Compile common/ TypeScript to dist/ (runs automatically in build/bundle)
-- `yarn build` - Build common + client for production (from root)
-- `yarn bundle:server` - Build common + bundle server to single file with esbuild (from root)
+- `yarn start` - Start the relay (GUN relay + `/api/relay-info` + static host) with tsx on :8001
+- `yarn workspace @avalon/server serve` - Same, with auto-reload
+- `yarn workspace @avalon/client dev` - Start the Vite dev server (proxies `/gun` and `/api` to 127.0.0.1:8001)
+- `yarn build` - Build the client for production (output: `server/dist/`)
+- `yarn bundle:server` - Bundle the relay into one ESM file with esbuild (`dist-server/server.js`)
+- There is no `build:common` step: `@avalon/common` is consumed as TypeScript source
 
 ### Linting
+- `yarn lint` - ESLint over the whole repo (flat config `eslint.config.mjs`)
 - `yarn workspace @avalon/client lint` - Lint client code
-- `yarn workspace @avalon/server lint` - Lint server code
-- `cd firebase/functions && npm run lint` - Lint Firebase functions
+- `yarn workspace @avalon/server lint` - Lint + typecheck the server
+- `common/crypto` and `common/protocol` (except `driver.ts`, tests and `bench.ts`) ban `Date`, `Math.random`, `Intl`/locale APIs and floating point (protocol code must be deterministic)
 
 ### Testing
-- `yarn test` - Run E2E flow test (Playwright, headless)
-- `yarn test:browser` - Run E2E browser test (Playwright, headed)
-- Tests are in `tests/e2e-flow.mjs` and `tests/e2e-browser.mjs`
-- Tests use Playwright to simulate a full multiplayer game flow against a running server
-
-### Firebase Deployment
-- `firebase deploy` - Deploy Firebase functions
-- `firebase emulators:start --only functions` - Run Firebase functions locally
-
-### Server Deployment
-- `gcloud app deploy` - Deploy server to Google App Engine
+- `yarn test:unit` - Unit tests: `@avalon/common` (crypto, protocol, simulations), client P2P runtime (`client/src/p2p`), relay (`server/relay.test.ts`); all `node --import tsx --test`
+- `yarn test:e2e` - Brings up a throwaway relay (temporary `GUN_DIR`), a public-relay stand-in (`tests/public-relay.mjs` on :8765, advertised via `GUN_PUBLIC_PEERS`; `PUBLIC_RELAY=0` disables it) + vite and runs every `tests/e2e-*.mjs`; `PLAYERS=5..10` runs `e2e-full-game.mjs` once per player count
+- `yarn test` / `yarn test:browser` / `yarn test:game` - Single e2e files against an already running stack
+- Any `tests/e2e-*.mjs` runs alone against a running stack: `BASE_URL=http://127.0.0.1:8001/ PLAYERS=10 node tests/e2e-full-game.mjs`
+  (after `yarn build && yarn start`); env `BROWSER`, `CHROMIUM_PATH`, `RNG_SEED`, `EVIL_FAIL_RATE=0` (reach the assassination), `ENFORCE_PERF=1`
+- Slow opt-in unit suites: `AVALON_SLOW_TESTS=1` (full crypto sweep), `AVALON_SIM_FULL=1` (all 384 role/size simulations)
+- `yarn workspace @avalon/server smoke <relay-url> [seconds]` - Two node GUN clients through a running relay
 
 ### Nix Build
-- `nix build` - Build the Nix package (bundled server + client assets)
-- `nix build .#container` - Build a Docker container image
-- `nix develop` - Enter development shell with Node.js 20
-- The Nix build runs `yarn build` + `yarn bundle:server`, then installs only the bundled output (~17MB vs ~763MB unbundled)
-
-### Admin Functions
-- `yarn admin` or `node server/admin.js` - Run administrative functions
+- `nix build` - Bundled relay + client assets; runs the relay boot self-test as install check
+- `nix build .#container` - Docker image (`GUN_DIR=/data/radata`, `/data` volume)
+- `nix flake check` - Runs `checks.unit` (`yarn test:unit`)
+- `nix run .#e2e` - E2E suite with a Nix-pinned toolchain (Node + Playwright browsers)
+- `nix run .#update-deps` - After any dependency change: regenerates `missing-hashes.json` and the offline-cache hash in `default.nix`
+- `yarn lint` / `yarn typecheck` - ESLint, and tsc (common, server) plus vue-tsc (client, `.vue` included); also run by `nix build` and `nix flake check` (checks.lint)
 
 ## Architecture
 
-This is a **multiplayer Avalon card game** with four main components:
+Avalon is **fully peer-to-peer** (specification: `docs/p2p-protocol.md`, normative). There is no
+authoritative game server and no database. Every client runs the same deterministic state machine
+over an append-only set of signed, content-addressed messages stored in GUN; roles are dealt with
+a verifiable shuffle so no party, including the relay, learns secret game state.
 
-### Common (`/common/`)
-- Shared game logic workspace package (`@avalon/common`)
-- TypeScript source (`avalonlib.ts`), compiled to CJS in `dist/` via `tsc`
-- Used by both server and Firebase functions
-- Exports TypeScript types via sub-path exports
-- Run `yarn build:common` after editing (automatic in `yarn build`)
+### Common (`/common/`) - `@avalon/common`
+- Source-only ESM TypeScript, consumed directly by Vite, tsx and the worker bundle (no `dist/`)
+- `avalonlib.ts` - roles and rules tables
+- `crypto/` - ristretto255 primitives, sigma proofs, shuffle, OT (pure, synchronous)
+- `protocol/` - envelopes, rules, lobby reducer, game state machine, projections, the `SeatDriver`
+- `testing/` - in-memory transport and seeded simulations
+- Relative imports use explicit `.ts` extensions
 
-### Client (`/client/`)
-- Vue 3.5 SPA with Vuetify 3 UI framework
-- TypeScript source files in `client/src/`
-- Real-time game state via Firebase Firestore listeners
-- REST API calls to Express server for game actions
-- Build tool: Vite 8, dev proxy to `https://avalon.onl/api`
+### Client (`/client/`) - `@avalon/client`
+- Vue 3 SPA with Vuetify; components use the `AvalonGame` API of `client/src/avalon.ts`
+- `client/src/p2p/` - P2P runtime: GUN instance, subscriptions, reconnect/republish watchdog,
+  IndexedDB journal, SEA identity, Web Worker crypto pool, `P2PSession`
+- Identities are anonymous per-device SEA key pairs
 
-### Server (`/server/`)
-- Express.js REST API server (TypeScript)
-- Handles game logic validation and state mutations
-- Writes to Firebase Firestore database
-- Main files: `server.ts` (entry), `avalon-server.ts` (game logic), `types.ts` (interfaces)
-- Uses `tsx` for development and production runtime
-- Bundled to single file via esbuild for production (`dist-server/server.js`)
-
-### Firebase (`/firebase/`)
-- Firestore database for game state storage
-- Cloud Functions for post-game statistics computation
-- Authentication and real-time data sync
-
-## Game Logic Structure
-
-**Core Components:**
-- **Lobbies** - Player gathering spaces with admin controls
-- **Games** - Active game sessions with missions and voting
-- **Roles** - Secret character assignments (Merlin, Morgana, etc.)
-- **Missions** - 5 missions requiring team proposals and votes
-
-**State Flow:**
-1. Players join lobbies via client
-2. Game actions sent to Express API endpoints
-3. Server validates and updates Firestore
-4. Clients receive real-time updates via Firestore listeners
-5. Firebase Functions compute stats after game completion
-
-**Key Files:**
-- `common/avalonlib.ts` - Core game logic (roles, rules) - shared by server and Firebase
-- `client/src/avalon-api-rest.ts` - API client wrapper
-- `client/src/components/Game*.vue` - Game interface components
-- `client/src/types.ts` - TypeScript type definitions
-- `firebase/functions/common/stats.js` - Post-game statistics computation
+### Server (`/server/`) - `@avalon/server`
+- `server.ts` - Express: static SPA (`dist/`), `GET /api/relay-info` (`{bootId, now, peers}`), `GET /healthz`,
+  and the GUN relay on `/gun` (same HTTP server)
+- `relay.ts` - `installRelayFilter(gun)` (soul/key/value whitelist, size limits, 50 puts/s per
+  connection) and `relaySelfTest()` (throwaway loopback relay proving SEA and the filter work;
+  the server exits 1 if it fails)
+- `gun-shim.ts` - must be the first import: lets SEA use Node's WebCrypto inside the esbuild bundle
+- `bundle.ts` - esbuild options for the single-file bundle; `smoke.ts` - two-client smoke test
+- No game logic and no dependency on `@avalon/common`
+- `peers.ts` - public GUN relays advertised to clients (`GUN_PUBLIC_PEERS`, default list, URL validation)
+- Deployment: WebSockets, a persistent writable `GUN_DIR`, exactly one instance
+- Clients also dial the advertised public relays (`client/src/p2p/gun.ts`), so games survive an outage of this relay
 
 ## Workspace Structure
 
-This is a Yarn 4 workspace with four packages:
-- `@avalon/common` - Shared game logic library (TypeScript, compiled to CJS)
+Yarn 4 workspace with three packages:
+- `@avalon/common` - Crypto + protocol library (TypeScript source)
 - `@avalon/client` - Frontend application (Vue 3 + Vite)
-- `@avalon/server` - Backend API (Express.js + TypeScript)
-- `functions` - Firebase Cloud Functions
+- `@avalon/server` - GUN relay + static host (Express + TypeScript)
 
-Always use workspace commands from the root directory for consistent dependency management.
+Always use workspace commands from the root directory for consistent dependency management. Use
+`yarn`, never `npm`.
 
 ## Tech Stack
 
-- **Frontend:** Vue 3.5, Vuetify 3, Vite 8, TypeScript
-- **Backend:** Node.js 20, Express 5, Firebase Admin SDK
-- **Database:** Firebase Firestore (real-time)
-- **Testing:** Playwright (E2E)
-- **Build:** Yarn 4 workspaces, esbuild (server bundling), Nix (reproducible builds)
-- **Deployment:** Google App Engine (server), Firebase (functions + hosting)
-- **Linting:** ESLint 9 with TypeScript and Vue plugins
+- **Frontend:** Vue 3.5, Vuetify, Vite, TypeScript
+- **P2P:** GUN (fork `github:georgyo/gun`) with SEA, IndexedDB, Web Workers, `@noble/curves` (ristretto255, P-256)
+- **Relay:** Node.js 22+, Express 5, GUN relay with radisk storage
+- **Testing:** `node:test` + tsx (unit), Playwright (E2E)
+- **Build:** Yarn 4 workspaces, esbuild (relay bundling), Nix (reproducible builds)
+- **Linting:** ESLint (flat config) with TypeScript and Vue plugins

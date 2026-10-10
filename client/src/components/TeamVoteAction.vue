@@ -27,10 +27,15 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue'
+import { useToast } from 'vue-toastification'
 
 export default defineComponent({
   name: 'TeamVoteAction',
   props: [ 'avalon' ],
+  setup() {
+    const toast = useToast()
+    return { toast }
+  },
   data() {
       const hasVoted = this.avalon.game.currentProposal.votes.includes(this.avalon.user.name);
       return {
@@ -51,12 +56,16 @@ export default defineComponent({
           const otherState = vote ? 'no' : 'yes';
           this.loadingState[myState] = true;
           this.disabledState[otherState] = true;
-          this.avalon.voteTeam(vote).finally(() => {
-              this.loadingState[myState] = false;
+          this.avalon.voteTeam(vote).then(() => {
               this.disabledState[myState] = true;
               this.disabledState[otherState] = false;
               this.votedState[myState] = true;
               this.votedState[otherState] = false;
+          }).catch((err: Error) => {
+              this.toast.error(err.message);
+              this.disabledState[otherState] = this.votedState[otherState];
+          }).finally(() => {
+              this.loadingState[myState] = false;
           });
       }
   }

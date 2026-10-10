@@ -36,14 +36,16 @@ export default defineComponent({
       }
   },
   mounted() {
-      this.onGameStarted = () => { this.startGameDialog = true; };
-      this.onGameEnded = () => { this.startGameDialog = false; };
-      EventBus.on('GAME_STARTED', this.onGameStarted);
-      EventBus.on('GAME_ENDED', this.onGameEnded);
+      const onGameStarted = () => { this.startGameDialog = true; };
+      const onGameEnded = () => { this.startGameDialog = false; };
+      this.onGameStarted = onGameStarted;
+      this.onGameEnded = onGameEnded;
+      EventBus.on('GAME_STARTED', onGameStarted);
+      EventBus.on('GAME_ENDED', onGameEnded);
   },
   beforeUnmount() {
-      EventBus.off('GAME_STARTED', this.onGameStarted);
-      EventBus.off('GAME_ENDED', this.onGameEnded);
+      if (this.onGameStarted) EventBus.off('GAME_STARTED', this.onGameStarted);
+      if (this.onGameEnded) EventBus.off('GAME_ENDED', this.onGameEnded);
   }
 })
 </script>

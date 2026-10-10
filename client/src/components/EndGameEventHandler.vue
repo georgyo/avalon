@@ -8,11 +8,24 @@
         </v-card-title>
         <v-card-text class="endgame-content">
             <div class="d-flex flex-column align-center justify-center">
-            <div class='endgame-message font-weight-bold'> {{ avalon.game.outcome.message }}</div>
+            <div class='endgame-message font-weight-bold' data-testid="endgame-message"> {{ avalon.game.outcome.message }}</div>
             <p v-if='avalon.game.outcome.assassinated'>
-                {{ avalon.game.outcome.assassinated}} was assassinated by
-                {{ avalon.game.outcome.roles.find(r => r.assassin ).name }}
+                {{ avalon.game.outcome.assassinated }} was assassinated<template v-if='assassinName'> by {{ assassinName }}</template>
             </p>
+            <v-alert v-for='cheater in cheaters' :key='"cheater_" + cheater.name + cheater.reason'
+              type="error" density="compact" variant="tonal" class="mb-2 endgame-alert" data-testid="endgame-cheater">
+              {{ cheater.name }} cheated: {{ cheater.reason }}
+            </v-alert>
+            <v-alert v-if='unrevealed.length' type="warning" density="compact" variant="tonal" class="mb-2 endgame-alert"
+              data-testid="endgame-unrevealed">
+              <template v-if='revealsOverdue'>
+                {{ unrevealed.joinWithAnd() }} did not reveal - results incomplete
+              </template>
+              <template v-else>
+                Waiting for {{ unrevealed.joinWithAnd() }} to reveal...
+              </template>
+            </v-alert>
+            <p v-else-if='avalon.game.outcome.final === false' class="text-caption">Some results are still incomplete.</p>
             <div class="endgame-table-wrapper">
               <MissionSummaryTable
                :players='avalon.game.players'
@@ -33,6 +46,7 @@ import { defineComponent } from 'vue'
 import { EventBus } from '@/eventBus'
 import GameAchievements from './GameAchievements.vue'
 import MissionSummaryTable from './MissionSummaryTable.vue'
+import { UI_TIMERS } from '@/avalon'
 
 export default defineComponent({
   name: 'EndGameEventHandler',
@@ -49,6 +63,9 @@ export default defineComponent({
       }
   },
   computed: {
+      gameState(): string | null {
+          return this.avalon.lobby && this.avalon.lobby.connected ? this.avalon.lobby.game.state : null;
+      },
       title() {
           switch (this.avalon.game.outcome.state) {
               case 'GOOD_WIN': return 'Good wins!';
@@ -58,10 +75,26 @@ export default defineComponent({
           }
       },
       roleAssignments() {
-        return this.avalon.game.outcome.roles.slice(0).sort((a: {role: string}, b: {role: string}) => {
-          const roleIndexOf = (name: string) => this.avalon.config.roles.findIndex((r: {name: string}) => r.name == name);
-          return roleIndexOf(a.role) - roleIndexOf(b.role);
-        });
+        // unknown roles ('UNKNOWN', never revealed, §5.12) sort last
+        const roleIndexOf = (name: string) => {
+          const idx = this.avalon.config.roles.findIndex((r: {name: string}) => r.name == name);
+          return idx < 0 ? Number.MAX_SAFE_INTEGER : idx;
+        };
+        return this.avalon.game.outcome.roles.slice(0).sort((a: {role: string}, b: {role: string}) =>
+          roleIndexOf(a.role) - roleIndexOf(b.role));
+      },
+      assassinName(): string | null {
+        const assassin = this.avalon.game.outcome.roles.find((r: {assassin?: boolean}) => r.assassin);
+        return assassin ? assassin.name : null;
+      },
+      cheaters(): {name: string; reason: string}[] {
+        return this.avalon.game.outcome.cheaters ?? [];
+      },
+      unrevealed(): string[] {
+        return this.avalon.game.outcome.unrevealed ?? [];
+      },
+      revealsOverdue(): boolean {
+        return this.avalon.endedMs > UI_TIMERS.missingRevealsMs;
       },
       missions() {
           return this.avalon.game.missions.filter((m: {proposals: {state: string}[]}) => m.proposals.filter(p => p.state != 'PENDING').length > 0);
@@ -72,15 +105,28 @@ export default defineComponent({
           this.endGameDialog = false;
       }
   },
+  watch: {
+      // The fullscreen, persistent dialog would otherwise stay up, empty, once the admin starts the
+      // next game (ENDED -> INIT setup), blocking the toolbar during the whole setup.
+      gameState(state: string | null) {
+          if (state != 'ENDED') this.endGameDialog = false;
+      }
+  },
   mounted() {
-      this.onGameEnded = () => { this.endGameDialog = true; };
-      this.onGameStarted = () => { this.endGameDialog = false; };
-      EventBus.on('GAME_ENDED', this.onGameEnded);
-      EventBus.on('GAME_STARTED', this.onGameStarted);
+      const onGameEnded = () => { this.endGameDialog = true; };
+      const onGameStarted = () => { this.endGameDialog = false; };
+      this.onGameEnded = onGameEnded;
+      this.onGameStarted = onGameStarted;
+      EventBus.on('GAME_ENDED', onGameEnded);
+      EventBus.on('GAME_STARTED', onGameStarted);
+      EventBus.on('GAME_SETUP', onGameStarted);
   },
   beforeUnmount() {
-      EventBus.off('GAME_ENDED', this.onGameEnded);
-      EventBus.off('GAME_STARTED', this.onGameStarted);
+      if (this.onGameEnded) EventBus.off('GAME_ENDED', this.onGameEnded);
+      if (this.onGameStarted) {
+          EventBus.off('GAME_STARTED', this.onGameStarted);
+          EventBus.off('GAME_SETUP', this.onGameStarted);
+      }
   }
 })
 </script>
@@ -136,6 +182,11 @@ export default defineComponent({
   .endgame-message {
       font-size: 1.15rem;
       text-align: center;
+  }
+
+  .endgame-alert {
+      max-width: 600px;
+      width: 100%;
   }
 
   .endgame-table-wrapper {

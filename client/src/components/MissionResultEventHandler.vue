@@ -50,17 +50,24 @@ export default defineComponent({
       }
   },
   mounted() {
-      this.onGameStarted = () => { this.missionDialog = false; };
-      this.onGameEnded = () => { this.missionDialog = false; };
-      this.onMissionResult = () => { this.missionDialog = true; };
-      EventBus.on('GAME_STARTED', this.onGameStarted);
-      EventBus.on('GAME_ENDED', this.onGameEnded);
-      EventBus.on('MISSION_RESULT', this.onMissionResult);
+      const onGameStarted = () => { this.missionDialog = false; };
+      const onGameEnded = () => { this.missionDialog = false; };
+      const onMissionResult = () => { this.missionDialog = true; };
+      this.onGameStarted = onGameStarted;
+      this.onGameEnded = onGameEnded;
+      this.onMissionResult = onMissionResult;
+      EventBus.on('GAME_STARTED', onGameStarted);
+      EventBus.on('GAME_SETUP', onGameStarted);
+      EventBus.on('GAME_ENDED', onGameEnded);
+      EventBus.on('MISSION_RESULT', onMissionResult);
   },
   beforeUnmount() {
-      EventBus.off('GAME_STARTED', this.onGameStarted);
-      EventBus.off('GAME_ENDED', this.onGameEnded);
-      EventBus.off('MISSION_RESULT', this.onMissionResult);
+      if (this.onGameStarted) {
+          EventBus.off('GAME_STARTED', this.onGameStarted);
+          EventBus.off('GAME_SETUP', this.onGameStarted);
+      }
+      if (this.onGameEnded) EventBus.off('GAME_ENDED', this.onGameEnded);
+      if (this.onMissionResult) EventBus.off('MISSION_RESULT', this.onMissionResult);
   }
 })
 </script>
