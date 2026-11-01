@@ -3025,9 +3025,9 @@ __metadata:
   linkType: hard
 
 "basic-ftp@npm:^6.2.1":
-  version: 6.2.1
-  resolution: "basic-ftp@npm:6.2.1"
-  checksum: 10/c75f5866cceab4f9dd9102dee82cefe1da89e4d845bc49360700cad9fb93b054bd781245e3426df71b258485226c5693a15e6ad01595ef176b24882dffee29df
+  version: 6.2.5
+  resolution: "basic-ftp@npm:6.2.5"
+  checksum: 10/acebbd99222f0d552dab7b6e65fcee7b19e49ebd4fcb0d57c3c2a9a5c199435bce8b5018457466582da0458a78c94433b8bc92d80aaf9b64b97ad6e779a6e1fd
   languageName: node
   linkType: hard
 
