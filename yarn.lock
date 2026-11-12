@@ -5044,9 +5044,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"firebase-tools@npm:^15.34.2":
-  version: 15.34.2
-  resolution: "firebase-tools@npm:15.34.2"
+"firebase-tools@npm:^15.35.0":
+  version: 15.35.0
+  resolution: "firebase-tools@npm:15.35.0"
   dependencies:
     "@electric-sql/pglite": "npm:^0.3.3"
     "@electric-sql/pglite-tools": "npm:^0.2.8"
@@ -5087,7 +5087,6 @@ __metadata:
     lsofi: "npm:^2.0.0"
     marked: "npm:^13.0.2"
     marked-terminal: "npm:^7.0.0"
-    mime: "npm:^2.5.2"
     minimatch: "npm:^3.0.4"
     morgan: "npm:^1.10.0"
     node-fetch: "npm:^2.6.7"
@@ -5117,7 +5116,7 @@ __metadata:
     zod: "npm:^4.0.0"
   bin:
     firebase: lib/bin/firebase.js
-  checksum: 10/bf0ef3e3c765d07ca31ceac4c8d8b5ee0c87044790f9ee8f802ed04f59eedde38df299973b998a8f8ab5a264a4a0e045b0619d6f48e673623836dc1fc5f5bcfe
+  checksum: 10/21cd0a9a72315f57497e55654eae6e990a8e96c2671e086314d42d562c23c1e2eb8b015a33e93355bdd89c06f92e6b9f5b852fa077a5da3f855db95efe90aae7
   languageName: node
   linkType: hard
 
@@ -5307,7 +5306,7 @@ __metadata:
     eslint-plugin-promise: "npm:^7.3.0"
     firebase-admin: "npm:^14.5.0"
     firebase-functions: "npm:^7.4.0"
-    firebase-tools: "npm:^15.34.2"
+    firebase-tools: "npm:^15.35.0"
     globals: "npm:^17.14.0"
   languageName: unknown
   linkType: soft
@@ -6788,15 +6787,6 @@ __metadata:
   bin:
     mime: cli.js
   checksum: 10/b7d98bb1e006c0e63e2c91b590fe1163b872abf8f7ef224d53dd31499c2197278a6d3d0864c45239b1a93d22feaf6f9477e9fc847eef945838150b8c02d03170
-  languageName: node
-  linkType: hard
-
-"mime@npm:^2.5.2":
-  version: 2.6.0
-  resolution: "mime@npm:2.6.0"
-  bin:
-    mime: cli.js
-  checksum: 10/7da117808b5cd0203bb1b5e33445c330fe213f4d8ee2402a84d62adbde9716ca4fb90dd6d9ab4e77a4128c6c5c24a9c4c9f6a4d720b095b1b342132d02dba58d
   languageName: node
   linkType: hard
 
