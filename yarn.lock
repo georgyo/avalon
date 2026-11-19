@@ -1717,7 +1717,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@modelcontextprotocol/sdk@npm:^1.24.0":
+"@modelcontextprotocol/sdk@npm:^1.32.2":
   version: 1.32.2
   resolution: "@modelcontextprotocol/sdk@npm:1.32.2"
   dependencies:
@@ -5112,15 +5112,15 @@ __metadata:
   linkType: hard
 
 "firebase-tools@npm:^15.36.0":
-  version: 15.36.0
-  resolution: "firebase-tools@npm:15.36.0"
+  version: 15.37.0
+  resolution: "firebase-tools@npm:15.37.0"
   dependencies:
     "@electric-sql/pglite": "npm:^0.3.3"
     "@electric-sql/pglite-tools": "npm:^0.2.8"
     "@google-cloud/cloud-sql-connector": "npm:^1.3.3"
     "@google-cloud/pubsub": "npm:^5.2.0"
     "@inquirer/prompts": "npm:^7.10.1"
-    "@modelcontextprotocol/sdk": "npm:^1.24.0"
+    "@modelcontextprotocol/sdk": "npm:^1.32.2"
     abort-controller: "npm:^3.0.0"
     ajv: "npm:^8.17.1"
     ajv-formats: "npm:3.0.1"
@@ -5174,7 +5174,7 @@ __metadata:
     tcp-port-used: "npm:^1.0.2"
     tmp: "npm:^0.2.3"
     triple-beam: "npm:^1.3.0"
-    undici: "npm:^6.19.0"
+    undici: "npm:^6.29.1"
     update-notifier-cjs: "npm:^5.1.6"
     winston: "npm:^3.0.0"
     winston-transport: "npm:^4.4.0"
@@ -5183,7 +5183,7 @@ __metadata:
     zod: "npm:^4.0.0"
   bin:
     firebase: lib/bin/firebase.js
-  checksum: 10/6fb411d55d860f0bfc713b9710b3554738012571c74a9a2ac31dac4f28979563027cd7c2fdb7692ae815ea1c882cecf6092e3f5a7cd6a56caa9804b17d4ef5f9
+  checksum: 10/412ba71385dbf78a3922ca7d478e8f571bc704665e4019a64e4ac9bc7e0cdd36ca2e223dee46d627e6cd2e9ef8a3f3880f0c98a63cd84ff5130819d79b8339c3
   languageName: node
   linkType: hard
 
@@ -8844,7 +8844,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"undici@npm:^6.19.0":
+"undici@npm:^6.29.1":
   version: 6.29.1
   resolution: "undici@npm:6.29.1"
   checksum: 10/92acb64ec190fe3499dec69830fdfc48e28f6f19627bad7563cfd57c37b4e95379c12b8ac15a2e6a8739eaac358f17503a229c160d3dc8774141b1e270d8aa57
